@@ -14,181 +14,94 @@
 
 
 
-    <style>
-        /* ... Your existing styles ... */
-         body {
-            overflow-x: hidden; /* Prevent horizontal scroll */
-        }
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            left: 0;
-            top: 56px; /* Adjust according to the height of the navbar */
-            width: 250px;
-            background-color: #f8f9fa;
-            padding-top: 20px;
-        }
-        .sidebar a {
-            padding: 10px 15px;
-            display: block;
-            color: #333;
-            text-decoration: none;
-        }
-        .sidebar a:hover {
-            background-color: #ddd;
-        }
-        .main-content {
-            margin-left: 250px; /* Space for sidebar */
-            padding: 20px;
-        }
-        .ticket-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .ticket-row p {
-            margin-bottom: 0;
-            padding-right: 15px;
-        }
-        .collapse {
-            margin-top: 10px;
-        }
-        /* Sidebar styling */
-.sidebar {
-    width: 250px;
-    background-color: #2c3e50;
-    padding: 15px;
-    color: white;
-}
-
-.sidebar a {
-    color: white;
-    text-decoration: none;
-    display: block;
-    padding: 10px;
-    font-size: 16px;
-    transition: background-color 0.3s ease;
-}
-
-.sidebar a:hover {
-    background-color: #34495e;
-    border-radius: 4px;
-}
-
-/* Custom Dropdown Styles */
-.custom-dropdown {
-    position: relative;
-}
-
-.custom-dropdown-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    padding: 10px;
-    color: white;
-    background-color: #2c3e50;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-.custom-dropdown-toggle:hover {
-    background-color: #34495e;
-}
-
-.custom-dropdown-toggle h5 {
+<style>
+/* Reset for body */
+body {
+    overflow-x: hidden;
     margin: 0;
-    display: flex;
-    align-items: center;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+    background-color: #f4f4f4; /* Light background for the body */
 }
-
-.custom-dropdown-toggle i {
-    margin-left: 10px;
-    transition: transform 0.3s ease;
-}
-
-.custom-dropdown-menu {
-    display: none;
-    background-color: #34495e;
-    border-radius: 4px;
-    margin-top: 5px;
-    padding: 10px;
-}
-
-.custom-dropdown-item {
-    display: block;
-    padding: 8px 12px;
-    color: white;
-    background-color: transparent;
-    transition: background-color 0.3s ease;
-}
-
-.custom-dropdown-item:hover {
-    background-color: #1abc9c;
-    border-radius: 4px;
-}
-
-/* Show dropdown on toggle */
-.custom-dropdown.active .custom-dropdown-menu {
-    display: block;
-}
-
-/* Rotate icon when dropdown is active */
-.custom-dropdown.active .custom-dropdown-toggle i {
-    transform: rotate(180deg);
-}
-
 
 /* Custom Navbar Styles */
-.custom-navbar {
-    background-color: #2c3e50; /* Matches sidebar color */
-    padding: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adds slight shadow for depth */
-}
+    .custom-navbar {
+        background-color: #2c3e50; /* Matches sidebar color */
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adds slight shadow for depth */
+    }
 
-.navbar-brand {
-    color: #ffffff;
-    font-size: 24px;
-    font-weight: bold;
-}
+    .navbar-brand {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: bold;
+    }
 
-.navbar-nav .nav-link {
-    color: #ffffff;
-    font-size: 16px;
-    padding: 8px 20px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-}
+    .navbar-nav .nav-link {
+        color: #ffffff;
+        font-size: 16px;
+        padding: 8px 20px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
 
-.navbar-nav .nav-link:hover {
-    background-color: #1abc9c; /* Matches hover effect of sidebar */
-    border-radius: 4px;
-    color: #ffffff;
-}
+    .navbar-nav .nav-link:hover {
+        background-color: #1abc9c; /* Matches hover effect of sidebar */
+        border-radius: 4px;
+        color: #ffffff;
+    }
 
-/* Navbar toggler for small screens */
-.custom-toggler {
-    border-color: #ffffff;
-}
+    /* Navbar toggler for small screens */
+    .custom-toggler {
+        border-color: #ffffff;
+    }
 
-.custom-toggler .navbar-toggler-icon {
-    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-width='2' linecap='round' linejoin='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
-}
+    .custom-toggler .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-width='2' linecap='round' linejoin='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+    }
 
-/* Navbar title */
-.navbar-title {
-    font-size: 24px;
-    font-weight: bold;
-    color: #ffffff;
-}
+    /* Navbar title */
+    .navbar-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #ffffff;
+    }
 
-/* Centering and spacing for larger screens */
-.navbar-nav {
-    margin-left: auto; /* Aligns the items to the right */
-}
+    /* Centering and spacing for larger screens */
+    .navbar-nav {
+        margin-left: auto; /* Aligns the items to the right */
+    }
 
-.navbar-collapse {
-    justify-content: flex-end;
-}
+    .navbar-collapse {
+        justify-content: flex-end;
+    }
+
+    /* Additional responsiveness for mobile view */
+    @media (max-width: 991px) {
+        .navbar-nav .nav-link {
+            padding: 12px;
+            text-align: center;
+        }
+    }
+
+    .dropdown-menu {
+        right: 0;
+        left: auto; /* Align dropdown to the right */
+        min-width: 160px; /* Set a minimum width for better appearance */
+        border-radius: 5px; /* Rounded corners for the dropdown */
+        border: 1px solid rgba(0, 0, 0, 0.2); /* Light border */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    }
+
+    .dropdown-item {
+        color: #333; /* Dark text for contrast */
+        padding: 10px 15px; /* Better padding */
+    }
+
+    .dropdown-item:hover {
+        background-color: #1abc9c; /* Change background on hover */
+        color: #ffffff; /* White text on hover */
+    }
 
 /* Additional responsiveness for mobile view */
 @media (max-width: 991px) {
@@ -200,208 +113,200 @@
 
 
 
-/* General Styles for Main Content */
-.main-content {
-    margin-top: 80px; /* Adjust for the fixed navbar */
-    color: #ecf0f1;
+/* Sidebar styling */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    height: 100vh;
+    width: 80px; /* Sidebar width */
     background-color: #2c3e50;
-    padding: 20px;
-    border-radius: 8px;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1050;
+}
+
+/* Sidebar anchor (icon container) */
+.sidebar a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    color: white;
+    padding: 20px 0;
+    text-decoration: none;
+}
+
+/* Icon inside sidebar */
+.sidebar i {
+    font-size: 24px;
+}
+
+/* Hover text (dashboard, users, etc.) */
+.sidebar a:hover h5 {
+    opacity: 1;
+    left: 100%; /* Show text right next to sidebar */
+    background-color: rgba(44, 62, 80, 0.9);
+    padding: 5px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 1060; /* Ensure text is above other elements */
+    top: 50%; /* Align vertically */
+    transform: translateY(-50%); /* Center text vertically */
+}
+
+/* Initial hidden text for the label */
+.sidebar h5 {
+    position: absolute;
+    left: 80px; /* Adjusted to match sidebar width */
+    top: 50%; /* Center vertically relative to the icon */
+    transform: translateY(-50%);
+    background-color: transparent;
+    opacity: 0;
+    font-size: 16px;
+    color: white;
+    transition: opacity 0.3s ease, left 0.3s ease;
+    pointer-events: none; /* Make text unclickable */
 }
 
 
-
-.ticket-info {
-    margin-left: 10px; /* Adds some space between the dropdown and ticket info */
+/* Active Users dropdown */
+.custom-dropdown {
+    position: relative;
 }
 
-.dropdown-toggle::after {
-    display: none; /* Optional: Hides the default caret for the button */
+.custom-dropdown-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 20px 0;
+    color: white;
 }
 
-.card {
-    transition: transform 0.2s; /* Optional: Smooth transition effect */
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* Ticket Card Styling */
-.ticket-card {
+.custom-dropdown-menu {
+    display: none;
+    position: absolute;
+    left: 100%; /* Right of the sidebar */
+    top: 0;
     background-color: #34495e;
-    border: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Adds a soft shadow */
-    border-radius: 8px;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 1060; /* Make sure it's above other elements */
+    width: 180px; /* Adjust as necessary */
 }
 
+.custom-dropdown:hover .custom-dropdown-menu {
+    display: block;
+}
+
+.custom-dropdown-item {
+    color: white;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #1abc9c;
+}
+
+
+
+
+/* Main Content Styling */
+.main-content {
+    margin-left: 80px; /* Sidebar width */
+    padding: 70px 20px 20px 20px;
+    background-color: #ffffff; /* White background */
+    color: black; /* Black text */
+    min-height: 100vh;
+    box-sizing: border-box;
+    z-index: 100; /* Lower than sidebar */
+}
+
+
+/* Ticket Header */
 .ticket-header {
-    background-color: #1abc9c; /* Matches sidebar and navbar hover */
-    color: #fff;
-    font-weight: bold;
-    font-size: 1.2rem;
+    background-color: #f4f4f4; /* Light gray background for the header */
     padding: 15px;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+    color: #333; /* Dark text */
+}
+
+/* Additional card styles */
+.card {
+    background-color: white; /* White background for cards */
+    border: 1px solid #ddd; /* Light border for cards */
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .ticket-body {
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    padding: 15px;
+    padding: 20px;
 }
 
-/* Latest Ticket Row */
-.ticket-row {
-    padding: 10px 0;
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Light divider */
+.ticket-card table th,
+.ticket-card table td {
+    color: #333 !important; /* Ensure table text is black */
 }
 
-.ticket-row p {
-    margin: 0;
-    padding-right: 20px;
-}
-
-/* Collapse Button Styling */
-.toggle-button {
-    background-color: #1abc9c;
-    color: #ffffff;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 16px;
-    transition: background-color 0.3s ease;
-}
-
-.toggle-button:hover {
-    background-color: #16a085;
-    color: #ffffff;
-}
-
-/* Styling for Older Tickets */
-.old-ticket {
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.old-ticket p {
-    margin: 0;
-}
-
-/* Headings */
-h1 {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #ecf0f1;
-}
-
-/* Responsive adjustments */
+/* Responsiveness */
 @media (max-width: 768px) {
-    .ticket-row {
-        flex-direction: column;
-        align-items: flex-start;
+    .main-content {
+        margin-left: 60px; /* Adjust for smaller screens */
+        width: calc(100% - 60px); /* Adjust width for smaller screens */
     }
 
-    .toggle-button {
+    .sidebar {
+        width: 60px; /* Smaller sidebar on mobile */
+    }
+
+    .sidebar h5 {
+        left: 60px; /* Adjust hover text for smaller screens */
+    }
+
+    /* For mobile, navbar should take the full width */
+    .navbar {
         width: 100%;
-        text-align: center;
     }
-
 }
 
-        .btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-        }
+/* Switch Toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
 
-        .dropdown-menu {
-            right: 0;
-            left: auto; /* Align dropdown to the right */
-        }
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
 
-        /* Ensure table content (td and th) is white */
-    .ticket-card table th,
-    .ticket-card table td {
-        color: white !important;  /* !important to force white color */
-    }
+.slider.round {
+    border-radius: 34px;
+}
 
-</style>
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+}
 
-    <style>
-    .switch {
-        position: relative;
-        display: inline-block;
-        width: 60px;
-        height: 34px;
-    }
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-    .slider {
-        position: absolute;
-        cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: #ccc;
-        transition: .4s;
-        border-radius: 34px;
-    }
-    .slider:before {
-        position: absolute;
-        content: "";
-        height: 26px;
-        width: 26px;
-        left: 4px;
-        bottom: 4px;
-        background-color: white;
-        transition: .4s;
-        border-radius: 50%;
-    }
-    input:checked + .slider {
-        background-color: #007bff;
-    }
-    input:checked + .slider:before {
-        transform: translateX(26px);
-    }
-
-    .ticket-active {
-        background-color: #e2d3f9; /* Light purple background */
-    }
-
-    .activity-badge {
-        padding: 2px 6px;
-        border-radius: 10px;
-        color: white;
-    }
-
-    .badge-warning {
-        background-color: #ffc107; /* Bootstrap warning color (yellow) */
-    }
-
-
-    .dropdown-menu {
-    position: absolute; /* Make dropdown absolute to allow better control */
-    z-index: 1050; /* Ensure it's above other content */
-    }
-
+input:checked + .slider {
+    background-color: #28a745;
+}
 </style>
 
 
@@ -411,8 +316,8 @@ h1 {
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top custom-navbar">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><h4 class="navbar-title">Postiefs</h4></a>
-            <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <a class="navbar-brand" href="#">Postiefs</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -425,7 +330,7 @@ h1 {
                     <li class="nav-item"><a class="nav-link" href="{% url 'user_tickets' user.id %}">View tickets</a></li>
                     <li class="nav-item">
                         <div class="dropdown">
-                            <button class="btn btn-secondary rounded-circle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <button class="btn btn-secondary rounded-circle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px;">
                                 {{ user.username|slice:":2"|upper }}
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -440,46 +345,56 @@ h1 {
     </nav>
 
     <!-- Sidebar -->
-    <div class="sidebar">
-        <a href="{% url 'dashboard' %}"><h5>Dashboard</h5></a>
+<div class="sidebar">
+    <a href="{% url 'dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i>
+        <h5>Dashboard</h5> <!-- Text that appears on hover -->
+    </a>
 
-        <!-- Custom Activity Dropdown -->
-        <div class="custom-dropdown">
-            <a class="custom-dropdown-toggle" href="#" id="activityDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#activityMenu" aria-expanded="false">
-                <h5>Active User <i class="fas fa-chevron-down"></i></h5>
-            </a>
-            <div class="collapse" id="activityMenu">
-                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Linux' %}">Linux</a>
-                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Windows' %}">Windows/Azure</a>
-                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'AWS' %}">Network/AWS</a>
-                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'LEVELONE' %}">LEVELONE</a>
-                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'OCI' %}">OCI</a>
-            </div>
+    <div class="custom-dropdown">
+        <div class="custom-dropdown-toggle">
+            <i class="fas fa-user"></i>
+            <h5>Active Users</h5> <!-- Text that appears on hover -->
         </div>
-        <a href="{% url 'employee_list' %}"><h5>Users</h5></a>
-        {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
-        <a href="{% url 'add_employee' %}"><h5>Add User</h5></a>
-        {% endif %}
+        <div class="custom-dropdown-menu">
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Linux' %}">Linux</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Windows' %}">Windows/Azure</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'AWS' %}">Network/AWS</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'LEVELONE' %}">LEVELONE</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'OCI' %}">OCI</a>
+        </div>
     </div>
 
+    <a href="{% url 'employee_list' %}">
+        <i class="fas fa-users"></i>
+        <h5>Users</h5> <!-- Text that appears on hover -->
+    </a>
 
-    <!-- Notification Pop-up -->
-            {% if user.is_authenticated %}
-                {% for notification in notifications %}
-                    <div id="ticket-notification-{{ notification.id }}" class="alert alert-info alert-dismissible fade show" role="alert" style="position:fixed; top:10px; right:10px; z-index: 1050;">
-                        <strong>{{ notification.message }}</strong>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="closeNotification({{ notification.id }})"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+    {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
+    <a href="{% url 'add_employee' %}">
+        <i class="fas fa-user-plus"></i>
+        <h5>Add User</h5> <!-- Text that appears on hover -->
+    </a>
+    {% endif %}
+</div>
+
+<!-- Notification Pop-up -->
+        {% if user.is_authenticated %}
+            {% for notification in notifications %}
+                <div id="ticket-notification-{{ notification.id }}" class="alert alert-info alert-dismissible fade show" role="alert" style="position:fixed; top:10px; right:10px; z-index: 1050;">
+                    <strong>{{ notification.message }}</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="closeNotification({{ notification.id }})"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
 
 
 
 <!-- main content -->
-<div class="main-content container mt-5">
+<div class="main-content">
     {% if user.is_authenticated %}
-        <div class="d-flex justify-content-between align-items-center mb-6">
-            <h1 class="text-white m-3">Tickets Overview</h1>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="text-dark m-3">Tickets Overview</h1>
 
             <!-- Filter by Skill (placed to the left) -->
             <div class="me-auto"><br>
@@ -501,7 +416,7 @@ h1 {
                     <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
                     <span class="slider round"></span>
                 </label>
-                <span id="breakStatus" class="text-white mb-0">
+                <span id="breakStatus" class="text-dark mb-0">
                     {% if employee_profile.is_on_break %}
                     You are currently on break.
                     {% else %}
@@ -513,7 +428,7 @@ h1 {
 
         <!-- Show a message if the user is on break -->
         {% if employee_profile.is_on_break %}
-            <p class="text-white">You are on break. Tickets are hidden until the break ends.</p>
+            <p class="text-dark">You are on break. Tickets are hidden until the break ends.</p>
         {% else %}
             <!-- Show tickets only if not on break -->
             <div id="ticket-container">
@@ -685,6 +600,7 @@ h1 {
         <p class="text-white">You need to be logged in to view tickets.</p>
     {% endif %}
 </div>
+
 
 
 
@@ -1050,6 +966,75 @@ document.addEventListener('DOMContentLoaded', function () {
               });
         }
     </script>
+<!-- Script to handle dropdown activation -->
+<script>
+    // Toggle the dropdown when the user clicks on it
+    document.querySelectorAll('.custom-dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent the click from bubbling up
+            this.parentElement.classList.toggle('active'); // Toggle the dropdown visibility
+        });
+    });
+
+    // Close the dropdown if the user clicks anywhere else on the page
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-dropdown')) {
+            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active'); // Remove active class (close dropdown)
+            });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select all buttons that toggle collapse (expand/collapse ticket options)
+        document.querySelectorAll('.btn-secondary').forEach(function(btn) {
+            // Get the target collapse element (the one controlled by this button)
+            const collapseTarget = document.querySelector(btn.getAttribute('data-bs-target'));
+
+            // Ensure collapse target exists before proceeding
+            if (collapseTarget) {
+                // Immediate button text change on click (when expanding)
+                btn.addEventListener('click', function() {
+                    // If the collapse is not shown (about to expand), change the button text to "-"
+                    if (!collapseTarget.classList.contains('show')) {
+                        btn.textContent = "-"; // Change immediately on expand
+                    }
+                });
+
+                // Listen for when the collapse animation finishes collapsing
+                collapseTarget.addEventListener('hidden.bs.collapse', function() {
+                    // Set the button text back to "+" after collapse completes
+                    btn.textContent = "+";
+                });
+            }
+        });
+
+        // Ensure collapsing the name bar collapses all ticket options
+        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(nameBar) {
+            nameBar.addEventListener('click', function() {
+                // Get the target collapse group (based on user ID)
+                const userId = this.getAttribute('data-bs-target').split('-').pop();
+
+                // Collapse all older ticket options when name bar is clicked
+                document.querySelectorAll('.collapse-' + userId).forEach(function(collapseRow) {
+                    const optionId = collapseRow.querySelector('button').getAttribute('data-bs-target');
+                    const optionElement = document.querySelector(optionId);
+
+                    // Check if the option is expanded and collapse it if necessary
+                    if (optionElement && optionElement.classList.contains('show')) {
+                        new bootstrap.Collapse(optionElement, { toggle: true });
+                        const toggleButton = collapseRow.querySelector('.btn-secondary');
+                        toggleButton.textContent = "+"; // Reset the button to "+"
+                    }
+                });
+            });
+        });
+    });
+</script>
+
+
 
 </body>
 </html>
