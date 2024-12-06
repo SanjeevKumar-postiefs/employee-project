@@ -3,6 +3,12 @@
 {% block content %}
 
 <style>
+
+.content{
+        margin-left:80px;
+        margin-top:80px;
+    }
+
 .ticket-title {
     margin-bottom: 20px;
     color: #343a40;
@@ -92,7 +98,7 @@
 
 </style>
 
-<div class="container-fluid mt-5">
+<div class="content">
     <div class="row">
         <!-- Sidebar -->
         <div class="col-md-3">
@@ -100,7 +106,7 @@
         </div>
 
         <!-- Main Content -->
-        <div class="col-md-9">
+        <div>
             <h2 class="ticket-title">Tickets Assigned to {{ user.username }}</h2>
 
             {% if tickets %}

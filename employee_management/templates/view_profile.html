@@ -4,6 +4,12 @@
 {% block content %}
 
 <style>
+
+    .content{
+        margin-left:80px;
+        margin-top:10px;
+    }
+
     .profile-header {
         background: linear-gradient(to right, #007bff, #0056b3);
         color: white;
@@ -35,7 +41,7 @@
         </div>
 
         <!-- Profile Content -->
-        <div class="col-md-9">
+        <div class="content">
             <div class="card shadow-sm">
                 <div class="card-header profile-header text-center">
                     <h3>{{ user.username }}'s Profile</h3>

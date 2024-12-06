@@ -1,12 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container-fluid mt-5">
+
+<style>
+    .content{
+        margin-left:180px;
+        margin-top:100px;
+    }
+</style>
+
+<div class="content">
     <div class="row">
         <div class="col-md-3">
             {% include 'sidebar.html' %}
         </div>
 
-        <div class="col-md-9">
+        <div>
             <div class="ticket-form-container">
                 <h2>Create a Ticket</h2>
                 <form method="post">

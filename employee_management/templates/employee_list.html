@@ -2,6 +2,12 @@
 
 {% block content %}
 <style>
+
+    .content{
+        margin-left:100px;
+        margin-top:80px;
+    }
+
     .employee-title {
         margin-bottom: 10px;
         color: #343a40;
@@ -65,14 +71,14 @@
 }
 </style>
 
-<div class="container-fluid">
-        <div class="row">
+<div class="content">
+
             <div class="col-md-2">
                 <!-- Sidebar inclusion -->
                 {% include 'sidebar.html' %}
             </div>
 
-<div class="col-md-10">
+<div>
     <h2 class="employee-title">Employee List</h2>
     <div class="table-container">
         <table class="table table-striped table-bordered">

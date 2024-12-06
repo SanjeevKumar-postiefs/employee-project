@@ -1,7 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .container{
+        margin-left:80px;
+        margin-top:100px;
+    }
+</style>
+
+<!-- Sidebar -->
+        <div class="col-md-3">
+            {% include 'sidebar.html' %}
+        </div>
+
+
 <center>
-    <div class="container mt-5">
+    <div class="container">
 <h2 class="text-center mb-4">Edit Ticket</h2>
 <form method="POST" class="bg-light p-4 rounded shadow-sm">
     {% csrf_token %}

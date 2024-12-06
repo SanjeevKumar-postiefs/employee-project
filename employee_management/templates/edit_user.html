@@ -1,7 +1,13 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
+
+
+<div class="content">
+    <div class="col-md-2">
+            <!-- Sidebar inclusion -->
+            {% include 'sidebar.html' %}
+        </div>
     <h2 class="mb-4 text-center">Edit Your Information</h2>
     <div class="card shadow-sm">
         <div class="card-body">
@@ -19,6 +25,12 @@
 </div>
 
 <style>
+
+    .content{
+        margin-left:100px;
+        margin-top:80px;
+    }
+
     .card {
         border-radius: 10px;
     }
