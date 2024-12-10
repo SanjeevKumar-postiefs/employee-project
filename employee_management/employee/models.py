@@ -120,6 +120,11 @@ class Ticket(models.Model):
     call_end_time = models.DateTimeField(null=True, blank=True)  # Call end time
     call_duration = models.DurationField(default=timezone.timedelta(0))  # Total call duration
     call_note = models.TextField(blank=True)  # Note for what happened during the call
+    call_in_progress = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        managed = False
 
 
     def start_work(self):
@@ -143,14 +148,16 @@ class Ticket(models.Model):
     # Method to start a call
     def start_call(self):
         self.call_start_time = timezone.now()
+        self.call_in_progress = True  # Mark call as in progress
         self.save()
 
     # Method to end a call
     def end_call(self):
         if self.call_start_time:
-            self.call_end_time = timezone.now()  # Mark when the call ends
-            self.call_duration = self.call_end_time - self.call_start_time  # Calculate the call duration
-            self.save()  # Save the changes to the database
+            self.call_end_time = timezone.now()
+            self.call_duration = self.call_end_time - self.call_start_time
+            self.call_in_progress = False  # Mark call as finished
+            self.save()
 
     def __str__(self):
         return self.subject

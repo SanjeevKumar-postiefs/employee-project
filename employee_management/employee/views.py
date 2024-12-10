@@ -738,14 +738,18 @@ def start_end_call(request, ticket_id):
     if request.method == "POST":
         action = request.POST.get('action')
 
-        if action == "start_call":
-            ticket.start_call()  # Start the call
-        elif action == "end_call":
-            ticket.end_call()  # End the call and calculate call duration
-            return redirect('post_call_details', ticket_id=ticket.id)  # Redirect to post-call form
+        if action == "start_call" and not ticket.call_in_progress:
+            ticket.start_call()  # Start the call if it's not already in progress
+        elif action == "end_call" and ticket.call_in_progress:
+            ticket.end_call()  # End the call if it's in progress
+            return redirect('post_call_details', ticket_id=ticket.id)
+
+        ticket.save()
+
+        # Redirect to the post-call details page after ending the call
+
 
     return redirect('dashboard')
-
 
 
 
@@ -762,10 +766,10 @@ def post_call_details(request, ticket_id):
         if status:
             ticket.status = status
 
-        # Save the updated note and status
+        # Save the changes without resetting call time
         ticket.save()
 
-        # Redirect back to the dashboard where the button should now show "Start Call"
+        # Redirect back to the dashboard
         return redirect('dashboard')
 
     # Render the post-call form

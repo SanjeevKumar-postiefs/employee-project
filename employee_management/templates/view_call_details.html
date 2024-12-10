@@ -5,12 +5,8 @@
     <li><strong>Ticket ID:</strong> {{ ticket.ticket_id }}</li>
     <li><strong>Subject:</strong> {{ ticket.subject }}</li>
     <li><strong>Status:</strong> {{ ticket.status }}</li>
-    <li><strong>Call Duration:</strong> {{ ticket.call_duration|format_timedelta }}</li>
-    <li><strong>Call Start Time:</strong> {{ ticket.call_start_time|date:"Y-m-d H:i:s" }}</li>  <!-- Display start time -->
-    <li><strong>Call End Time:</strong> {% if ticket.call_end_time %}{{ ticket.call_end_time|date:"Y-m-d H:i:s" }}{% else %}Ongoing{% endif %}</li>  <!-- Display end time or ongoing status -->
+    <li><strong>Call Duration:</strong> {{ ticket.call_duration|format_timedelta }}</li> <!-- This works fine -->
+    <li><strong>Call Start Time:</strong> {{ ticket.call_start_time|date:"Y-m-d H:i:s" }}</li> <!-- Format the datetime -->
+    <li><strong>Call End Time:</strong> {{ ticket.call_end_time|date:"Y-m-d H:i:s" }}</li> <!-- Format the datetime -->
     <li><strong>Call Note:</strong> {{ ticket.call_note }}</li>
 </ul>
-
-
-
-

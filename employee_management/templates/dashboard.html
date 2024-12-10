@@ -444,15 +444,15 @@ input:checked + .slider {
                         <td>
                            <!-- On Call Button -->
                             <form method="post" action="{% url 'start_end_call' ticket.id %}">
-                                {% csrf_token %}
-                                {% if ticket.call_start_time and not ticket.call_end_time %}
-                                    <input type="hidden" name="action" value="end_call">
-                                    <button type="submit" class="btn btn-danger">End Call</button>
-                                {% else %}
-                                    <input type="hidden" name="action" value="start_call">
-                                    <button type="submit" class="btn btn-warning">Start Call</button>
-                                {% endif %}
-                            </form>
+        {% csrf_token %}
+        {% if ticket.call_in_progress %}
+            <input type="hidden" name="action" value="end_call">
+            <button type="submit" class="btn btn-danger">End Call</button>
+        {% else %}
+            <input type="hidden" name="action" value="start_call">
+            <button type="submit" class="btn btn-warning">Start Call</button>
+        {% endif %}
+    </form>
                         </td>
                     </tr>
 
