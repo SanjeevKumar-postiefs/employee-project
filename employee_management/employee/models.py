@@ -147,17 +147,18 @@ class Ticket(models.Model):
 
     # Method to start a call
     def start_call(self):
+        self.call_in_progress = True
         self.call_start_time = timezone.now()
-        self.call_in_progress = True  # Mark call as in progress
-        self.save()
+        self.call_end_time = None  # Clear any previous end time
+        self.call_duration = None  # Clear any previous duration
 
     # Method to end a call
     def end_call(self):
+        self.call_in_progress = False
+        self.call_end_time = timezone.now()
+        # Calculate call duration
         if self.call_start_time:
-            self.call_end_time = timezone.now()
             self.call_duration = self.call_end_time - self.call_start_time
-            self.call_in_progress = False  # Mark call as finished
-            self.save()
 
     def __str__(self):
         return self.subject

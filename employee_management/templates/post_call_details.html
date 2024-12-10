@@ -1,5 +1,4 @@
 {% load timedelta_filters %}
-
 <!-- post_call_details.html -->
 <h2>Post-Call Details for Ticket {{ ticket.ticket_id }}</h2>
 
@@ -31,7 +30,6 @@
     <label>Call Duration:</label>
     <input type="text" value="{{ ticket.call_duration|format_timedelta }}" readonly>
     </div>
-
 
     <div>
         <label>Note:</label>

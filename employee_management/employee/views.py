@@ -740,25 +740,23 @@ def start_end_call(request, ticket_id):
 
         if action == "start_call" and not ticket.call_in_progress:
             ticket.start_call()  # Start the call if it's not already in progress
+            ticket.save()
+
         elif action == "end_call" and ticket.call_in_progress:
-            ticket.end_call()  # End the call if it's in progress
+            # Just redirect to post_call_details without ending the call yet
             return redirect('post_call_details', ticket_id=ticket.id)
 
-        ticket.save()
-
-        # Redirect to the post-call details page after ending the call
-
-
     return redirect('dashboard')
-
-
 
 @login_required
 def post_call_details(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     if request.method == "POST":
-        # Process the note and optional status change
+        # End the call and save the form details
+        if ticket.call_in_progress:
+            ticket.end_call()  # End the call and set call_end_time, call_duration
+
         note = request.POST.get('note')
         status = request.POST.get('status')
 
@@ -766,20 +764,18 @@ def post_call_details(request, ticket_id):
         if status:
             ticket.status = status
 
-        # Save the changes without resetting call time
+        # Save all changes after the form submission
         ticket.save()
 
-        # Redirect back to the dashboard
+        # Redirect back to the dashboard after successful submission
         return redirect('dashboard')
 
-    # Render the post-call form
+    # Render the post-call form if it's a GET request
     ticket_statuses = Ticket._meta.get_field('status').choices
     return render(request, 'post_call_details.html', {
         'ticket': ticket,
         'ticket_statuses': ticket_statuses
     })
-
-
 
 @login_required
 def view_call_details(request, ticket_id):
