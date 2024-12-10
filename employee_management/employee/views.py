@@ -96,7 +96,7 @@ def home(request):
         ticket_statuses = []
 
     # Render the home template with the ticket data, skills, and statuses
-    return render(request, 'testing_home2.html', {
+    return render(request, 'home.html', {
         'tickets_by_user': tickets_by_user,
         'employee_profile': employee_profile,
         'skills': skills,
@@ -729,3 +729,56 @@ def dashboard(request):
     }
 
     return render(request, 'dashboard.html', context)
+
+
+@login_required
+def start_end_call(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        action = request.POST.get('action')
+
+        if action == "start_call":
+            ticket.start_call()  # Start the call
+        elif action == "end_call":
+            ticket.end_call()  # End the call and calculate call duration
+            return redirect('post_call_details', ticket_id=ticket.id)  # Redirect to post-call form
+
+    return redirect('dashboard')
+
+
+
+
+@login_required
+def post_call_details(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        # Process the note and optional status change
+        note = request.POST.get('note')
+        status = request.POST.get('status')
+
+        ticket.call_note = note
+        if status:
+            ticket.status = status
+
+        # Save the updated note and status
+        ticket.save()
+
+        # Redirect back to the dashboard where the button should now show "Start Call"
+        return redirect('dashboard')
+
+    # Render the post-call form
+    ticket_statuses = Ticket._meta.get_field('status').choices
+    return render(request, 'post_call_details.html', {
+        'ticket': ticket,
+        'ticket_statuses': ticket_statuses
+    })
+
+
+
+@login_required
+def view_call_details(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    return render(request, 'view_call_details.html', {'ticket': ticket})

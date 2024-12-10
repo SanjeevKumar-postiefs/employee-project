@@ -41,4 +41,7 @@ urlpatterns=[
     path('filter-users-by-group/', views.filter_users_by_group, name='filter_users_by_group'),
     path('mark-notification-as-read/', views.mark_notification_as_read, name='mark_notification_as_read'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('ticket/start_end_call/<int:ticket_id>/', views.start_end_call, name='start_end_call'),
+    path('ticket/post_call_details/<int:ticket_id>/', views.post_call_details, name='post_call_details'),
+    path('ticket/view_call_details/<int:ticket_id>/', views.view_call_details, name='view_call_details'),
 ]

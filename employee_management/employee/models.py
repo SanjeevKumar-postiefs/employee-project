@@ -116,10 +116,10 @@ class Ticket(models.Model):
     work_start_time = models.DateTimeField(null=True, blank=True)  # When the user clicks start
     time_spent = models.DurationField(default=timezone.timedelta(0))
     is_active = models.BooleanField(default=False)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        managed = False
+    call_start_time = models.DateTimeField(null=True, blank=True)  # Call start time
+    call_end_time = models.DateTimeField(null=True, blank=True)  # Call end time
+    call_duration = models.DurationField(default=timezone.timedelta(0))  # Total call duration
+    call_note = models.TextField(blank=True)  # Note for what happened during the call
 
 
     def start_work(self):
@@ -139,6 +139,18 @@ class Ticket(models.Model):
         # This can be used when the user finishes the ticket
         self.pause_work()  # Just pause work and leave the time_spent
 
+
+    # Method to start a call
+    def start_call(self):
+        self.call_start_time = timezone.now()
+        self.save()
+
+    # Method to end a call
+    def end_call(self):
+        if self.call_start_time:
+            self.call_end_time = timezone.now()  # Mark when the call ends
+            self.call_duration = self.call_end_time - self.call_start_time  # Calculate the call duration
+            self.save()  # Save the changes to the database
 
     def __str__(self):
         return self.subject

@@ -1,4 +1,5 @@
 {% load static %}
+{% load timedelta_filters %}
 {% csrf_token %}
 <!DOCTYPE html>
 <html lang="en">
@@ -401,10 +402,12 @@ input:checked + .slider {
                     <th>Priority</th>
                     <th>Time Spent</th>
                     <th>Actions</th>
+                    <th>On call</th>
                 </tr>
             </thead>
             <tbody>
                 {% for ticket in tickets %}
+                    {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
                     <tr class="{% if ticket.is_active %}table-active{% endif %}">
                         <td class="align-middle">
                             <!-- Plus Button outside the table, placed next to Ticket ID -->
@@ -438,6 +441,19 @@ input:checked + .slider {
                                 {% endif %}
                             </button>
                         </td>
+                        <td>
+                           <!-- On Call Button -->
+                            <form method="post" action="{% url 'start_end_call' ticket.id %}">
+                                {% csrf_token %}
+                                {% if ticket.call_start_time and not ticket.call_end_time %}
+                                    <input type="hidden" name="action" value="end_call">
+                                    <button type="submit" class="btn btn-danger">End Call</button>
+                                {% else %}
+                                    <input type="hidden" name="action" value="start_call">
+                                    <button type="submit" class="btn btn-warning">Start Call</button>
+                                {% endif %}
+                            </form>
+                        </td>
                     </tr>
 
                     <!-- Options for the Ticket (Assign and Status Change) -->
@@ -464,15 +480,18 @@ input:checked + .slider {
                                         {% endfor %}
                                     </ul>
                                 </div>
+
+                            <!-- View Call Details Button -->
+                            <a href="{% url 'view_call_details' ticket.id %}" class="btn btn-outline-info">Call Details</a>
                             </div>
                         </td>
                     </tr>
+                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>
     </div>
 </div>
-
 
 <!-- Bootstrap JS (including Popper.js) -->
     <!-- Include Bootstrap JS -->
@@ -831,7 +850,40 @@ document.addEventListener('DOMContentLoaded', function () {
                   }
               });
         }
-    </script>
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const postCallForm = document.querySelector('form');
 
+    if (postCallForm) {
+        postCallForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent the form from submitting normally
+
+            const formData = new FormData(this);
+            const actionUrl = this.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // After successful form submission, redirect or update UI
+                    window.location.href = '/dashboard/';  // Redirect to dashboard
+                } else {
+                    console.error('Error saving post-call details.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+
+</script>
 </body>
 </html>
