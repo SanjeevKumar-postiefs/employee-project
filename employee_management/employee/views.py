@@ -742,7 +742,6 @@ def start_end_call(request, ticket_id):
 
         # Start call
         if action == "start_call" and not ticket.call_in_progress:
-            # Create a new Call object for this ticket
             new_call = Call.objects.create(
                 ticket=ticket,
                 agent=agent,
@@ -753,25 +752,19 @@ def start_end_call(request, ticket_id):
 
             return JsonResponse({'status': 'success', 'message': 'Call started successfully'})
 
-        # End call
+        # Handle "end_call" action, but do NOT end the call here. Just return data for the modal.
         elif action == "end_call" and ticket.call_in_progress:
-            # Get the ongoing call and update its end time and duration
             current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
             if current_call:
-                current_call.call_end_time = timezone.now()
-                current_call.save()
-
-            ticket.call_in_progress = False
-            ticket.save()
-
-            # Return the data required for the post-call details modal
-            return JsonResponse({
-                'status': 'success',
-                'ticket_id': ticket.id,
-                'subject': ticket.subject,
-                'call_duration': str(current_call.call_duration),
-                'current_status': ticket.status,
-            })
+                print(f"Ticket Status: {ticket.status}")
+                return JsonResponse({
+                    'status': 'success',
+                    'ticket_id': ticket.id,  # Pass ticket.id for form submission (primary key)
+                    'ticket_display_id': ticket.ticket_id,  # Custom ID for display
+                    'subject': ticket.subject,
+                    'call_duration': str(current_call.call_duration),
+                    'current_status': ticket.status,  # Return the current status of the ticket
+                })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
@@ -781,28 +774,29 @@ def post_call_details(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     if request.method == "POST":
-        # Get the most recent call for this ticket
+        # Find the current ongoing call
         current_call = Call.objects.filter(ticket=ticket, agent=request.user).order_by('-call_start_time').first()
 
-        if current_call and not current_call.call_end_time:
-            return JsonResponse({'status': 'error', 'message': 'Call is not ended yet'}, status=400)
-
-        # Save the note and status for the call
-        note = request.POST.get('note')
-        status = request.POST.get('status')
-
         if current_call:
-            current_call.call_note = note
+            # End the call and save the end time
+            current_call.call_end_time = timezone.now()
+            current_call.call_note = request.POST.get('note')  # Save the call note
             current_call.save()
 
-        if status:
-            ticket.status = status
+            # Update the ticket status if provided
+            status = request.POST.get('status')
+            if status:
+                ticket.status = status
 
-        ticket.save()
+            # Mark the call as no longer in progress
+            ticket.call_in_progress = False
+            ticket.save()
 
-        return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
+            return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
 
 
 @login_required

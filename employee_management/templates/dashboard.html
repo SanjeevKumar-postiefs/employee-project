@@ -343,7 +343,7 @@ input:checked + .slider {
 
         <div class="dropdown ms-2">
     <button class="btn btn-primary dropdown-toggle" type="button" id="newDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        New
+        New Call
     </button>
     <ul class="dropdown-menu" aria-labelledby="newDropdown">
         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#clientCallModal">Client Call</a></li>
@@ -517,11 +517,13 @@ input:checked + .slider {
       <form id="postCallForm" method="post">
         <div class="modal-body">
           {% csrf_token %}
+          <!-- This will hold the primary key (id) for form submission -->
           <input type="hidden" name="ticket_id" id="modal-ticket-id" value="">
 
           <div class="form-group">
+            <!-- Display the custom ticket_id to the user -->
             <label for="ticket-id">Ticket ID:</label>
-            <input type="text" id="modal-ticket-id-display" value="{{ ticket.ticket_id }}" class="form-control" readonly>
+            <input type="text" id="modal-ticket-id-display" class="form-control" readonly>
           </div>
 
           <div class="form-group">
@@ -536,9 +538,7 @@ input:checked + .slider {
                 <option value="{{ status.0 }}">{{ status.1 }}</option>
               {% endfor %}
             </select>
-          </div>
-
-
+        </div>
 
           <div class="form-group">
             <label for="call-note">Call Note:</label>
@@ -553,6 +553,9 @@ input:checked + .slider {
     </div>
   </div>
 </div>
+
+
+
 
 <!-- Client Call Modal with Note and Create Ticket -->
 <div class="modal fade" id="clientCallModal" tabindex="-1" aria-labelledby="clientCallModalLabel" aria-hidden="true">
@@ -1023,7 +1026,6 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Check if it's the start call action
                     if (formData.get('action') === 'start_call') {
                         const button = this.querySelector('button');
                         button.textContent = 'End Call';
@@ -1032,16 +1034,29 @@ document.addEventListener('DOMContentLoaded', function () {
                         this.querySelector('input[name="action"]').value = 'end_call';
                     }
 
-                    // If it's the end call action, open the modal and populate data
                     if (formData.get('action') === 'end_call') {
+                        // Open the modal and populate data
                         $('#postCallModal').modal('show');
-                        document.getElementById('modal-ticket-id').value = data.ticket_id;
-                        document.getElementById('modal-ticket-id-display').value = data.ticket_id;
+                        document.getElementById('modal-ticket-id').value = data.ticket_id;  // Primary key for form submission
+                        document.getElementById('modal-ticket-id-display').value = data.ticket_display_id;  // Display custom ticket_id
+
                         document.getElementById('modal-subject').value = data.subject;
                         document.getElementById('modal-call-duration').value = data.call_duration;
 
+                        // Set the current status in the dropdown
                         const statusSelect = document.getElementById('modal-status');
-                        statusSelect.value = data.current_status;
+                        const statusValue = data.current_status;  // This is the status returned from the backend
+
+                        console.log("Current Status:", statusValue);  // Log the status to debug
+
+                        // Loop through options and set the selected option
+                        for (let i = 0; i < statusSelect.options.length; i++) {
+                            console.log("Checking option value:", statusSelect.options[i].value);  // Log each option value
+                            if (statusSelect.options[i].value === statusValue) {
+                                statusSelect.options[i].selected = true;  // Set the selected option
+                                break;
+                            }
+                        }
                     }
                 } else {
                     console.error(data.message);
@@ -1053,12 +1068,12 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Handle Post-Call Form Submission via AJAX
+    // Handle Post-Call Form Submission via AJAX (this will end the call)
     document.getElementById('postCallForm').addEventListener('submit', function (e) {
         e.preventDefault();  // Prevent the default form submission
 
         const formData = new FormData(this);
-        const ticketId = document.getElementById('modal-ticket-id').value;
+        const ticketId = document.getElementById('modal-ticket-id').value;  // This is ticket.id (primary key)
 
         if (ticketId) {
             fetch(`/ticket/post_call_details/${ticketId}/`, {
@@ -1088,24 +1103,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.modal-footer .btn-secondary, .modal-header .close').forEach(function(button) {
         button.addEventListener('click', function() {
             $('#postCallModal').modal('hide');  // Just close the modal without form submission
-            resetCallState();  // Reset form and call state when closing
         });
     });
-
-    // Reset call state when modal is closed
-    function resetCallState() {
-        // Reset the modal form fields
-        document.getElementById('postCallForm').reset();
-
-        // Optionally, reset the call action form button (if needed)
-        document.querySelectorAll('.call-action-form').forEach(function(form) {
-            const button = form.querySelector('button');
-            button.textContent = 'Start Call';  // Reset button text to 'Start Call'
-            button.classList.remove('btn-danger');
-            button.classList.add('btn-warning');
-            form.querySelector('input[name="action"]').value = 'start_call';
-        });
-    }
 });
 
 

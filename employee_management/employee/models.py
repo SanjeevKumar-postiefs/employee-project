@@ -122,10 +122,6 @@ class Ticket(models.Model):
     call_note = models.TextField(blank=True)  # Note for what happened during the call
     call_in_progress = models.BooleanField(default=False)
     call_timer_started_by_call = models.BooleanField(default=False)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        managed = False
 
 
     def start_work(self):
