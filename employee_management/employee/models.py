@@ -121,6 +121,7 @@ class Ticket(models.Model):
     call_duration = models.DurationField(default=timezone.timedelta(0))  # Total call duration
     call_note = models.TextField(blank=True)  # Note for what happened during the call
     call_in_progress = models.BooleanField(default=False)
+    call_timer_started_by_call = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -171,3 +172,29 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.message}"
+
+
+class CallNote(models.Model):
+    agent = models.ForeignKey(User, on_delete=models.CASCADE)
+    client_email = models.EmailField()
+    note = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Note by {self.agent.username} for {self.client_email}"
+
+class Call(models.Model):
+    ticket = models.ForeignKey('Ticket', related_name='calls', on_delete=models.CASCADE)  # Each call is linked to a ticket
+    agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Agent handling the call
+    call_start_time = models.DateTimeField()
+    call_end_time = models.DateTimeField(null=True, blank=True)
+    call_duration = models.DurationField(default=timezone.timedelta(0))  # Call duration
+    call_note = models.TextField(blank=True, null=True)  # Note for the call
+
+    def __str__(self):
+        return f"Call on {self.call_start_time} for Ticket {self.ticket.ticket_id}"
+
+    def save(self, *args, **kwargs):
+        if self.call_start_time and self.call_end_time:
+            self.call_duration = self.call_end_time - self.call_start_time
+        super().save(*args, **kwargs)

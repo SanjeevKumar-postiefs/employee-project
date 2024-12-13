@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -731,54 +731,102 @@ def dashboard(request):
     return render(request, 'dashboard.html', context)
 
 
+
 @login_required
 def start_end_call(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
+    agent = request.user
 
     if request.method == "POST":
         action = request.POST.get('action')
 
+        # Start call
         if action == "start_call" and not ticket.call_in_progress:
-            ticket.start_call()  # Start the call if it's not already in progress
+            # Create a new Call object for this ticket
+            new_call = Call.objects.create(
+                ticket=ticket,
+                agent=agent,
+                call_start_time=timezone.now()
+            )
+            ticket.call_in_progress = True
             ticket.save()
 
-        elif action == "end_call" and ticket.call_in_progress:
-            # Just redirect to post_call_details without ending the call yet
-            return redirect('post_call_details', ticket_id=ticket.id)
+            return JsonResponse({'status': 'success', 'message': 'Call started successfully'})
 
-    return redirect('dashboard')
+        # End call
+        elif action == "end_call" and ticket.call_in_progress:
+            # Get the ongoing call and update its end time and duration
+            current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
+            if current_call:
+                current_call.call_end_time = timezone.now()
+                current_call.save()
+
+            ticket.call_in_progress = False
+            ticket.save()
+
+            # Return the data required for the post-call details modal
+            return JsonResponse({
+                'status': 'success',
+                'ticket_id': ticket.id,
+                'subject': ticket.subject,
+                'call_duration': str(current_call.call_duration),
+                'current_status': ticket.status,
+            })
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
 
 @login_required
 def post_call_details(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     if request.method == "POST":
-        # End the call and save the form details
-        if ticket.call_in_progress:
-            ticket.end_call()  # End the call and set call_end_time, call_duration
+        # Get the most recent call for this ticket
+        current_call = Call.objects.filter(ticket=ticket, agent=request.user).order_by('-call_start_time').first()
 
+        if current_call and not current_call.call_end_time:
+            return JsonResponse({'status': 'error', 'message': 'Call is not ended yet'}, status=400)
+
+        # Save the note and status for the call
         note = request.POST.get('note')
         status = request.POST.get('status')
 
-        ticket.call_note = note
+        if current_call:
+            current_call.call_note = note
+            current_call.save()
+
         if status:
             ticket.status = status
 
-        # Save all changes after the form submission
         ticket.save()
 
-        # Redirect back to the dashboard after successful submission
-        return redirect('dashboard')
+        return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
 
-    # Render the post-call form if it's a GET request
-    ticket_statuses = Ticket._meta.get_field('status').choices
-    return render(request, 'post_call_details.html', {
-        'ticket': ticket,
-        'ticket_statuses': ticket_statuses
-    })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
 
 @login_required
 def view_call_details(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
-    return render(request, 'view_call_details.html', {'ticket': ticket})
+    # Get all calls related to this ticket
+    calls = Call.objects.filter(ticket=ticket).order_by('call_start_time')
+
+    return render(request, 'view_call_details.html', {'ticket': ticket, 'calls': calls})
+
+
+@login_required
+def save_call_note(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        note = request.POST.get('note')
+
+        # Save the note to the database or send an email
+        # Example: You can save it in a model for call notes
+        call_note = CallNote.objects.create(agent=request.user, client_email=email, note=note)
+        call_note.save()
+
+        # Return a success response
+        return JsonResponse({'status': 'success', 'message': 'Note saved successfully!'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)

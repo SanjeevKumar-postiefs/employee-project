@@ -1,12 +1,77 @@
+{% extends 'base.html' %}
 {% load timedelta_filters %}
-<h2>Call Details for Ticket {{ ticket.ticket_id }}</h2>
+{% block content %}
 
-<ul>
-    <li><strong>Ticket ID:</strong> {{ ticket.ticket_id }}</li>
-    <li><strong>Subject:</strong> {{ ticket.subject }}</li>
-    <li><strong>Status:</strong> {{ ticket.status }}</li>
-    <li><strong>Call Duration:</strong> {{ ticket.call_duration|format_timedelta }}</li> <!-- This works fine -->
-    <li><strong>Call Start Time:</strong> {{ ticket.call_start_time|date:"Y-m-d H:i:s" }}</li> <!-- Format the datetime -->
-    <li><strong>Call End Time:</strong> {{ ticket.call_end_time|date:"Y-m-d H:i:s" }}</li> <!-- Format the datetime -->
-    <li><strong>Call Note:</strong> {{ ticket.call_note }}</li>
-</ul>
+<style>
+    .content {
+        margin-top: 100px;
+    }
+
+    .card-header {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+
+    .call-details {
+        margin-bottom: 30px;
+    }
+
+    .list-group-item {
+        border: none;
+        padding: 0.75rem 1.25rem;
+    }
+
+    .list-group-item:nth-child(odd) {
+        background-color: #f9f9f9;
+    }
+
+    .list-group-item strong {
+        font-weight: 600;
+    }
+</style>
+
+<div class="container content">
+    <!-- Ticket Details Card -->
+    <div class="card call-details">
+        <div class="card-header">
+            Ticket Details for {{ ticket.ticket_id }}
+        </div>
+        <div class="card-body">
+            <ul class="list-group">
+                <li class="list-group-item">
+                    <strong>Ticket ID:</strong> {{ ticket.ticket_id }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Subject:</strong> {{ ticket.subject }}
+                </li>
+                <li class="list-group-item">
+                    <strong>Status:</strong> {{ ticket.status|title }}
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Call History Section -->
+    {% if calls %}
+        <h3>Call History for Ticket {{ ticket.ticket_id }}</h3>
+        <div class="card">
+            <div class="card-body">
+                <ul class="list-group">
+                    {% for call in calls %}
+                    <li class="list-group-item">
+                        <strong>Call Start Time:</strong> {{ call.call_start_time|date:"Y-m-d H:i:s" }}<br>
+                        <strong>Call End Time:</strong> {{ call.call_end_time|date:"Y-m-d H:i:s" }}<br>
+                        <strong>Call Duration:</strong> {{ call.call_duration|format_timedelta }}<br>
+                        <strong>Call Note:</strong> {{ call.call_note|default:"No notes available" }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% else %}
+        <p>No calls have been made for this ticket yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}
