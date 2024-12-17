@@ -750,7 +750,7 @@ def start_end_call(request, ticket_id):
             ticket.call_in_progress = True
             ticket.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Call started successfully'})
+            return JsonResponse({'status': 'success', 'message': 'Call started successfully','current_status': ticket.status,})
 
         # Handle "end_call" action, but do NOT end the call here. Just return data for the modal.
         elif action == "end_call" and ticket.call_in_progress:
