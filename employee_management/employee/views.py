@@ -342,6 +342,9 @@ def assign_ticket(request, ticket_id):
             ticket.assigned_to = new_assigned_user
             ticket.assigned_by = request.user
             ticket.assigned_at = timezone.now()
+
+            ticket.reset_individual_time_spent()
+
             ticket.save()
 
             # Notify the user about the assignment
@@ -899,6 +902,23 @@ def ticket_status(request, ticket_id):
         return JsonResponse({'status': 'error', 'message': 'Ticket not found'}, status=404)
 
 
+@login_required
+def get_active_timers(request):
+    """Fetch active timers with real-time time spent."""
+    active_tickets = Ticket.objects.filter(is_active=True)
 
+    # Serialize the active ticket data
+    ticket_data = []
+    for ticket in active_tickets:
+        time_spent_seconds = ticket.time_spent.total_seconds() if ticket.time_spent else 0
+        if ticket.work_start_time:
+            # Calculate the time since the timer started
+            time_spent_seconds += (timezone.now() - ticket.work_start_time).total_seconds()
 
+        ticket_data.append({
+            'ticket_id': ticket.id,
+            'time_spent_seconds': int(time_spent_seconds),  # Return time spent in seconds
+            'is_active': ticket.is_active
+        })
 
+    return JsonResponse({'tickets': ticket_data})

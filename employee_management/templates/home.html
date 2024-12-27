@@ -469,6 +469,7 @@ input:checked + .slider {
                                         <th>Status</th>
                                         <th>Priority</th>
                                         <th>Time Spent</th>
+                                        <th>Individual Time Spent</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -492,7 +493,15 @@ input:checked + .slider {
         {% endif %}
     </span>
 </td>
-
+<td>
+                    <span id="individual-timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+                        {% if user_tickets.latest_ticket.individual_time_spent %}
+                            {{ user_tickets.latest_ticket.individual_time_spent|format_duration }}
+                        {% else %}
+                            00:00:00
+                        {% endif %}
+                    </span>
+                </td>
                                         </tr>
 
                                         <!-- Options for Latest Ticket -->
@@ -544,6 +553,11 @@ input:checked + .slider {
                                                         <td>
     <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.time_spent|format_duration }}
+    </span>
+</td>
+                                                 <td>
+    <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.individual_time_spent|format_duration }}
     </span>
 </td>
                                             </tr>
@@ -909,5 +923,49 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 </script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    let timers = {}; // Store active timers
+
+    // Helper function to format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // Fetch active timers from the backend and update the frontend
+    function fetchActiveTimers() {
+        fetch('/get_active_timers/', {  // Assumes the endpoint is defined in your Django URLs
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.tickets) {
+                data.tickets.forEach(ticket => {
+                    const timerElement = document.getElementById('timer-' + ticket.ticket_id);
+                    if (timerElement) {
+                        // Update the timer on the frontend with the real-time data
+                        timerElement.textContent = formatTime(ticket.time_spent_seconds);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching active timers:', error);
+        });
+    }
+
+    // Poll the backend every second to update active timers
+    setInterval(fetchActiveTimers, 1000);  // Poll every 1 second
+});
+
+</script>
+
 </body>
 </html>

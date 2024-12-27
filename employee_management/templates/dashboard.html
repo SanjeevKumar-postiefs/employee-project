@@ -413,6 +413,7 @@ input:checked + .slider {
                     <th>Status</th>
                     <th>Priority</th>
                     <th>Time Spent</th>
+                    <th>Individual Time Spent</th>
                     <th>Actions</th>
                     <th>On call</th>
                 </tr>
@@ -438,6 +439,12 @@ input:checked + .slider {
         {{ ticket.time_spent|format_duration }}
     </span>
 </td>
+                        <td>
+    <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.individual_time_spent|format_duration }}
+    </span>
+</td>
+
 <td>
     <!-- Add CSRF token for AJAX request -->
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">

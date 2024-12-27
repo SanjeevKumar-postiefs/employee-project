@@ -115,6 +115,7 @@ class Ticket(models.Model):
     note = models.TextField(blank=True)
     work_start_time = models.DateTimeField(null=True, blank=True)  # When the user clicks start
     time_spent = models.DurationField(default=timezone.timedelta(0))
+    individual_time_spent = models.DurationField(default=timezone.timedelta(0))
     is_active = models.BooleanField(default=False)
     call_start_time = models.DateTimeField(null=True, blank=True)  # Call start time
     call_end_time = models.DateTimeField(null=True, blank=True)  # Call end time
@@ -136,6 +137,7 @@ class Ticket(models.Model):
         if self.is_active and self.work_start_time:
             time_diff = timezone.now() - self.work_start_time
             self.time_spent += time_diff
+            self.individual_time_spent += time_diff
             self.work_start_time = None  # Reset start time
             self.is_active = False
             self.save()
@@ -143,6 +145,11 @@ class Ticket(models.Model):
     def stop_work(self):
         """Stop the timer."""
         self.pause_work()  # Pauses and accumulates the time
+
+    def reset_individual_time_spent(self):
+        """Reset the individual time spent when the ticket is reassigned."""
+        self.individual_time_spent = timezone.timedelta(0)
+        self.save()
 
 
     # Method to start a call
