@@ -75,7 +75,8 @@ def home(request):
                     'user': ticket.assigned_to,
                     'latest_ticket': ticket,
                     'assigned_by': ticket.assigned_by,
-                    'older_tickets': []
+                    'older_tickets': [],
+                    'call_in_progress': ticket.assigned_to.user_tickets.filter(call_in_progress=True).exists() # Check if user is on call
                 }
             else:
                 tickets_by_user[user_id]['older_tickets'].append(ticket)
@@ -103,6 +104,7 @@ def home(request):
         'ticket_statuses': ticket_statuses,
         'notifications': notifications
     })
+
 
 
 def register(request):
@@ -437,12 +439,13 @@ def add_employee(request):
 @login_required
 def toggle_break_status(request):
     user_profile = request.user.employeeprofile
-    user_profile.is_on_break = not user_profile.is_on_break  # Toggle break status
+    user_profile.is_on_break = not user_profile.is_on_break  # Toggle the break status
     user_profile.save()
 
     # Update the session activity for the current session
     today = timezone.now().date()
     try:
+        # Get the user's current session
         current_session = SessionActivity.objects.filter(user=request.user, date=today, logout_time=None).latest('login_time')
 
         if user_profile.is_on_break:
@@ -450,30 +453,38 @@ def toggle_break_status(request):
             active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
             for ticket in active_tickets:
                 ticket.pause_work()  # Pause the timer and calculate time spent
+                ticket.is_active = False  # Mark the ticket as inactive during the break
                 ticket.save()
 
-            # Record the break start time
+            # Record the break start time in the session
             current_session.break_start_time = timezone.now()
             current_session.save()
-        else:
-            # If the user is resuming work, restart active ticket timers
-            active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
-            for ticket in active_tickets:
-                if ticket.work_start_time is None:  # If the timer is not already running
-                    ticket.work_start_time = timezone.now()  # Start counting from now
-                    ticket.save()
 
-            # Ensure break_start_time is not None before calculating the duration
+        else:
+            # If the user is resuming work, restart only those tickets that were previously active
+            # Only restart tickets that were paused (but not completed)
+            paused_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=False)
+            for ticket in paused_tickets:
+                # Set ticket to active again
+                ticket.work_start_time = timezone.now()  # Restart counting from now
+                ticket.is_active = True  # Mark as active again
+                ticket.save()
+
+            # Calculate the break duration and add it to the session's work time
             if current_session.break_start_time:
                 break_duration = timezone.now() - current_session.break_start_time
                 current_session.break_duration += break_duration
                 current_session.work_time = current_session.calculate_work_time()
+
+            # Reset the break start time and save session activity
+            current_session.break_start_time = None
             current_session.save()
 
     except SessionActivity.DoesNotExist:
         pass  # No active session found, nothing to update
 
     return redirect('home')
+
 
 
 
@@ -576,17 +587,31 @@ def user_activity_view(request, user_id):
 
 @login_required
 def start_work(request, ticket_id):
-    ticket = Ticket.objects.get(id=ticket_id, assigned_to=request.user)
-    if not ticket.work_start_time:
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.method == 'POST':
         ticket.start_work()
-    return JsonResponse({'status': 'started', 'ticket_id': ticket.ticket_id, 'subject': ticket.subject})
+
+        time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+
+        return JsonResponse({
+            'status': 'success',
+            'time_spent_seconds': time_spent_seconds,
+        })
 
 @login_required
 def stop_work(request, ticket_id):
-    ticket = Ticket.objects.get(id=ticket_id, assigned_to=request.user)
-    ticket.pause_work()  # Stop the timer and record the total time
-    return JsonResponse({'status': 'stopped', 'ticket_id': ticket.ticket_id, 'subject': ticket.subject})
+    ticket = get_object_or_404(Ticket, id=ticket_id)
 
+    if request.method == 'POST':
+        ticket.pause_work()
+
+        time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+
+        return JsonResponse({
+            'status': 'success',
+            'time_spent_seconds': time_spent_seconds
+        })
 
 
 
@@ -595,7 +620,6 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
 import json
 
-@csrf_exempt
 def update_time_spent(request):
     if request.method == 'POST':
         try:
@@ -609,8 +633,8 @@ def update_time_spent(request):
             # Find the ticket
             ticket = Ticket.objects.get(id=ticket_id)
 
-            # Add the time spent to the ticket's existing time_spent (which is also a timedelta)
-            if ticket.time_spent is None:  # Handle if time_spent was initially null
+            # Add the time spent to the ticket's existing time_spent
+            if ticket.time_spent is None:
                 ticket.time_spent = time_spent
             else:
                 ticket.time_spent += time_spent
@@ -631,25 +655,25 @@ def update_time_spent(request):
 @csrf_exempt
 def update_ticket_activity(request):
     if request.method == 'POST':
-        data = json.loads(request.body)
-        ticket_id = data.get('ticket_id')
-        action = data.get('action')  # 'start' or 'stop'
-
         try:
-            ticket = Ticket.objects.get(id=ticket_id)
+            data = json.loads(request.body)
+            ticket_id = data.get('ticket_id')
+            action = data.get('action')
+
+            ticket = get_object_or_404(Ticket, id=ticket_id)
 
             if action == 'start':
-                ticket.is_active = True
-                ticket.work_start_time = timezone.now()
+                ticket.start_work()  # Start the timer
             elif action == 'stop':
-                ticket.is_active = False
-                ticket.pause_work()  # Pause the work and calculate the time spent
+                ticket.pause_work()  # Pause the timer
+            else:
+                return JsonResponse({'status': 'error', 'message': 'Invalid action'}, status=400)
 
-            ticket.save()
             return JsonResponse({'status': 'success'})
-        except Ticket.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Ticket not found'})
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 
 @login_required
@@ -824,3 +848,57 @@ def save_call_note(request):
         return JsonResponse({'status': 'success', 'message': 'Note saved successfully!'})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request.'}, status=400)
+
+
+@login_required
+def update_all_timers(request):
+    # Get all active tickets
+    active_tickets = Ticket.objects.filter(is_active=True)
+
+    timers = []
+    for ticket in active_tickets:
+        # Calculate time spent in seconds for each active ticket
+        if ticket.work_start_time:
+            time_diff = timezone.now() - ticket.work_start_time
+            total_time = ticket.time_spent + time_diff
+            total_seconds = int(total_time.total_seconds())
+        else:
+            total_seconds = int(ticket.time_spent.total_seconds())
+
+        timers.append({
+            'ticket_id': ticket.id,
+            'time_spent_seconds': total_seconds
+        })
+
+    return JsonResponse({'timers': timers})
+
+@login_required
+def ticket_status(request, ticket_id):
+    try:
+        ticket = Ticket.objects.get(id=ticket_id)
+        time_spent_seconds = ticket.time_spent.total_seconds() if ticket.time_spent else 0
+
+        # If the ticket is active (timer running)
+        if ticket.is_active and ticket.work_start_time:
+            # Calculate additional time once (difference between now and work_start_time)
+            time_difference = (timezone.now() - ticket.work_start_time).total_seconds()
+
+            # Add that time difference ONCE to the accumulated time
+            time_spent_seconds += time_difference
+        else:
+            # Ticket is paused, don't add any additional time
+            time_difference = None
+
+        return JsonResponse({
+            'status': 'success',
+            'time_spent_seconds': time_spent_seconds,  # Correctly calculated time
+            'work_start_time': ticket.work_start_time.isoformat() if ticket.work_start_time else None
+        })
+
+    except Ticket.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Ticket not found'}, status=404)
+
+
+
+
+

@@ -125,21 +125,24 @@ class Ticket(models.Model):
 
 
     def start_work(self):
-        self.work_start_time = timezone.now()
-        self.save()
+        """Start the timer for this ticket."""
+        if not self.is_active:
+            self.work_start_time = timezone.now()
+            self.is_active = True
+            self.save()
 
     def pause_work(self):
-        """Pause the work timer and accumulate the time spent."""
-        if self.work_start_time:
+        """Pause the timer and accumulate the time spent."""
+        if self.is_active and self.work_start_time:
             time_diff = timezone.now() - self.work_start_time
-            # Update time spent, ensuring to exclude any break time that was added to the session
             self.time_spent += time_diff
-            self.work_start_time = None  # Pause the work
+            self.work_start_time = None  # Reset start time
+            self.is_active = False
             self.save()
 
     def stop_work(self):
-        # This can be used when the user finishes the ticket
-        self.pause_work()  # Just pause work and leave the time_spent
+        """Stop the timer."""
+        self.pause_work()  # Pauses and accumulates the time
 
 
     # Method to start a call
@@ -148,6 +151,7 @@ class Ticket(models.Model):
         self.call_start_time = timezone.now()
         self.call_end_time = None  # Clear any previous end time
         self.call_duration = None  # Clear any previous duration
+        self.save()
 
     # Method to end a call
     def end_call(self):
@@ -156,6 +160,7 @@ class Ticket(models.Model):
         # Calculate call duration
         if self.call_start_time:
             self.call_duration = self.call_end_time - self.call_start_time
+        self.save()
 
     def __str__(self):
         return self.subject
@@ -194,3 +199,4 @@ class Call(models.Model):
         if self.call_start_time and self.call_end_time:
             self.call_duration = self.call_end_time - self.call_start_time
         super().save(*args, **kwargs)
+

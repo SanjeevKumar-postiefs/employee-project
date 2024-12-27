@@ -1,4 +1,5 @@
 {% load static %}
+{% load duration_filters %}
 {% csrf_token %}
 <!DOCTYPE html>
 <html lang="en">
@@ -443,8 +444,15 @@ input:checked + .slider {
                         <div class="card-header ticket-header">
                             <h3 class="m-0" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target=".collapse-{{ user_tickets.user.id }}" aria-expanded="false" aria-controls="collapse-{{ user_tickets.user.id }}">
                                 {{ user_tickets.user.username }}'s Tickets
+
+                                <!-- Show "On Break" badge -->
                                 {% if user_tickets.user.employeeprofile.is_on_break %}
                                     <span class="badge badge-warning activity-badge">On Break</span>
+                                {% endif %}
+
+                                <!-- Show "On Call" badge if the user is on a call -->
+                                {% if user_tickets.call_in_progress %}
+                                    <span class="badge badge-warning activity-badge">On Call</span>
                                 {% endif %}
                             </h3>
                         </div>
@@ -461,7 +469,6 @@ input:checked + .slider {
                                         <th>Status</th>
                                         <th>Priority</th>
                                         <th>Time Spent</th>
-                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -476,26 +483,16 @@ input:checked + .slider {
                                             <td>{{ user_tickets.latest_ticket.subject }}</td>
                                             <td id="ticket-status-{{ user_tickets.latest_ticket.id }}">{{ user_tickets.latest_ticket.status }}</td>
                                             <td>{{ user_tickets.latest_ticket.priority|title }}</td>
-                                            <td>
-                                                <span id="timer-{{ user_tickets.latest_ticket.id }}">
-                                                    {% if user_tickets.latest_ticket.time_spent %}
-                                                        {{ user_tickets.latest_ticket.time_spent|floatformat:2 }} seconds
-                                                    {% else %}
-                                                        0 seconds
-                                                    {% endif %}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button class="btn btn-success start-button"
-                                                        data-ticket-id="{{ user_tickets.latest_ticket.id }}"
-                                                        data-owner-id="{{ user_tickets.latest_ticket.assigned_to.id }}">
-                                                    {% if user_tickets.latest_ticket.is_active %}
-                                                        Stop
-                                                    {% else %}
-                                                        Start
-                                                    {% endif %}
-                                                </button>
-                                            </td>
+                                                <td>
+    <span id="timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+        {% if user_tickets.latest_ticket.time_spent %}
+            {{ user_tickets.latest_ticket.time_spent|format_duration }}
+        {% else %}
+            00:00:00
+        {% endif %}
+    </span>
+</td>
+
                                         </tr>
 
                                         <!-- Options for Latest Ticket -->
@@ -533,7 +530,7 @@ input:checked + .slider {
                             <!-- Collapsible section for older tickets -->
 
                                         {% for ticket in user_tickets.older_tickets %}
-                                            <tr class="collapse collapse-{{ user_tickets.user.id }}">
+                                            <tr class="collapse collapse-{{ user_tickets.user.id }} {% if ticket.is_active %}ticket-active{% endif %}">
                                                 <td>
                                                     <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ ticket.id }}" aria-expanded="false" aria-controls="options-{{ ticket.id }}">
                                                         +
@@ -543,26 +540,12 @@ input:checked + .slider {
                                                 <td>{{ ticket.subject }}</td>
                                                 <td id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
                                                 <td>{{ ticket.priority }}</td>
-                                                <td>
-                                                    <span id="timer-{{ ticket.id }}">
-                                                        {% if ticket.time_spent %}
-                                                            {{ ticket.time_spent|floatformat:2 }} seconds
-                                                        {% else %}
-                                                            0 seconds
-                                                        {% endif %}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button class="btn btn-success start-button"
-                                                            data-ticket-id="{{ ticket.id }}"
-                                                            data-owner-id="{{ ticket.assigned_to.id }}">
-                                                        {% if ticket.is_active %}
-                                                            Stop
-                                                        {% else %}
-                                                            Start
-                                                        {% endif %}
-                                                    </button>
-                                                </td>
+
+                                                        <td>
+    <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.time_spent|format_duration }}
+    </span>
+</td>
                                             </tr>
 
                                             <!-- Options for Older Ticket -->
@@ -691,218 +674,106 @@ input:checked + .slider {
     {% endif %}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const breakToggle = document.getElementById('breakToggle');
-    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
-
-    // Timer management
+document.addEventListener('DOMContentLoaded', function () {
     let timers = {}; // Store active timers
+    const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
-    function stopAllTimers() {
-        // Stop all running timers and update the backend with the accumulated time
-        Object.keys(timers).forEach(ticketId => {
-            clearInterval(timers[ticketId].interval); // Stop the timer interval
-            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-
-            // Update the time on the server
-            fetch('/update_time_spent/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    time_spent: timeSpent
-                })
-            }).then(response => response.json()).then(data => {
-                if (data.status !== 'success') {
-                    console.error('Failed to update time spent:', data.message);
-                }
-            });
-
-            timers[ticketId] = { accumulatedTime: timeSpent, running: false }; // Update local storage or state
-        });
-
-        // Clear all timer intervals
-        timers = {};
+    // Helper function to format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
     }
 
-    function startAllTimers() {
-        // Resumes all active tickets' timers on the backend
-        Object.keys(timers).forEach(ticketId => {
-            timers[ticketId].startTime = Date.now();
-            timers[ticketId].interval = setInterval(() => {
-                const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                document.getElementById('timer-' + ticketId).textContent = formatTime(updatedTime);
-            }, 1000);
-        });
+    // Load saved timers from localStorage
+    function loadTimers() {
+        const savedTimers = localStorage.getItem(localStorageKey);
+        return savedTimers ? JSON.parse(savedTimers) : {};
     }
 
-    // Listen for changes to the break toggle and update the status via AJAX
-    breakToggle.addEventListener('change', function() {
-        if (this.checked) {
-            stopAllTimers();  // If break is toggled on, stop all active timers
-        } else {
-            startAllTimers();  // If break is toggled off, resume the timers
-        }
+    // Save current timers to localStorage
+    function saveTimers() {
+        localStorage.setItem(localStorageKey, JSON.stringify(timers));
+    }
 
-        // Toggle the break status via an AJAX request
-        fetch("{% url 'toggle_break_status' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-        })
-        .then(() => {
-            // Optionally reload the page after toggling the break to update ticket visibility
-            window.location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    });
-});
-
-
-</script>
-
-<script>
-let timers = {}; // Store active timers
-let activeTicketId = null; // Track the currently active ticket's ID
-
-// Helper function to format time in hh:mm:ss
-function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-}
-
-// Restore timer states from local storage on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const savedTimers = JSON.parse(localStorage.getItem('timers')) || {};
-
-    // Restore the state of each timer
-    for (const ticketId in savedTimers) {
-        const timerData = savedTimers[ticketId];
+    // Start the frontend-only timer
+    function startFrontendTimer(ticketId, accumulatedTime, startTime) {
         const timerElement = document.getElementById('timer-' + ticketId);
-        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+        if (!timerElement) return;
 
-        if (timerElement && startButton) {
-            if (timerData.running) {
-                // Set button text to "Stop" if the timer was running
-                startButton.textContent = 'Stop';
+        // Store the start time and accumulated time in localStorage
+        timers[ticketId] = {
+            accumulatedTime: accumulatedTime,
+            startTime: startTime
+        };
+        saveTimers();
 
-                // Restore the active ticket ID (only one timer should be active at a time)
-                activeTicketId = ticketId;
+        // Start a setInterval to update the timer every second
+        timers[ticketId].interval = setInterval(() => {
+            const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
+            timerElement.textContent = formatTime(timers[ticketId].accumulatedTime + elapsedTime);
+        }, 1000);
+    }
 
-                // Calculate the elapsed time since the timer started
-                const elapsedTime = (Date.now() - timerData.startTime) / 1000 + timerData.accumulatedTime;
-                timerElement.textContent = formatTime(elapsedTime);
-
-                // Resume the timer
-                timers[ticketId] = {
-                    startTime: timerData.startTime,
-                    accumulatedTime: timerData.accumulatedTime,
-                    interval: setInterval(() => {
-                        const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                        timerElement.textContent = formatTime(updatedTime);
-                    }, 1000)
-                };
-            } else {
-                // If the timer was stopped, reset display to 00:00:00
-                timerElement.textContent = formatTime(0);
-            }
+    // Stop the frontend timer
+    function stopFrontendTimer(ticketId) {
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+            delete timers[ticketId];
+            saveTimers();
         }
     }
 
-    // Start/Stop Timer functionality
+    // Handle Start/Stop button functionality
     document.querySelectorAll('.start-button').forEach(button => {
         button.addEventListener('click', function () {
             const ticketId = this.dataset.ticketId;
-            const ownerId = this.dataset.ownerId;
-            const currentUserId = "{{ user.id }}";  // Assuming you're passing the current user's ID
-
-            if (ownerId !== currentUserId) {
-                alert('You are not authorized to start/stop this timer.');
-                return;
-            }
-
-            const timerElement = document.getElementById('timer-' + ticketId);
-            const ticketRow = timerElement.closest('tr');  // Get the ticket row element
             const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = action === 'start' ? `/tickets/${ticketId}/start/` : `/tickets/${ticketId}/stop/`;
 
-            if (action === 'start' && activeTicketId !== null) {
-                alert('You are already working on a ticket. Stop that timer to start a new one.');
-                return;
-            }
-
-            // Toggle button text
-            this.textContent = action === 'start' ? 'Stop' : 'Start';
-
-            // Toggle the active class on the ticket row
-            ticketRow.classList.toggle('ticket-active', action === 'start');
-
-            // Send the action (start or stop) to the server
-            fetch('/update_ticket_activity/', {
+            fetch(url, {
                 method: 'POST',
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    action: action
-                }),
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token }}"
+                    'X-CSRFToken': csrftoken,
                 }
-            }).then(response => response.json()).then(data => {
-                if (data.status !== 'success') {
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.textContent = action === 'start' ? 'Stop' : 'Start';
+
+                    if (action === 'start') {
+                        const currentTime = Date.now();
+                        const accumulatedTime = data.time_spent_seconds;
+                        startFrontendTimer(ticketId, accumulatedTime, currentTime);
+                    } else {
+                        stopFrontendTimer(ticketId); // Stop the frontend timer
+                    }
+                } else {
                     alert('Failed to update ticket activity');
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
             });
-
-            if (action === 'start') {
-                // Reset timer to 00:00:00 on start
-                timerElement.textContent = formatTime(0);
-                const startTime = Date.now();
-                let accumulatedTime = 0;
-
-                // Start the timer
-                timers[ticketId] = {
-                    startTime: startTime,
-                    accumulatedTime: accumulatedTime,
-                    interval: setInterval(() => {
-                        const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                        timerElement.textContent = formatTime(elapsedTime);
-                    }, 1000)
-                };
-
-                // Save timer state to local storage
-                savedTimers[ticketId] = { startTime: startTime, accumulatedTime: accumulatedTime, running: true };
-                localStorage.setItem('timers', JSON.stringify(savedTimers));
-
-                // Set the currently active ticket ID
-                activeTicketId = ticketId;
-
-            } else {
-                clearInterval(timers[ticketId].interval);
-                const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-
-                // Reset the timer to 00:00:00 after stopping
-                timerElement.textContent = formatTime(0);
-
-                // Save stopped timer state to local storage with accumulatedTime set to 0
-                savedTimers[ticketId] = { accumulatedTime: 0, running: false };
-                localStorage.setItem('timers', JSON.stringify(savedTimers));
-
-                // Clear the active ticket ID
-                activeTicketId = null;
-            }
         });
     });
+
+    // On page load, restore timers from localStorage and resume any running timers
+    const savedTimers = loadTimers();
+    document.querySelectorAll('.timer-span').forEach(timerElement => {
+        const ticketId = timerElement.dataset.ticketId;
+
+        if (savedTimers[ticketId]) {
+            const { accumulatedTime, startTime } = savedTimers[ticketId];
+            startFrontendTimer(ticketId, accumulatedTime, startTime);
+        }
+    });
 });
+
 
 </script>
 
@@ -1038,6 +909,5 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 </script>
-
 </body>
 </html>

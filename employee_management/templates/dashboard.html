@@ -1,5 +1,6 @@
 {% load static %}
 {% load timedelta_filters %}
+{% load duration_filters %}
 {% csrf_token %}
 <!DOCTYPE html>
 <html lang="en">
@@ -433,25 +434,24 @@ input:checked + .slider {
                         <td>{{ ticket.status }}</td>
                         <td>{{ ticket.priority }}</td>
                         <td>
-                            <span id="timer-{{ ticket.id }}">
-                                {% if ticket.time_spent %}
-                                    {{ ticket.time_spent|floatformat:2 }} seconds
-                                {% else %}
-                                    0 seconds
-                                {% endif %}
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-success start-button"
-                                    data-ticket-id="{{ ticket.id }}"
-                                    data-owner-id="{{ ticket.assigned_to.id }}">
-                                {% if ticket.is_active %}
-                                    Stop
-                                {% else %}
-                                    Start
-                                {% endif %}
-                            </button>
-                        </td>
+    <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.time_spent|format_duration }}
+    </span>
+</td>
+<td>
+    <!-- Add CSRF token for AJAX request -->
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <button class="btn btn-success start-button" data-ticket-id="{{ ticket.id }}" data-owner-id="{{ ticket.assigned_to.id }}">
+        {% if ticket.is_active %}
+            Stop
+        {% else %}
+            Start
+        {% endif %}
+    </button>
+</td>
+
+
                         <td>
                            <!-- On Call Button -->
                            <form method="post" action="{% url 'start_end_call' ticket.id %}" class="call-action-form" data-ticket-id="{{ ticket.id }}">
@@ -618,82 +618,76 @@ input:checked + .slider {
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
 
+    <script>
 
-
-
-
-
-
-<script>
-
-        document.querySelectorAll('.btn-close-ticket').forEach(button => {
-        button.addEventListener('click', function() {
-            const ticketId = this.dataset.ticketId;
-            if (confirm('Are you sure you want to close this ticket?')) {
-                // Create a form to submit the POST request
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrfmiddlewaretoken';
-                csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
-
-                form.appendChild(csrfInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    });
-
-
-
-        // Add click event for custom dropdown toggle
-        document.getElementById('activityDropdown').addEventListener('click', function() {
-            this.classList.toggle('active');
-        });
-
-
-         document.addEventListener("DOMContentLoaded", function() {
-        // Get all buttons that toggle ticket options
-        const ticketToggles = document.querySelectorAll('.ticket-toggle');
-
-        ticketToggles.forEach(button => {
+            document.querySelectorAll('.btn-close-ticket').forEach(button => {
             button.addEventListener('click', function() {
-                const currentTarget = this.getAttribute('data-bs-target');
+                const ticketId = this.dataset.ticketId;
+                if (confirm('Are you sure you want to close this ticket?')) {
+                    // Create a form to submit the POST request
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
 
-                // Collapse all other ticket options
-                ticketToggles.forEach(btn => {
-                    const target = btn.getAttribute('data-bs-target');
-                    if (target !== currentTarget) {
-                        const collapseElement = document.querySelector(target);
-                        if (collapseElement && collapseElement.classList.contains('show')) {
-                            // Collapse if it's not the current target
-                            collapseElement.classList.remove('show');
+                    form.appendChild(csrfInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+
+
+            // Add click event for custom dropdown toggle
+            document.getElementById('activityDropdown').addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+
+
+             document.addEventListener("DOMContentLoaded", function() {
+            // Get all buttons that toggle ticket options
+            const ticketToggles = document.querySelectorAll('.ticket-toggle');
+
+            ticketToggles.forEach(button => {
+                button.addEventListener('click', function() {
+                    const currentTarget = this.getAttribute('data-bs-target');
+
+                    // Collapse all other ticket options
+                    ticketToggles.forEach(btn => {
+                        const target = btn.getAttribute('data-bs-target');
+                        if (target !== currentTarget) {
+                            const collapseElement = document.querySelector(target);
+                            if (collapseElement && collapseElement.classList.contains('show')) {
+                                // Collapse if it's not the current target
+                                collapseElement.classList.remove('show');
+                            }
                         }
-                    }
+                    });
                 });
             });
         });
-    });
 
 
-    </script>
+        </script>
 
-{% if error %}
-    <script>
-        Swal.fire({
-            title: 'Unauthorized Access',
-            text: "{{ error }}",
-            icon: 'error',
-            confirmButtonText: 'Okay'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.href = "{% url 'home' %}";  // Redirect to the homepage
-            }
-        });
-    </script>
-    {% endif %}
+    {% if error %}
+        <script>
+            Swal.fire({
+                title: 'Unauthorized Access',
+                text: "{{ error }}",
+                icon: 'error',
+                confirmButtonText: 'Okay'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{% url 'home' %}";  // Redirect to the homepage
+                }
+            });
+        </script>
+        {% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -770,193 +764,111 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-
 </script>
 
-<script>
-let timers = {}; // Store active timers
-let activeTicketId = null; // Track the currently active ticket's ID
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    let timers = {}; // Store active timers
+    const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
-// Helper function to format time in hh:mm:ss
-function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-    return `${h}:${m}:${s}`;
-}
+    // Helper function to format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
 
-// Restore timer states from local storage on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const savedTimers = JSON.parse(localStorage.getItem('timers')) || {};
+    // Load saved timers from localStorage
+    function loadTimers() {
+        const savedTimers = localStorage.getItem(localStorageKey);
+        return savedTimers ? JSON.parse(savedTimers) : {};
+    }
 
-    // Restore the state of each timer
-    for (const ticketId in savedTimers) {
-        const timerData = savedTimers[ticketId];
+    // Save current timers to localStorage
+    function saveTimers() {
+        localStorage.setItem(localStorageKey, JSON.stringify(timers));
+    }
+
+    // Start the frontend-only timer
+    function startFrontendTimer(ticketId, accumulatedTime, startTime) {
         const timerElement = document.getElementById('timer-' + ticketId);
-        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+        if (!timerElement) return;
 
-        if (timerElement && startButton) {
-            if (timerData.running) {
-                // Set button text to "Stop" if the timer was running
-                startButton.textContent = 'Stop';
+        // Store the start time and accumulated time in localStorage
+        timers[ticketId] = {
+            accumulatedTime: accumulatedTime,
+            startTime: startTime
+        };
+        saveTimers();
 
-                // Restore the active ticket ID (only one timer should be active at a time)
-                activeTicketId = ticketId;
+        // Start a setInterval to update the timer every second
+        timers[ticketId].interval = setInterval(() => {
+            const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
+            timerElement.textContent = formatTime(timers[ticketId].accumulatedTime + elapsedTime);
+        }, 1000);
+    }
 
-                // Calculate the elapsed time since the timer started
-                const elapsedTime = (Date.now() - timerData.startTime) / 1000 + timerData.accumulatedTime;
-                timerElement.textContent = formatTime(elapsedTime);
-
-                // Resume the timer
-                timers[ticketId] = {
-                    startTime: timerData.startTime,
-                    accumulatedTime: timerData.accumulatedTime,
-                    interval: setInterval(() => {
-                        const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                        timerElement.textContent = formatTime(updatedTime);
-                    }, 1000)
-                };
-            } else {
-                // If the timer was stopped, reset display to 00:00:00
-                timerElement.textContent = formatTime(0);
-            }
+    // Stop the frontend timer
+    function stopFrontendTimer(ticketId) {
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+            delete timers[ticketId];
+            saveTimers();
         }
     }
 
-    // Start/Stop Timer functionality
+    // Handle Start/Stop button functionality
     document.querySelectorAll('.start-button').forEach(button => {
         button.addEventListener('click', function () {
             const ticketId = this.dataset.ticketId;
-            const ownerId = this.dataset.ownerId;
-            const currentUserId = "{{ user.id }}";  // Assuming you're passing the current user's ID
-
-            if (ownerId !== currentUserId) {
-                alert('You are not authorized to start/stop this timer.');
-                return;
-            }
-
-            const timerElement = document.getElementById('timer-' + ticketId);
-            const ticketRow = timerElement.closest('tr');  // Get the ticket row element
             const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const url = action === 'start' ? `/tickets/${ticketId}/start/` : `/tickets/${ticketId}/stop/`;
 
-            if (action === 'start' && activeTicketId !== null) {
-                alert('You are already working on a ticket. Stop that timer to start a new one.');
-                return;
-            }
-
-            // Toggle button text
-            this.textContent = action === 'start' ? 'Stop' : 'Start';
-
-            // Toggle the active class on the ticket row
-            ticketRow.classList.toggle('ticket-active', action === 'start');
-
-            // Send the action (start or stop) to the server
-            fetch('/update_ticket_activity/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    action: action
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': "{{ csrf_token }}"
-                }
-            }).then(response => response.json()).then(data => {
-                if (data.status !== 'success') {
-                    alert('Failed to update ticket activity');
-                }
-            });
-
-            if (action === 'start') {
-                // Reset timer to 00:00:00 on start
-                timerElement.textContent = formatTime(0);
-                const startTime = Date.now();
-                let accumulatedTime = 0;
-
-                // Start the timer
-                timers[ticketId] = {
-                    startTime: startTime,
-                    accumulatedTime: accumulatedTime,
-                    interval: setInterval(() => {
-                        const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                        timerElement.textContent = formatTime(elapsedTime);
-                    }, 1000)
-                };
-
-                // Save timer state to local storage
-                savedTimers[ticketId] = { startTime: startTime, accumulatedTime: accumulatedTime, running: true };
-                localStorage.setItem('timers', JSON.stringify(savedTimers));
-
-                // Set the currently active ticket ID
-                activeTicketId = ticketId;
-
-            } else {
-                clearInterval(timers[ticketId].interval);
-                const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-
-                // Reset the timer to 00:00:00 after stopping
-                timerElement.textContent = formatTime(0);
-
-                // Save stopped timer state to local storage with accumulatedTime set to 0
-                savedTimers[ticketId] = { accumulatedTime: 0, running: false };
-                localStorage.setItem('timers', JSON.stringify(savedTimers));
-
-                // Clear the active ticket ID
-                activeTicketId = null;
-            }
-        });
-    });
-});
-
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Listen for clicks on all status change links
-    document.querySelectorAll('.change-status').forEach(button => {
-        button.addEventListener('click', function (e) {
-            e.preventDefault();
-
-            const ticketId = this.dataset.ticketId; // Get ticket ID from data attribute
-            const newStatus = this.dataset.newStatus; // Get new status from data attribute
-
-            // Perform AJAX request to update the status
-            fetch('/update_ticket_status/', {
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'  // CSRF token for security
-                },
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    new_status: newStatus
-                })
+                    'X-CSRFToken': csrftoken,
+                }
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    // Update the status in the corresponding table row
-                    const statusCell = document.querySelector(`#ticket-status-${ticketId}`);
-                    if (statusCell) {
-                        statusCell.textContent = data.new_status_label;  // Update the status text
-                    }
+                if (data.status === 'success') {
+                    this.textContent = action === 'start' ? 'Stop' : 'Start';
 
-                    // Show a success message, then force a full page reload
-                    alert('Status updated successfully!');
-                    window.location.reload();
+                    if (action === 'start') {
+                        const currentTime = Date.now();
+                        const accumulatedTime = data.time_spent_seconds;
+                        startFrontendTimer(ticketId, accumulatedTime, currentTime);
+                    } else {
+                        stopFrontendTimer(ticketId); // Stop the frontend timer
+                    }
                 } else {
-                    // Show an alert if the user is not authorized or any other error occurred
-                    alert(data.message || 'Failed to update status.');
+                    alert('Failed to update ticket activity');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('An error occurred while updating the status.');
             });
         });
     });
+
+    // On page load, restore timers from localStorage and resume any running timers
+    const savedTimers = loadTimers();
+    document.querySelectorAll('.timer-span').forEach(timerElement => {
+        const ticketId = timerElement.dataset.ticketId;
+
+        if (savedTimers[ticketId]) {
+            const { accumulatedTime, startTime } = savedTimers[ticketId];
+            startFrontendTimer(ticketId, accumulatedTime, startTime);
+        }
+    });
 });
+
+
+
 </script>
 
 <script>
@@ -1131,6 +1043,5 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
 </body>
 </html>

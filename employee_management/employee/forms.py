@@ -86,6 +86,3 @@ class TicketForm(forms.ModelForm):
             self.fields['assigned_to'].queryset = logged_in_users.filter(employeeprofile__skill=group)
         else:
             self.fields['assigned_to'].queryset = logged_in_users
-
-
-
