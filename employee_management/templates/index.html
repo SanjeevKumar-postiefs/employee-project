@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'fonts/font-awesome-4.7.0/css/font-awesome.min.css' %}">
-
     <style>
         body {
             background-color: #ffffff; /* White background */
@@ -32,11 +31,40 @@
         .login-button {
             width: 100%;
         }
+
+        /* Modal styling */
+        .modal-header {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .modal-content {
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .modal-body {
+            color: #dc3545;
+            font-size: 1.1em;
+            text-align: center;
+        }
+        .modal-footer {
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
     <div class="container-login">
         <h2 class="login-title">Account Login</h2>
+
+        <!-- Display Error Messages (if any) Above the Form -->
+        {% if messages %}
+            <div class="alert alert-danger">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Login Form -->
         <form method="post" class="validate-form">
             {% csrf_token %}
             <div class="input-group">
@@ -47,9 +75,10 @@
             </div>
             <button class="btn btn-primary login-button" type="submit">Login</button>
         </form>
-            <p class="mt-3">
-              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="" class="text-muted">Forgot your password?</a>
-            </p>
+
+        <p class="mt-3 text-center">
+            <a href="" class="text-muted">Forgot your password?</a>
+        </p>
     </div>
 
     <!-- Modal for Login Errors -->
@@ -57,16 +86,17 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="errorModalLabel">Login Error</h5>
+                    <h5 class="modal-title" id="errorModalLabel"><i class="fa fa-exclamation-circle"></i> Login Error</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
+
+                <!-- Modal Body: Display non-field errors here -->
                 <div class="modal-body">
-                    {% if form.non_field_errors %}
-                        {{ form.non_field_errors|join:"<br>"|safe }}
-                    {% endif %}
+                    <p>{{ form.non_field_errors|join:"<br>"|safe }}</p>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
@@ -81,9 +111,11 @@
     <!-- Script to show modal if there are errors -->
     <script>
         $(document).ready(function() {
-            {% if messages %}
+            // Trigger the modal if form has non-field errors
+            var hasErrors = "{{ form.non_field_errors }}".length > 0;
+            if (hasErrors) {
                 $('#errorModal').modal('show');
-            {% endif %}
+            }
         });
     </script>
 </body>

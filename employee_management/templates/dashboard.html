@@ -267,7 +267,7 @@ input:checked + .slider {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+
                     <li class="nav-item"><a class="nav-link" href="{% url 'daily_activity' %}">Activity</a></li>
                     {% if request.user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'view_profile' request.user.id %}">Profile</a></li>
@@ -295,6 +295,12 @@ input:checked + .slider {
         <i class="fas fa-tachometer-alt"></i>
         <h5>Dashboard</h5> <!-- Text that appears on hover -->
     </a>
+
+    <a href="{% url 'home' %}">
+    <i class="fas fa-home"></i>
+    <h5>Home</h5> <!-- Text that appears on hover -->
+    </a>
+
 
     <div class="custom-dropdown">
         <div class="custom-dropdown-toggle">
@@ -343,12 +349,10 @@ input:checked + .slider {
         <h1 class="text-dark">{{user.username}}'s Dashboard</h1>
 
         <div class="dropdown ms-2">
-    <button class="btn btn-primary dropdown-toggle" type="button" id="newDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        New Call
+    <button class="btn btn-primary ms-2" type="button" data-bs-toggle="modal" data-bs-target="#clientCallModal">
+    New Call
     </button>
-    <ul class="dropdown-menu" aria-labelledby="newDropdown">
-        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#clientCallModal">Client Call</a></li>
-    </ul>
+
 </div>
         <div>
             <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center">
@@ -434,16 +438,20 @@ input:checked + .slider {
                         <td>{{ ticket.subject }}</td>
                         <td>{{ ticket.status }}</td>
                         <td>{{ ticket.priority }}</td>
-                        <td>
+                        <!-- Total Time Spent -->
+<td>
     <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.time_spent|format_duration }}
     </span>
 </td>
-                        <td>
+
+<!-- Individual Time Spent -->
+<td>
     <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.individual_time_spent|format_duration }}
     </span>
 </td>
+
 
 <td>
     <!-- Add CSRF token for AJAX request -->
@@ -620,7 +628,7 @@ input:checked + .slider {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Include Bootstrap and jQuery in your template -->
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 
@@ -696,86 +704,11 @@ input:checked + .slider {
         </script>
         {% endif %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const breakToggle = document.getElementById('breakToggle');
-    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
 
-    // Timer management
-    let timers = {}; // Store active timers
-
-    function stopAllTimers() {
-        // Stop all running timers and update the backend with the accumulated time
-        Object.keys(timers).forEach(ticketId => {
-            clearInterval(timers[ticketId].interval); // Stop the timer interval
-            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-
-            // Update the time on the server
-            fetch('/update_time_spent/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    time_spent: timeSpent
-                })
-            }).then(response => response.json()).then(data => {
-                if (data.status !== 'success') {
-                    console.error('Failed to update time spent:', data.message);
-                }
-            });
-
-            timers[ticketId] = { accumulatedTime: timeSpent, running: false }; // Update local storage or state
-        });
-
-        // Clear all timer intervals
-        timers = {};
-    }
-
-    function startAllTimers() {
-        // Resumes all active tickets' timers on the backend
-        Object.keys(timers).forEach(ticketId => {
-            timers[ticketId].startTime = Date.now();
-            timers[ticketId].interval = setInterval(() => {
-                const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                document.getElementById('timer-' + ticketId).textContent = formatTime(updatedTime);
-            }, 1000);
-        });
-    }
-
-    // Listen for changes to the break toggle and update the status via AJAX
-    breakToggle.addEventListener('change', function() {
-        if (this.checked) {
-            stopAllTimers();  // If break is toggled on, stop all active timers
-        } else {
-            startAllTimers();  // If break is toggled off, resume the timers
-        }
-
-        // Toggle the break status via an AJAX request
-        fetch("{% url 'toggle_break_status' %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({}),
-        })
-        .then(() => {
-            // Optionally reload the page after toggling the break to update ticket visibility
-            window.location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    });
-});
-</script>
 
     <script>
 document.addEventListener('DOMContentLoaded', function () {
-    let timers = {}; // Store active timers
+    let timers = {}; // Store active timers for both total and individual times
     const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
     // Helper function to format time in hh:mm:ss
@@ -797,27 +730,35 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem(localStorageKey, JSON.stringify(timers));
     }
 
-    // Start the frontend-only timer
-    function startFrontendTimer(ticketId, accumulatedTime, startTime) {
-        const timerElement = document.getElementById('timer-' + ticketId);
-        if (!timerElement) return;
+    // Start both total and individual timers on the frontend
+    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime) {
+        const totalTimerElement = document.getElementById('timer-' + ticketId); // For total time spent
+        const individualTimerElement = document.getElementById('individual-timer-' + ticketId); // For individual time spent
 
-        // Store the start time and accumulated time in localStorage
+        if (!totalTimerElement || !individualTimerElement) return; // If timers not found, exit
+
+        // Store the start time and accumulated time in localStorage for both timers
         timers[ticketId] = {
-            accumulatedTime: accumulatedTime,
+            totalAccumulatedTime: totalAccumulatedTime,
+            individualAccumulatedTime: individualAccumulatedTime,
             startTime: startTime
         };
         saveTimers();
 
-        // Start a setInterval to update the timer every second
+        // Start a setInterval to update both timers every second
         timers[ticketId].interval = setInterval(() => {
             const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
-            timerElement.textContent = formatTime(timers[ticketId].accumulatedTime + elapsedTime);
+
+            // Update total time spent
+            totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime + elapsedTime);
+
+            // Update individual time spent
+            individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime + elapsedTime);
         }, 1000);
     }
 
-    // Stop the frontend timer
-    function stopFrontendTimer(ticketId) {
+    // Stop the frontend timers for a given ticket
+    function stopFrontendTimers(ticketId) {
         if (timers[ticketId] && timers[ticketId].interval) {
             clearInterval(timers[ticketId].interval);
             delete timers[ticketId];
@@ -825,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Handle Start/Stop button functionality
+    // Handle Start/Stop button functionality for starting/stopping both timers
     document.querySelectorAll('.start-button').forEach(button => {
         button.addEventListener('click', function () {
             const ticketId = this.dataset.ticketId;
@@ -847,10 +788,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (action === 'start') {
                         const currentTime = Date.now();
-                        const accumulatedTime = data.time_spent_seconds;
-                        startFrontendTimer(ticketId, accumulatedTime, currentTime);
+                        const totalAccumulatedTime = data.time_spent_seconds; // Total time spent
+                        const individualAccumulatedTime = data.individual_time_spent_seconds; // Individual time spent
+                        startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, currentTime);
                     } else {
-                        stopFrontendTimer(ticketId); // Stop the frontend timer
+                        stopFrontendTimers(ticketId); // Stop both timers
                     }
                 } else {
                     alert('Failed to update ticket activity');
@@ -868,15 +810,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const ticketId = timerElement.dataset.ticketId;
 
         if (savedTimers[ticketId]) {
-            const { accumulatedTime, startTime } = savedTimers[ticketId];
-            startFrontendTimer(ticketId, accumulatedTime, startTime);
+            const { totalAccumulatedTime, individualAccumulatedTime, startTime } = savedTimers[ticketId];
+            startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime);
         }
     });
 });
-
-
-
 </script>
+
 
 <script>
         // Function to mark notification as read
@@ -1047,6 +987,117 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .catch(error => console.error('Error:', error));
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const breakToggle = document.getElementById('breakToggle');
+    const csrfToken = "{{ csrf_token }}";  // CSRF token for request
+
+    let timers = {}; // Store active timers
+    let breakStartTime = null; // Track when the break started
+    let breakTimeAccumulated = {}; // Track accumulated break time for each ticket
+
+    // Format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // Stop all running timers and update the backend with the accumulated time
+    function stopAllTimers() {
+        Object.keys(timers).forEach(ticketId => {
+            clearInterval(timers[ticketId].interval); // Stop the timer interval
+            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+
+            // Update the time on the server
+            fetch('/update_time_spent/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    time_spent: timeSpent
+                })
+            }).then(response => response.json()).then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to update time spent:', data.message);
+                }
+            });
+
+            // Save the accumulated time before stopping
+            timers[ticketId].accumulatedTime = timeSpent;
+        });
+
+        // Clear all timer intervals
+        timers = {};
+    }
+
+    // Resume all timers after break, without resetting accumulated time
+    function resumeAllTimers() {
+        Object.keys(timers).forEach(ticketId => {
+            const timerData = timers[ticketId];
+            if (!timerData || timerData.running) return;  // Skip if already running
+
+            const startTime = Date.now();  // Start timer again from now
+            const timerElement = document.getElementById('timer-' + ticketId);
+
+            // Resume the timer from where it left off
+            timers[ticketId] = {
+                startTime: startTime,
+                accumulatedTime: timers[ticketId].accumulatedTime,  // Continue from last accumulated time
+                interval: setInterval(() => {
+                    const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                    timerElement.textContent = formatTime(elapsedTime);
+                }, 1000)
+            };
+        });
+    }
+
+    // Listen for changes to the break toggle and update the status via AJAX
+    breakToggle.addEventListener('change', function() {
+        if (this.checked) {
+            // If break is toggled on, stop all active timers and note the break start time
+            stopAllTimers();
+            breakStartTime = Date.now();  // Record when the break started
+        } else {
+            // If break is toggled off, calculate break duration and resume timers
+            const breakEndTime = Date.now();
+            const breakDuration = (breakEndTime - breakStartTime) / 1000;  // Break duration in seconds
+
+            Object.keys(timers).forEach(ticketId => {
+                if (!breakTimeAccumulated[ticketId]) {
+                    breakTimeAccumulated[ticketId] = 0;  // Initialize if not already set
+                }
+                breakTimeAccumulated[ticketId] += breakDuration;  // Add break time to the ticket's accumulated break time
+            });
+
+            // Resume timers now that the break has ended
+            resumeAllTimers();
+        }
+
+        // Toggle the break status via an AJAX request
+        fetch("{% url 'toggle_break_status' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(() => {
+            // Reload the page after toggling the break to update ticket visibility
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
     });
 });
 </script>

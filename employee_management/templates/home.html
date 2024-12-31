@@ -328,7 +328,7 @@ input:checked + .slider {
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+
                     <li class="nav-item"><a class="nav-link" href="{% url 'daily_activity' %}">Activity</a></li>
                     {% if request.user.is_authenticated %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'view_profile' request.user.id %}">Profile</a></li>
@@ -356,6 +356,12 @@ input:checked + .slider {
         <i class="fas fa-tachometer-alt"></i>
         <h5>Dashboard</h5> <!-- Text that appears on hover -->
     </a>
+
+    <a href="{% url 'home' %}">
+    <i class="fas fa-home"></i>
+    <h5>Home</h5> <!-- Text that appears on hover -->
+    </a>
+
 
     <div class="custom-dropdown">
         <div class="custom-dropdown-toggle">
@@ -451,7 +457,7 @@ input:checked + .slider {
                                 {% endif %}
 
                                 <!-- Show "On Call" badge if the user is on a call -->
-                                {% if user_tickets.call_in_progress %}
+                                {% if user_tickets.call_in_progress == True %}
                                     <span class="badge badge-warning activity-badge">On Call</span>
                                 {% endif %}
                             </h3>
@@ -550,16 +556,20 @@ input:checked + .slider {
                                                 <td id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
                                                 <td>{{ ticket.priority }}</td>
 
-                                                        <td>
+                                                        <!-- Total Time Spent -->
+<td>
     <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.time_spent|format_duration }}
     </span>
 </td>
-                                                 <td>
+
+<!-- Individual Time Spent -->
+<td>
     <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.individual_time_spent|format_duration }}
     </span>
 </td>
+
                                             </tr>
 
                                             <!-- Options for Older Ticket -->
@@ -689,7 +699,7 @@ input:checked + .slider {
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    let timers = {}; // Store active timers
+    let timers = {}; // Store active timers for both total and individual times
     const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
     // Helper function to format time in hh:mm:ss
@@ -711,27 +721,35 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem(localStorageKey, JSON.stringify(timers));
     }
 
-    // Start the frontend-only timer
-    function startFrontendTimer(ticketId, accumulatedTime, startTime) {
-        const timerElement = document.getElementById('timer-' + ticketId);
-        if (!timerElement) return;
+    // Start both total and individual timers on the frontend
+    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime) {
+        const totalTimerElement = document.getElementById('timer-' + ticketId); // For total time spent
+        const individualTimerElement = document.getElementById('individual-timer-' + ticketId); // For individual time spent
 
-        // Store the start time and accumulated time in localStorage
+        if (!totalTimerElement || !individualTimerElement) return; // If timers not found, exit
+
+        // Store the start time and accumulated time in localStorage for both timers
         timers[ticketId] = {
-            accumulatedTime: accumulatedTime,
+            totalAccumulatedTime: totalAccumulatedTime,
+            individualAccumulatedTime: individualAccumulatedTime,
             startTime: startTime
         };
         saveTimers();
 
-        // Start a setInterval to update the timer every second
+        // Start a setInterval to update both timers every second
         timers[ticketId].interval = setInterval(() => {
             const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
-            timerElement.textContent = formatTime(timers[ticketId].accumulatedTime + elapsedTime);
+
+            // Update total time spent
+            totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime + elapsedTime);
+
+            // Update individual time spent
+            individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime + elapsedTime);
         }, 1000);
     }
 
-    // Stop the frontend timer
-    function stopFrontendTimer(ticketId) {
+    // Stop the frontend timers for a given ticket
+    function stopFrontendTimers(ticketId) {
         if (timers[ticketId] && timers[ticketId].interval) {
             clearInterval(timers[ticketId].interval);
             delete timers[ticketId];
@@ -739,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Handle Start/Stop button functionality
+    // Handle Start/Stop button functionality for starting/stopping both timers
     document.querySelectorAll('.start-button').forEach(button => {
         button.addEventListener('click', function () {
             const ticketId = this.dataset.ticketId;
@@ -761,10 +779,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (action === 'start') {
                         const currentTime = Date.now();
-                        const accumulatedTime = data.time_spent_seconds;
-                        startFrontendTimer(ticketId, accumulatedTime, currentTime);
+                        const totalAccumulatedTime = data.time_spent_seconds; // Total time spent
+                        const individualAccumulatedTime = data.individual_time_spent_seconds; // Individual time spent
+                        startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, currentTime);
                     } else {
-                        stopFrontendTimer(ticketId); // Stop the frontend timer
+                        stopFrontendTimers(ticketId); // Stop both timers
                     }
                 } else {
                     alert('Failed to update ticket activity');
@@ -782,14 +801,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const ticketId = timerElement.dataset.ticketId;
 
         if (savedTimers[ticketId]) {
-            const { accumulatedTime, startTime } = savedTimers[ticketId];
-            startFrontendTimer(ticketId, accumulatedTime, startTime);
+            const { totalAccumulatedTime, individualAccumulatedTime, startTime } = savedTimers[ticketId];
+            startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime);
         }
     });
 });
-
-
 </script>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -923,9 +941,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 </script>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
     let timers = {}; // Store active timers
 
     // Helper function to format time in hh:mm:ss
@@ -938,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Fetch active timers from the backend and update the frontend
     function fetchActiveTimers() {
-        fetch('/get_active_timers/', {  // Assumes the endpoint is defined in your Django URLs
+        fetch('/get_active_timers/', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -948,10 +965,17 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.tickets) {
                 data.tickets.forEach(ticket => {
-                    const timerElement = document.getElementById('timer-' + ticket.ticket_id);
-                    if (timerElement) {
-                        // Update the timer on the frontend with the real-time data
-                        timerElement.textContent = formatTime(ticket.time_spent_seconds);
+                    const totalTimerElement = document.getElementById('timer-' + ticket.ticket_id); // For total time spent
+                    const individualTimerElement = document.getElementById('individual-timer-' + ticket.ticket_id); // For individual time spent
+
+                    // Update total time spent on the frontend
+                    if (totalTimerElement) {
+                        totalTimerElement.textContent = formatTime(ticket.time_spent_seconds);
+                    }
+
+                    // Update individual time spent on the frontend
+                    if (individualTimerElement) {
+                        individualTimerElement.textContent = formatTime(ticket.individual_time_spent_seconds);
                     }
                 });
             }
@@ -962,10 +986,94 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Poll the backend every second to update active timers
-    setInterval(fetchActiveTimers, 1000);  // Poll every 1 second
+    setInterval(fetchActiveTimers, 5000);  // Poll every 5 second
+});
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const breakToggle = document.getElementById('breakToggle');
+    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
+
+    let timers = {}; // Store active timers
+
+    // Helper function to format time (hh:mm:ss)
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // Stop all active timers when break is toggled
+    function stopAllTimers() {
+        Object.keys(timers).forEach(ticketId => {
+            clearInterval(timers[ticketId].interval);  // Stop frontend timer
+            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+
+            // Update the backend to pause the timer and save the time spent
+            fetch('/update_time_spent/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    time_spent: timeSpent  // Send the time spent before the break
+                })
+            }).then(response => response.json()).then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to update time spent:', data.message);
+                }
+            });
+
+            // Update local storage to reflect stopped state
+            timers[ticketId] = { accumulatedTime: timeSpent, running: false };
+        });
+
+        timers = {};  // Clear timers after stopping them
+    }
+
+    // Resume timers when coming back from break
+    function startAllTimers() {
+        Object.keys(timers).forEach(ticketId => {
+            timers[ticketId].startTime = Date.now();  // Restart timer from current time
+            timers[ticketId].interval = setInterval(() => {
+                const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                document.getElementById('timer-' + ticketId).textContent = formatTime(elapsedTime);
+            }, 1000);
+        });
+    }
+
+    // Handle break toggle
+    breakToggle.addEventListener('change', function() {
+        if (this.checked) {
+            // Break toggled on: stop timers
+            stopAllTimers();
+        } else {
+            // Break toggled off: resume timers
+            startAllTimers();
+        }
+
+        // Notify backend about the break status
+        fetch("{% url 'toggle_break_status' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(() => {
+            window.location.reload();  // Optionally reload the page after toggling break
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
 });
 
-</script>
+    </script>
 
 </body>
 </html>

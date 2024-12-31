@@ -133,20 +133,26 @@ def register(request):
     return render(request, 'register.html', {'form': form})
 
 
+from django.contrib.auth import authenticate, login as auth_login
+
+
 def login(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        user = auth.authenticate(username=username, password=password)
+        user = authenticate(username=username, password=password)
+
         if user is not None:
-            auth.login(request, user)
+            auth_login(request, user)
             user_profile, created = EmployeeProfile.objects.get_or_create(user=user)
             user_profile.is_active = True
             user_profile.save()
             return redirect('dashboard')
         else:
             messages.error(request, 'Invalid username or password.')
-            return render(request, 'index.html', {'form': {'non_field_errors': ['Invalid username or password.']}})
+            return render(request, 'index.html', {
+                'form': {'non_field_errors': ['Invalid username or password.']}
+            })
     return render(request, 'index.html')
 
 def logout(request):
@@ -442,49 +448,43 @@ def add_employee(request):
 @login_required
 def toggle_break_status(request):
     user_profile = request.user.employeeprofile
-    user_profile.is_on_break = not user_profile.is_on_break  # Toggle the break status
+    user_profile.is_on_break = not user_profile.is_on_break  # Toggle break status
     user_profile.save()
 
-    # Update the session activity for the current session
     today = timezone.now().date()
     try:
-        # Get the user's current session
-        current_session = SessionActivity.objects.filter(user=request.user, date=today, logout_time=None).latest('login_time')
+        current_session = SessionActivity.objects.filter(
+            user=request.user, date=today, logout_time=None).latest('login_time')
 
         if user_profile.is_on_break:
-            # If the user is now on break, stop all active tickets and record their time
+            # Start the break: Stop active tickets
             active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
             for ticket in active_tickets:
-                ticket.pause_work()  # Pause the timer and calculate time spent
-                ticket.is_active = False  # Mark the ticket as inactive during the break
+                ticket.toggle_break()  # Call the toggle_break method
                 ticket.save()
 
-            # Record the break start time in the session
             current_session.break_start_time = timezone.now()
             current_session.save()
 
         else:
-            # If the user is resuming work, restart only those tickets that were previously active
-            # Only restart tickets that were paused (but not completed)
-            paused_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=False)
-            for ticket in paused_tickets:
-                # Set ticket to active again
-                ticket.work_start_time = timezone.now()  # Restart counting from now
-                ticket.is_active = True  # Mark as active again
+            # End the break: Resume active tickets
+            active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
+            for ticket in active_tickets:
+                ticket.toggle_break()  # Call the toggle_break method to end the break
                 ticket.save()
 
-            # Calculate the break duration and add it to the session's work time
             if current_session.break_start_time:
                 break_duration = timezone.now() - current_session.break_start_time
                 current_session.break_duration += break_duration
-                current_session.work_time = current_session.calculate_work_time()
+                current_session.break_start_time = None  # Reset after recording
 
-            # Reset the break start time and save session activity
-            current_session.break_start_time = None
+            total_time_spent = timezone.now() - current_session.login_time
+            total_work_time = total_time_spent - current_session.break_duration
+            current_session.work_time = total_work_time
             current_session.save()
 
     except SessionActivity.DoesNotExist:
-        pass  # No active session found, nothing to update
+        pass  # Handle case when no active session exists
 
     return redirect('home')
 
@@ -595,12 +595,16 @@ def start_work(request, ticket_id):
     if request.method == 'POST':
         ticket.start_work()
 
-        time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+        # Get total and individual time in seconds
+        total_time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+        individual_time_spent_seconds = int(ticket.individual_time_spent.total_seconds()) if ticket.individual_time_spent else 0
 
         return JsonResponse({
             'status': 'success',
-            'time_spent_seconds': time_spent_seconds,
+            'time_spent_seconds': total_time_spent_seconds,
+            'individual_time_spent_seconds': individual_time_spent_seconds
         })
+
 
 @login_required
 def stop_work(request, ticket_id):
@@ -609,12 +613,16 @@ def stop_work(request, ticket_id):
     if request.method == 'POST':
         ticket.pause_work()
 
-        time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+        # Get total and individual time in seconds
+        total_time_spent_seconds = int(ticket.time_spent.total_seconds()) if ticket.time_spent else 0
+        individual_time_spent_seconds = int(ticket.individual_time_spent.total_seconds()) if ticket.individual_time_spent else 0
 
         return JsonResponse({
             'status': 'success',
-            'time_spent_seconds': time_spent_seconds
+            'time_spent_seconds': total_time_spent_seconds,
+            'individual_time_spent_seconds': individual_time_spent_seconds
         })
+
 
 
 
@@ -623,6 +631,7 @@ from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
 import json
 
+@csrf_exempt
 def update_time_spent(request):
     if request.method == 'POST':
         try:
@@ -636,8 +645,8 @@ def update_time_spent(request):
             # Find the ticket
             ticket = Ticket.objects.get(id=ticket_id)
 
-            # Add the time spent to the ticket's existing time_spent
-            if ticket.time_spent is None:
+            # Add the time spent to the ticket's existing time_spent (which is also a timedelta)
+            if ticket.time_spent is None:  # Handle if time_spent was initially null
                 ticket.time_spent = time_spent
             else:
                 ticket.time_spent += time_spent
@@ -904,21 +913,43 @@ def ticket_status(request, ticket_id):
 
 @login_required
 def get_active_timers(request):
-    """Fetch active timers with real-time time spent."""
+    """Fetch active timers with real-time time spent (both total and individual)."""
     active_tickets = Ticket.objects.filter(is_active=True)
 
     # Serialize the active ticket data
     ticket_data = []
     for ticket in active_tickets:
-        time_spent_seconds = ticket.time_spent.total_seconds() if ticket.time_spent else 0
-        if ticket.work_start_time:
-            # Calculate the time since the timer started
-            time_spent_seconds += (timezone.now() - ticket.work_start_time).total_seconds()
+        # Calculate total time spent
+        total_time_spent_seconds = ticket.time_spent.total_seconds() if ticket.time_spent else 0
+        # Calculate individual time spent
+        individual_time_spent_seconds = ticket.individual_time_spent.total_seconds() if ticket.individual_time_spent else 0
 
+        if ticket.work_start_time:
+            # Calculate the time since the timer started for both total and individual times
+            elapsed_time = (timezone.now() - ticket.work_start_time).total_seconds()
+            total_time_spent_seconds += elapsed_time
+            individual_time_spent_seconds += elapsed_time
+
+        # Append both total and individual time spent to the response
         ticket_data.append({
             'ticket_id': ticket.id,
-            'time_spent_seconds': int(time_spent_seconds),  # Return time spent in seconds
+            'time_spent_seconds': int(total_time_spent_seconds),  # Total time spent
+            'individual_time_spent_seconds': int(individual_time_spent_seconds),  # Individual time spent
             'is_active': ticket.is_active
         })
 
     return JsonResponse({'tickets': ticket_data})
+
+@login_required
+def get_call_status(request):
+    """Fetch all active call statuses."""
+    tickets_with_calls = Ticket.objects.filter(call_in_progress=True)
+
+    call_statuses = []
+    for ticket in tickets_with_calls:
+        call_statuses.append({
+            'user_id': ticket.assigned_to.id,
+            'call_in_progress': ticket.call_in_progress,
+        })
+
+    return JsonResponse({'call_statuses': call_statuses})

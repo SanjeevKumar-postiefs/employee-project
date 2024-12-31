@@ -123,6 +123,8 @@ class Ticket(models.Model):
     call_note = models.TextField(blank=True)  # Note for what happened during the call
     call_in_progress = models.BooleanField(default=False)
     call_timer_started_by_call = models.BooleanField(default=False)
+    last_break_time = models.DateTimeField(null=True, blank=True)  # To track when the break started
+    break_duration = models.DurationField(default=timezone.timedelta(0))
 
 
     def start_work(self):
@@ -135,16 +137,37 @@ class Ticket(models.Model):
     def pause_work(self):
         """Pause the timer and accumulate the time spent."""
         if self.is_active and self.work_start_time:
-            time_diff = timezone.now() - self.work_start_time
-            self.time_spent += time_diff
-            self.individual_time_spent += time_diff
-            self.work_start_time = None  # Reset start time
+            # Accumulate the time from the start of work until now (excluding any breaks)
+            work_duration = timezone.now() - self.work_start_time - self.break_duration
+            self.time_spent += work_duration
+            self.individual_time_spent += work_duration
+
+            # Reset the timer fields
+            self.work_start_time = None
+            self.break_duration = timezone.timedelta(0)  # Reset break duration after pause
             self.is_active = False
             self.save()
 
     def stop_work(self):
-        """Stop the timer."""
-        self.pause_work()  # Pauses and accumulates the time
+        """Stop the timer and accumulate the time spent."""
+        if self.is_active:
+            self.pause_work()  # Pauses and accumulates the time
+
+    def toggle_break(self):
+        """Handle the break toggling logic."""
+        if self.is_active:
+            if self.last_break_time:
+                # Coming back from break, calculate the break duration and subtract it from the work time
+                break_time = timezone.now() - self.last_break_time
+                self.break_duration += break_time  # Track the total break time
+                self.last_break_time = None  # Reset the break time
+
+                # Resume work
+                self.work_start_time = timezone.now()  # Mark the new start time after the break
+            else:
+                # Going on break, just set the break start time
+                self.last_break_time = timezone.now()
+            self.save()
 
     def reset_individual_time_spent(self):
         """Reset the individual time spent when the ticket is reassigned."""

@@ -47,4 +47,5 @@ urlpatterns=[
     path('save_call_note/', views.save_call_note, name='save_call_note'),
     path('tickets/<int:ticket_id>/status/', views.ticket_status, name='ticket_status'),
     path('get_active_timers/', views.get_active_timers, name='get_active_timers'),
+    path('get_call_status/', views.get_call_status, name='get_call_status'),
 ]
