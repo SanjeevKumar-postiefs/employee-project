@@ -230,3 +230,11 @@ class Call(models.Model):
             self.call_duration = self.call_end_time - self.call_start_time
         super().save(*args, **kwargs)
 
+class Note(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='notes')
+    note_text = models.TextField()
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Note by {self.created_by} on {self.created_at}"

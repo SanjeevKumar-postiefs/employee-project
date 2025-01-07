@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}<br><br>
+<!-- ticket_notes.html -->
+<h3>Notes for Ticket #{{ ticket.ticket_id }}</h3>
+
+<ul>
+    {% for note in notes %}
+    <li>
+        <strong>{{ note.created_by.username }} ({{ note.created_at }}):</strong>
+        <p>{{ note.note_text }}</p>
+    </li>
+    {% endfor %}
+</ul>
+
+{% endblock %}

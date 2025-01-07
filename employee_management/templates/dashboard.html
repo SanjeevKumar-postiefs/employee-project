@@ -254,6 +254,20 @@ input:checked + .slider {
 .collapse {
     margin-top: 10px;
 }
+
+ /* Ensure smooth transitions for showing/hiding sections */
+#newQuerySection, #existingQuerySection {
+    display: none;  /* Hidden by default */
+    max-height: 1000px;  /* Ensure there's enough room to expand */
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+}
+
+.show-section {
+    display: block;
+    max-height: none;  /* Remove height limitation */
+}
+
 </style>
 </head>
 <body>
@@ -509,6 +523,9 @@ input:checked + .slider {
 
                             <!-- View Call Details Button -->
                             <a href="{% url 'view_call_details' ticket.id %}" class="btn btn-outline-info">Call Details</a>
+
+                            <!-- View Notes Button -->
+                            <a href="{% url 'view_ticket_notes' ticket.id %}" class="btn btn-outline-warning">View Notes</a> <!-- New button to view ticket notes -->
                             </div>
                         </td>
                     </tr>
@@ -572,7 +589,7 @@ input:checked + .slider {
 
 
 
-<!-- Client Call Modal with Note and Create Ticket -->
+<!-- Client Call Modal with question: Is it a new query? -->
 <div class="modal fade" id="clientCallModal" tabindex="-1" aria-labelledby="clientCallModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -581,47 +598,85 @@ input:checked + .slider {
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Tab navigation -->
-                <ul class="nav nav-tabs" id="clientCallTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link active" id="note-tab" data-bs-toggle="tab" href="#note" role="tab">Note</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link" id="ticket-tab" data-bs-toggle="tab" href="#ticket" role="tab">Create Ticket</a>
-                    </li>
-                </ul>
-
-                <!-- Tab content -->
-                <div class="tab-content mt-3">
-                    <!-- Note tab content -->
-                    <div class="tab-pane fade show active" id="note" role="tabpanel">
-                        <form id="noteForm" method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Client Email</label>
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter client email">
-                            </div>
-                            <div class="mb-3">
-                                <label for="note" class="form-label">Note</label>
-                                <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the call"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Note</button>
-                        </form>
-                    </div>
-
-                    <!-- Create Ticket tab content -->
-                    <div class="tab-pane fade" id="ticket" role="tabpanel">
-                        <form id="ticketForm" method="post" action="{% url 'create_ticket' %}">
-                            {% csrf_token %}
-                            {{ ticket_form.as_p }}
-                            <button type="submit" class="btn btn-success">Create Ticket</button>
-                        </form>
-                    </div>
+                <!-- Question for user -->
+                <div class="text-center">
+                    <h5>Is it a new query?</h5>
+                    <button type="button" class="btn btn-primary me-2" id="newQueryBtn">Yes</button>
+                    <button type="button" class="btn btn-secondary" id="existingQueryBtn">No</button>
                 </div>
+
+                <!-- New Query Form (Initially Hidden) -->
+                <div id="newQuerySection" style="display: none; margin-top: 20px;">
+                    <h5>New Query</h5>
+                    <form id="newQueryForm" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Client Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter client email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="note" class="form-label">Note</label>
+                            <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the query"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+
+                <!-- Existing Query Form (Initially Hidden) -->
+<div id="existingQuerySection" style="display: none; margin-top: 20px;">
+    <h5>Existing Query</h5>
+    <form id="existingQueryForm" method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="ticket-id" class="form-label">Ticket ID</label>
+            <input type="text" class="form-control" id="ticket-id" name="ticket_id" placeholder="Enter ticket ID">
+        </div>
+        <button type="button" class="btn btn-primary" id="search-ticket">Search</button>
+
+        <!-- Ticket details section (Initially hidden) -->
+        <div id="ticket-details" style="display: none; margin-top: 20px;">
+            <h5>Ticket Details</h5>
+            <div class="mb-3">
+                <label for="subject" class="form-label">Subject</label>
+                <input type="text" class="form-control" id="subject" name="subject">
+            </div>
+            <div class="mb-3">
+                <label for="assigned-to" class="form-label">Assigned To</label>
+                <select class="form-control" id="assigned-to" name="assigned_to">
+                    <!-- Dynamic options for users -->
+                </select>
+            </div>
+
+            <!-- New Priority Dropdown -->
+            <div class="mb-3">
+                <label for="priority" class="form-label">Priority</label>
+                <select class="form-control" id="priority" name="priority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+
+            <!-- New Note Field -->
+            <div class="mb-3">
+                <label for="note" class="form-label">Note</label>
+                <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the ticket"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Update Ticket</button>
+        </div>
+    </form>
+</div>
+
             </div>
         </div>
     </div>
 </div>
+
+
+
+
 
 <!-- Bootstrap JS (including Popper.js) -->
     <!-- Include Bootstrap JS -->
@@ -994,22 +1049,13 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const breakToggle = document.getElementById('breakToggle');
-    const csrfToken = "{{ csrf_token }}";  // CSRF token for request
+    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
 
+    // Timer management
     let timers = {}; // Store active timers
-    let breakStartTime = null; // Track when the break started
-    let breakTimeAccumulated = {}; // Track accumulated break time for each ticket
 
-    // Format time in hh:mm:ss
-    function formatTime(seconds) {
-        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${h}:${m}:${s}`;
-    }
-
-    // Stop all running timers and update the backend with the accumulated time
     function stopAllTimers() {
+        // Stop all running timers and update the backend with the accumulated time
         Object.keys(timers).forEach(ticketId => {
             clearInterval(timers[ticketId].interval); // Stop the timer interval
             const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
@@ -1031,55 +1077,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Save the accumulated time before stopping
-            timers[ticketId].accumulatedTime = timeSpent;
+            timers[ticketId] = { accumulatedTime: timeSpent, running: false }; // Update local storage or state
         });
 
         // Clear all timer intervals
         timers = {};
     }
 
-    // Resume all timers after break, without resetting accumulated time
-    function resumeAllTimers() {
+    function startAllTimers() {
+        // Resumes all active tickets' timers on the backend
         Object.keys(timers).forEach(ticketId => {
-            const timerData = timers[ticketId];
-            if (!timerData || timerData.running) return;  // Skip if already running
-
-            const startTime = Date.now();  // Start timer again from now
-            const timerElement = document.getElementById('timer-' + ticketId);
-
-            // Resume the timer from where it left off
-            timers[ticketId] = {
-                startTime: startTime,
-                accumulatedTime: timers[ticketId].accumulatedTime,  // Continue from last accumulated time
-                interval: setInterval(() => {
-                    const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                    timerElement.textContent = formatTime(elapsedTime);
-                }, 1000)
-            };
+            timers[ticketId].startTime = Date.now();
+            timers[ticketId].interval = setInterval(() => {
+                const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                document.getElementById('timer-' + ticketId).textContent = formatTime(updatedTime);
+            }, 1000);
         });
     }
 
     // Listen for changes to the break toggle and update the status via AJAX
     breakToggle.addEventListener('change', function() {
         if (this.checked) {
-            // If break is toggled on, stop all active timers and note the break start time
-            stopAllTimers();
-            breakStartTime = Date.now();  // Record when the break started
+            stopAllTimers();  // If break is toggled on, stop all active timers
         } else {
-            // If break is toggled off, calculate break duration and resume timers
-            const breakEndTime = Date.now();
-            const breakDuration = (breakEndTime - breakStartTime) / 1000;  // Break duration in seconds
-
-            Object.keys(timers).forEach(ticketId => {
-                if (!breakTimeAccumulated[ticketId]) {
-                    breakTimeAccumulated[ticketId] = 0;  // Initialize if not already set
-                }
-                breakTimeAccumulated[ticketId] += breakDuration;  // Add break time to the ticket's accumulated break time
-            });
-
-            // Resume timers now that the break has ended
-            resumeAllTimers();
+            startAllTimers();  // If break is toggled off, resume the timers
         }
 
         // Toggle the break status via an AJAX request
@@ -1092,12 +1113,116 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify({}),
         })
         .then(() => {
-            // Reload the page after toggling the break to update ticket visibility
+            // Optionally reload the page after toggling the break to update ticket visibility
             window.location.reload();
         })
         .catch(error => {
             console.error('Error:', error);
         });
+    });
+});
+
+</script>
+
+
+
+
+
+
+<script>
+document.getElementById("search-ticket").addEventListener("click", function() {
+    var ticketId = document.getElementById("ticket-id").value;
+    if (ticketId) {
+        fetch(`/tickets/search/${ticketId}/`, {
+            method: "GET",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate ticket details
+                document.getElementById("subject").value = data.ticket.subject;
+                document.getElementById("priority").value = data.ticket.priority; // New priority field
+
+                // Populate the assigned-to dropdown
+                var assignedToDropdown = document.getElementById("assigned-to");
+                assignedToDropdown.innerHTML = '';  // Clear existing options
+                data.users.forEach(user => {
+                    var option = document.createElement("option");
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    if (user.id == data.ticket.assigned_to) {
+                        option.selected = true;
+                    }
+                    assignedToDropdown.appendChild(option);
+                });
+
+                // Show the ticket details section
+                document.getElementById("ticket-details").style.display = "block";
+            } else {
+                alert("Ticket not found");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+
+document.getElementById("existingQueryForm").addEventListener("submit", function(event) {
+    event.preventDefault();  // Prevent form submission from reloading the page
+
+    var ticketId = document.getElementById("ticket-id").value;
+    var subject = document.getElementById("subject").value;
+    var assignedTo = document.getElementById("assigned-to").value;
+    var priority = document.getElementById("priority").value;  // New priority field
+    var note = document.getElementById("note").value;  // New note field
+
+    fetch(`/tickets/update/${ticketId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+            "subject": subject,
+            "assigned_to": assignedTo,
+            "priority": priority,  // Include priority
+            "note": note,  // Include note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Ticket updated successfully");
+        } else {
+            alert("Failed to update ticket");
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("newQueryBtn").addEventListener("click", function() {
+        console.log("New Query button clicked");
+        // Show New Query section and expand it fully
+        document.getElementById("newQuerySection").style.display = "block";
+        document.getElementById("newQuerySection").style.maxHeight = "none";  // Allow full height expansion
+
+        // Hide Existing Query section
+        document.getElementById("existingQuerySection").style.display = "none";
+    });
+
+    document.getElementById("existingQueryBtn").addEventListener("click", function() {
+        console.log("Existing Query button clicked");
+        // Show Existing Query section and expand it fully
+        document.getElementById("existingQuerySection").style.display = "block";
+        document.getElementById("existingQuerySection").style.maxHeight = "none";  // Allow full height expansion
+
+        // Hide New Query section
+        document.getElementById("newQuerySection").style.display = "none";
     });
 });
 </script>

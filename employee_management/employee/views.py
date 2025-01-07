@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,Note
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -451,40 +451,38 @@ def toggle_break_status(request):
     user_profile.is_on_break = not user_profile.is_on_break  # Toggle break status
     user_profile.save()
 
+    # Update the session activity for the current session
     today = timezone.now().date()
     try:
-        current_session = SessionActivity.objects.filter(
-            user=request.user, date=today, logout_time=None).latest('login_time')
+        current_session = SessionActivity.objects.filter(user=request.user, date=today, logout_time=None).latest('login_time')
 
         if user_profile.is_on_break:
-            # Start the break: Stop active tickets
+            # If the user is now on break, stop all active tickets and record their time
             active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
             for ticket in active_tickets:
-                ticket.toggle_break()  # Call the toggle_break method
+                ticket.pause_work()  # Pause the timer and calculate time spent
                 ticket.save()
 
+            # Record the break start time
             current_session.break_start_time = timezone.now()
             current_session.save()
-
         else:
-            # End the break: Resume active tickets
+            # If the user is resuming work, restart active ticket timers
             active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
             for ticket in active_tickets:
-                ticket.toggle_break()  # Call the toggle_break method to end the break
-                ticket.save()
+                if ticket.work_start_time is None:  # If the timer is not already running
+                    ticket.work_start_time = timezone.now()  # Start counting from now
+                    ticket.save()
 
+            # Ensure break_start_time is not None before calculating the duration
             if current_session.break_start_time:
                 break_duration = timezone.now() - current_session.break_start_time
                 current_session.break_duration += break_duration
-                current_session.break_start_time = None  # Reset after recording
-
-            total_time_spent = timezone.now() - current_session.login_time
-            total_work_time = total_time_spent - current_session.break_duration
-            current_session.work_time = total_work_time
+                current_session.work_time = current_session.calculate_work_time()
             current_session.save()
 
     except SessionActivity.DoesNotExist:
-        pass  # Handle case when no active session exists
+        pass  # No active session found, nothing to update
 
     return redirect('home')
 
@@ -667,25 +665,30 @@ def update_time_spent(request):
 @csrf_exempt
 def update_ticket_activity(request):
     if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            ticket_id = data.get('ticket_id')
-            action = data.get('action')
+        data = json.loads(request.body)
+        ticket_id = data.get('ticket_id')
+        action = data.get('action')  # 'start' or 'stop'
 
-            ticket = get_object_or_404(Ticket, id=ticket_id)
+        try:
+            ticket = Ticket.objects.get(id=ticket_id)
 
             if action == 'start':
-                ticket.start_work()  # Start the timer
+                print(f'Starting timer for ticket {ticket_id}')  # Debug
+                ticket.is_active = True
+                ticket.work_start_time = timezone.now()
             elif action == 'stop':
-                ticket.pause_work()  # Pause the timer
-            else:
-                return JsonResponse({'status': 'error', 'message': 'Invalid action'}, status=400)
+                print(f'Stopping timer for ticket {ticket_id}')  # Debug
+                ticket.is_active = False
+                ticket.pause_work()  # Pause the work and calculate the time spent
 
+            ticket.save()
             return JsonResponse({'status': 'success'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        except Ticket.DoesNotExist:
+            print(f'Ticket {ticket_id} not found.')  # Debug
+            return JsonResponse({'status': 'error', 'message': 'Ticket not found'})
 
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
 
 
 @login_required
@@ -778,21 +781,24 @@ def start_end_call(request, ticket_id):
 
         # Start call
         if action == "start_call" and not ticket.call_in_progress:
-            new_call = Call.objects.create(
-                ticket=ticket,
-                agent=agent,
-                call_start_time=timezone.now()
-            )
-            ticket.call_in_progress = True
-            ticket.save()
+            # Check if the work timer is active
+            if not ticket.is_active:
+                # Start work if it's not active
+                ticket.start_work()
 
-            return JsonResponse({'status': 'success', 'message': 'Call started successfully','current_status': ticket.status,})
+            # Start the call after starting the work timer
+            ticket.start_call()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Call and work timer started successfully',
+                'current_status': ticket.status,
+            })
 
         # Handle "end_call" action, but do NOT end the call here. Just return data for the modal.
         elif action == "end_call" and ticket.call_in_progress:
             current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
             if current_call:
-                print(f"Ticket Status: {ticket.status}")
                 return JsonResponse({
                     'status': 'success',
                     'ticket_id': ticket.id,  # Pass ticket.id for form submission (primary key)
@@ -803,6 +809,7 @@ def start_end_call(request, ticket_id):
                 })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
 
 
 @login_required
@@ -826,11 +833,16 @@ def post_call_details(request, ticket_id):
 
             # Mark the call as no longer in progress
             ticket.call_in_progress = False
+
+            # Stop the work timer
+            ticket.stop_work()
+
             ticket.save()
 
             return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
 
 
 
@@ -953,3 +965,61 @@ def get_call_status(request):
         })
 
     return JsonResponse({'call_statuses': call_statuses})
+
+
+# Search ticket by ID
+def search_ticket(request, ticket_id):
+    if request.method == "GET":
+        try:
+            ticket = Ticket.objects.get(ticket_id=ticket_id)
+            users = User.objects.all()  # Fetch all users for the assigned-to dropdown
+
+            # Removed owner logic, no longer needed
+            ticket_data = {
+                "subject": ticket.subject,
+                "assigned_to": ticket.assigned_to.id if ticket.assigned_to else None,
+                "priority": ticket.priority,  # Send priority field in response
+            }
+            users_data = [{"id": user.id, "username": user.username} for user in users]
+            return JsonResponse({"success": True, "ticket": ticket_data, "users": users_data})
+        except Ticket.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Ticket not found"})
+    return JsonResponse({"success": False, "message": "Invalid request method"})
+
+
+
+def update_ticket(request, ticket_id):
+    if request.method == "POST":
+        ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
+        subject = request.POST.get("subject")
+        assigned_to_id = request.POST.get("assigned_to")
+        priority = request.POST.get("priority")  # Get the priority field
+        note_text = request.POST.get("note")  # Get the note text
+
+        # Update ticket details
+        ticket.subject = subject
+        ticket.priority = priority  # Update the priority
+
+        if assigned_to_id:
+            assigned_user = User.objects.get(id=assigned_to_id)
+            ticket.assigned_to = assigned_user
+
+        ticket.save()
+
+        # Add a new note if note_text is provided
+        if note_text:
+            new_note = Note.objects.create(
+                ticket=ticket,
+                created_by=request.user,  # The user who added the note
+                note_text=note_text
+            )
+            new_note.save()
+
+        return JsonResponse({"success": True, "message": "Ticket updated successfully"})
+    return JsonResponse({"success": False, "message": "Invalid request method"})
+
+
+def view_ticket_notes(request, ticket_id):
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+    notes = Note.objects.filter(ticket=ticket).order_by('-created_at')  # Fetching notes related to the ticket
+    return render(request, 'ticket_notes.html', {'ticket': ticket, 'notes': notes})

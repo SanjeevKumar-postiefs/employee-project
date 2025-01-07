@@ -48,4 +48,7 @@ urlpatterns=[
     path('tickets/<int:ticket_id>/status/', views.ticket_status, name='ticket_status'),
     path('get_active_timers/', views.get_active_timers, name='get_active_timers'),
     path('get_call_status/', views.get_call_status, name='get_call_status'),
+    path('tickets/search/<str:ticket_id>/', views.search_ticket, name='search_ticket'),
+    path('tickets/update/<str:ticket_id>/', views.update_ticket, name='update_ticket'),
+    path('ticket/<int:ticket_id>/notes/', views.view_ticket_notes, name='view_ticket_notes'),
 ]
