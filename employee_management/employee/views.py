@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,Note
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -30,8 +30,9 @@ def index(request):
 
 User = get_user_model()
 
-
 from .signals import logged_in_users
+
+
 @login_required
 def home(request):
     if request.user.is_authenticated:
@@ -56,27 +57,33 @@ def home(request):
             all_tickets = Ticket.objects.filter(
                 assigned_to__in=logged_in_users_list,
                 status__in=status_filter,
-                group=skill_filter  # Assuming 'group' is the field for skills
+                group=skill_filter
             ).order_by('-created_at')
         else:
-            # Show all tickets by default
             all_tickets = Ticket.objects.filter(
                 assigned_to__in=logged_in_users_list,
                 status__in=status_filter
             ).order_by('-created_at')
 
-        # Group tickets by user
+        # Create a dictionary to store active calls for each user
+        active_calls = {
+            user.id: user.assigned_tickets.filter(call_in_progress=True).exists()
+            for user in logged_in_users_list
+        }
+
+        # Group tickets by user with improved call status tracking
         tickets_by_user = {}
         for ticket in all_tickets:
             ticket.created_at_ist = timezone.localtime(ticket.created_at)
             user_id = ticket.assigned_to.id
+
             if user_id not in tickets_by_user:
                 tickets_by_user[user_id] = {
                     'user': ticket.assigned_to,
                     'latest_ticket': ticket,
                     'assigned_by': ticket.assigned_by,
                     'older_tickets': [],
-                    'call_in_progress': ticket.assigned_to.user_tickets.filter(call_in_progress=True).exists() # Check if user is on call
+                    'call_in_progress': active_calls.get(user_id, False)  # Get call status from pre-calculated dict
                 }
             else:
                 tickets_by_user[user_id]['older_tickets'].append(ticket)
@@ -96,13 +103,17 @@ def home(request):
         skills = []
         ticket_statuses = []
 
+    # Add current timestamp for template
+    current_time = timezone.now()
+
     # Render the home template with the ticket data, skills, and statuses
     return render(request, 'home.html', {
         'tickets_by_user': tickets_by_user,
         'employee_profile': employee_profile,
         'skills': skills,
         'ticket_statuses': ticket_statuses,
-        'notifications': notifications
+        'notifications': notifications,
+        'current_time': current_time,
     })
 
 
@@ -790,7 +801,6 @@ def dashboard(request):
     return render(request, 'dashboard.html', context)
 
 
-
 @login_required
 def start_end_call(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
@@ -801,31 +811,48 @@ def start_end_call(request, ticket_id):
 
         # Start call
         if action == "start_call" and not ticket.call_in_progress:
+            timer_started_by_call = ticket.start_call()
             new_call = Call.objects.create(
                 ticket=ticket,
                 agent=agent,
                 call_start_time=timezone.now()
             )
-            ticket.call_in_progress = True
-            ticket.save()
 
-            return JsonResponse({'status': 'success', 'message': 'Call started successfully','current_status': ticket.status,})
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Call started successfully',
+                'current_status': ticket.status,
+                'timer_started_by_call': timer_started_by_call
+            })
 
-        # Handle "end_call" action, but do NOT end the call here. Just return data for the modal.
+        # End call
         elif action == "end_call" and ticket.call_in_progress:
             current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
             if current_call:
-                print(f"Ticket Status: {ticket.status}")
                 return JsonResponse({
                     'status': 'success',
-                    'ticket_id': ticket.id,  # Pass ticket.id for form submission (primary key)
-                    'ticket_display_id': ticket.ticket_id,  # Custom ID for display
+                    'ticket_id': ticket.id,
+                    'ticket_display_id': ticket.ticket_id,
                     'subject': ticket.subject,
                     'call_duration': str(current_call.call_duration),
-                    'current_status': ticket.status,  # Return the current status of the ticket
+                    'current_status': ticket.status,
                 })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No active call found'
+                }, status=400)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid action or call state'
+            }, status=400)
 
-    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+    # If not a POST request
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
 
 
 @login_required
@@ -833,25 +860,29 @@ def post_call_details(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     if request.method == "POST":
-        # Find the current ongoing call
         current_call = Call.objects.filter(ticket=ticket, agent=request.user).order_by('-call_start_time').first()
 
         if current_call:
-            # End the call and save the end time
+            # Save call details
             current_call.call_end_time = timezone.now()
-            current_call.call_note = request.POST.get('note')  # Save the call note
+            current_call.call_note = request.POST.get('note')
             current_call.save()
 
-            # Update the ticket status if provided
-            status = request.POST.get('status')
-            if status:
+            # Update ticket status if provided
+            if status := request.POST.get('status'):
                 ticket.status = status
 
-            # Mark the call as no longer in progress
-            ticket.call_in_progress = False
-            ticket.save()
+            # Check if timer should be stopped
+            should_stop_timer = ticket.call_timer_started_by_call
 
-            return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
+            # End the call (this will also stop timer if needed)
+            ticket.end_call()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Post-call details saved successfully',
+                'timer_stopped': should_stop_timer
+            })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
@@ -960,19 +991,16 @@ def get_active_timers(request):
 
     return JsonResponse({'tickets': ticket_data})
 
+
 @login_required
 def get_call_status(request):
-    """Fetch all active call statuses."""
-    tickets_with_calls = Ticket.objects.filter(call_in_progress=True)
+    users_with_calls = User.objects.filter(assigned_tickets__call_in_progress=True).distinct()
+    call_statuses = [{
+        'user_id': user.id,
+        'call_in_progress': True
+    } for user in users_with_calls]
 
-    call_statuses = []
-    for ticket in tickets_with_calls:
-        call_statuses.append({
-            'user_id': ticket.assigned_to.id,
-            'call_in_progress': ticket.call_in_progress,
-        })
-
-    return JsonResponse({'call_statuses': call_statuses})
+    return JsonResponse(call_statuses, safe=False)
 
 
 # Search ticket by ID
@@ -1005,14 +1033,13 @@ def search_ticket(request, ticket_id):
 @login_required
 def update_ticket(request, ticket_id):
     if request.method == "POST":
-        # Fetch the ticket by ticket_id
         ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
 
         # Get data from the form submission
         subject = request.POST.get("subject")
         assigned_to_id = request.POST.get("assigned_to")
         priority = request.POST.get("priority")
-        client_call_note = request.POST.get("client_call_note")  # Make sure we get the correct field from the form
+        client_call_note = request.POST.get("client_call_note")
 
         # Update the ticket fields
         ticket.subject = subject
@@ -1022,8 +1049,13 @@ def update_ticket(request, ticket_id):
             assigned_user = get_object_or_404(User, id=assigned_to_id)
             ticket.assigned_to = assigned_user
 
-        # Save the client call note to the new field
-        ticket.client_call_note = client_call_note
+        # Create a new ClientCallNote instead of updating ticket.client_call_note
+        if client_call_note:  # Only create if there's a note
+            ClientCallNote.objects.create(
+                ticket=ticket,
+                note_text=client_call_note,
+                created_by=request.user
+            )
 
         ticket.save()
 
@@ -1036,10 +1068,10 @@ def update_ticket(request, ticket_id):
 def view_ticket_notes(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
-    # Fetch all notes related to the ticket from the Note model
-    notes = Note.objects.filter(ticket=ticket).order_by('-created_at')
+    # Fetch all client call notes for this ticket
+    client_call_notes = ticket.client_call_notes.all().order_by('-created_at')
 
     return render(request, 'ticket_notes.html', {
-        'ticket': ticket,  # Pass the ticket to display client_call_note
-        'notes': notes     # Pass the notes to display user-submitted notes
+        'ticket': ticket,
+        'client_call_notes': client_call_notes
     })

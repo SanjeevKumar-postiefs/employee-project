@@ -366,7 +366,6 @@ input:checked + .slider {
     <button class="btn btn-primary ms-2" type="button" data-bs-toggle="modal" data-bs-target="#clientCallModal">
     New Call
     </button>
-
 </div>
         <div>
             <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center me-4" onsubmit="return false;">
@@ -667,8 +666,6 @@ input:checked + .slider {
         </div>
     </form>
 </div>
-
-
             </div>
         </div>
     </div>
@@ -711,13 +708,10 @@ input:checked + .slider {
             });
         });
 
-
-
             // Add click event for custom dropdown toggle
             document.getElementById('activityDropdown').addEventListener('click', function() {
                 this.classList.toggle('active');
             });
-
 
              document.addEventListener("DOMContentLoaded", function() {
             // Get all buttons that toggle ticket options
@@ -741,8 +735,6 @@ input:checked + .slider {
                 });
             });
         });
-
-
         </script>
 
     {% if error %}
@@ -759,10 +751,6 @@ input:checked + .slider {
             });
         </script>
         {% endif %}
-
-
-
-
 
 
 <script>
@@ -820,59 +808,55 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // Handle Start/End Call button via AJAX
-    document.querySelectorAll('.call-action-form').forEach(function(form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();  // Prevent normal form submission
+document.querySelectorAll('.call-action-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
 
-            const formData = new FormData(this);
-            const actionUrl = this.getAttribute('action');
+        const formData = new FormData(this);
+        const actionUrl = this.getAttribute('action');
+        const ticketId = this.dataset.ticketId;
 
-            fetch(actionUrl, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Check if it's the start call action
-                    if (formData.get('action') === 'start_call') {
-                        // Update the button to "End Call" and change the class dynamically
-                        const button = this.querySelector('button');
-                        button.textContent = 'End Call';
-                        button.classList.remove('btn-warning');
-                        button.classList.add('btn-danger');
+        fetch(actionUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (formData.get('action') === 'start_call') {
+                    // Store whether the timer was started by this call
+                    form.dataset.timerStartedByCall = data.timer_started_by_call;
 
-                        // Update the hidden input field to handle "end_call" next time
-                        this.querySelector('input[name="action"]').value = 'end_call';
+                    // If timer isn't running and should be started by call
+                    const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                    if (startButton && startButton.textContent.trim() === 'Start' && data.timer_started_by_call) {
+                        startButton.click();
                     }
 
-                    // If it's the end call action, populate modal with ticket details
-                    if (formData.get('action') === 'end_call') {
-                        // Open the modal for post-call details
-                        $('#postCallModal').modal('show');
+                    // Update call button
+                    const button = this.querySelector('button');
+                    button.textContent = 'End Call';
+                    button.classList.remove('btn-warning');
+                    button.classList.add('btn-danger');
+                    this.querySelector('input[name="action"]').value = 'end_call';
+                } else if (formData.get('action') === 'end_call') {
+                    // Show the post-call modal
+                    $('#postCallModal').modal('show');
 
-                        // Populate the modal fields with data from the response
-                        document.getElementById('modal-ticket-id').value = data.ticket_id;
-                        document.getElementById('modal-ticket-id-display').value = data.ticket_id;
-                        document.getElementById('modal-subject').value = data.subject;
-                        document.getElementById('modal-call-duration').value = data.call_duration;
-
-                        // Set the status in the modal (populate the select box with the current status)
-                        const statusSelect = document.getElementById('modal-status');
-                        statusSelect.value = data.current_status;  // Set the current status
-                    }
-                } else {
-                    console.error(data.message);
+                    // Populate modal fields
+                    document.getElementById('modal-ticket-id').value = data.ticket_id;
+                    document.getElementById('modal-ticket-id-display').value = data.ticket_display_id;
+                    document.getElementById('modal-subject').value = data.subject;
+                    document.getElementById('modal-status').value = data.current_status;
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
+            }
+        })
+        .catch(error => console.error('Error:', error));
     });
+});
 
     // Handle both close button and close icon for hiding the modal
     const closeButton = document.querySelector('#postCallModal .btn-secondary');
@@ -895,7 +879,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Handle the form submission from the modal via AJAX
 document.getElementById('postCallForm').addEventListener('submit', function (e) {
-    e.preventDefault();  // Prevent the default form submission
+    e.preventDefault();
 
     const formData = new FormData(this);
     const ticketId = document.getElementById('modal-ticket-id').value;
@@ -908,20 +892,37 @@ document.getElementById('postCallForm').addEventListener('submit', function (e) 
                 'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
             }
         })
-        .then(response => {
-            if (response.ok) {
-                // Close the modal and reload the dashboard after successful submission
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Find the call form to check if timer should be stopped
+                const callForm = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"]`);
+                const timerStartedByCall = callForm ? callForm.dataset.timerStartedByCall === 'true' : false;
+
+                // Only stop timer if it was started by the call
+                if (timerStartedByCall) {
+                    const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                    if (startButton && startButton.textContent.trim() === 'Stop') {
+                        startButton.click();
+                    }
+                }
+
+                // Reset call button state
+                if (callForm) {
+                    const callButton = callForm.querySelector('button');
+                    callButton.textContent = 'Start Call';
+                    callButton.classList.remove('btn-danger');
+                    callButton.classList.add('btn-warning');
+                    callForm.querySelector('input[name="action"]').value = 'start_call';
+                    callForm.dataset.timerStartedByCall = 'false';
+                }
+
+                // Close modal and reload
                 $('#postCallModal').modal('hide');
-                location.reload();  // Reload the page to reflect the changes
-            } else {
-                console.error('Error saving post-call details.');
+                location.reload();
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    } else {
-        console.error('Error: Ticket ID is missing.');
+        .catch(error => console.error('Error:', error));
     }
 });
 </script>
@@ -1153,12 +1154,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-
-
-
-
-
-
 <script>
 document.getElementById("search-ticket").addEventListener("click", function() {
     var ticketId = document.getElementById("ticket-id").value;
@@ -1201,8 +1196,6 @@ document.getElementById("search-ticket").addEventListener("click", function() {
         .catch(error => console.error('Error:', error));
     }
 });
-
-
 
 document.getElementById("existingQueryForm").addEventListener("submit", function(event) {
     event.preventDefault();  // Prevent form submission from reloading the page

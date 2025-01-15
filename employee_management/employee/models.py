@@ -190,18 +190,34 @@ class Ticket(models.Model):
     def start_call(self):
         self.call_in_progress = True
         self.call_start_time = timezone.now()
-        self.call_end_time = None  # Clear any previous end time
-        self.call_duration = None  # Clear any previous duration
-        self.save()
+        self.call_end_time = None
+        self.call_duration = None
 
-    # Method to end a call
-    def end_call(self):
-        self.call_in_progress = False
-        self.call_end_time = timezone.now()
-        # Calculate call duration
-        if self.call_start_time:
-            self.call_duration = self.call_end_time - self.call_start_time
+        # Set the flag and start timer if it's not running
+        if not self.is_active:
+            self.call_timer_started_by_call = True
+            self.start_work()
+        else:
+            # Timer was already running
+            self.call_timer_started_by_call = False
+
         self.save()
+        return self.call_timer_started_by_call  # Return the flag status
+
+    def end_call(self):
+        """End the call and handle timer if needed"""
+        if self.call_in_progress:
+            self.call_end_time = timezone.now()
+            if self.call_start_time:
+                self.call_duration = self.call_end_time - self.call_start_time
+
+            # Stop timer if it was started by this call
+            if self.call_timer_started_by_call:
+                self.stop_work()
+                self.call_timer_started_by_call = False
+
+            self.call_in_progress = False
+            self.save()
 
     def __str__(self):
         return self.subject
@@ -218,7 +234,7 @@ class Notification(models.Model):
 
 
 class CallNote(models.Model):
-    agent = models.ForeignKey(User, on_delete=models.CASCADE)
+    agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     client_email = models.EmailField()
     note = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -226,27 +242,31 @@ class CallNote(models.Model):
     def __str__(self):
         return f"Note by {self.agent.username} for {self.client_email}"
 
+
 class Call(models.Model):
-    ticket = models.ForeignKey('Ticket', related_name='calls', on_delete=models.CASCADE)  # Each call is linked to a ticket
-    agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Agent handling the call
-    call_start_time = models.DateTimeField()
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='calls')
+    agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    call_start_time = models.DateTimeField(auto_now_add=True)
     call_end_time = models.DateTimeField(null=True, blank=True)
-    call_duration = models.DurationField(default=timezone.timedelta(0))  # Call duration
-    call_note = models.TextField(blank=True, null=True)  # Note for the call
+    call_note = models.TextField(null=True, blank=True)  # Make it nullable
+
+    @property
+    def call_duration(self):
+        if self.call_end_time:
+            return self.call_end_time - self.call_start_time
+        return None
 
     def __str__(self):
-        return f"Call on {self.call_start_time} for Ticket {self.ticket.ticket_id}"
+        return f"Call for Ticket {self.ticket.ticket_id}"
 
-    def save(self, *args, **kwargs):
-        if self.call_start_time and self.call_end_time:
-            self.call_duration = self.call_end_time - self.call_start_time
-        super().save(*args, **kwargs)
-
-class Note(models.Model):
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='notes')
+class ClientCallNote(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='client_call_notes')
     note_text = models.TextField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
     def __str__(self):
-        return f"Note by {self.created_by} on {self.created_at}"
+        return f"Client Call Note for {self.ticket.ticket_id} at {self.created_at}"

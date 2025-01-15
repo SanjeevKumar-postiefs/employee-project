@@ -313,6 +313,18 @@ input:checked + .slider {
         background-color: #34eb4f; /* Light purple background */
     }
 
+.activity-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        color: white;
+    }
+    .badge-warning {
+        background-color: #ffc107;
+    }
+    .badge-danger {  /* Add this new style for "On Call" status */
+        background-color: #dc3545;
+    }
+
 </style>
 
 
@@ -420,22 +432,6 @@ input:checked + .slider {
                     <button type="submit" class="btn btn-primary">Filter</button>
                 </form>
             </div>
-
-            <!-- Break Toggle (placed to the right) -->
-            <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center me-4">
-                {% csrf_token %}
-                <label for="breakToggle" class="switch">
-                    <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
-                <span id="breakStatus" class="text-dark mb-0">
-                    {% if employee_profile.is_on_break %}
-                    You are currently on break.
-                    {% else %}
-                    You are active.
-                    {% endif %}
-                </span>&nbsp;
-            </form>
         </div>
 
         <!-- Show a message if the user is on break -->
@@ -446,22 +442,20 @@ input:checked + .slider {
             <div id="ticket-container">
                 {% for user_tickets in tickets_by_user %}
                     <div class="card mb-3 ticket-card">
-                        <!-- Name Bar (click to expand older tickets) -->
-                        <div class="card-header ticket-header">
-                            <h3 class="m-0" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target=".collapse-{{ user_tickets.user.id }}" aria-expanded="false" aria-controls="collapse-{{ user_tickets.user.id }}">
-                                {{ user_tickets.user.username }}'s Tickets
+                        <!-- Name Bar section -->
+<h3 class="m-0" style="cursor: pointer;" data-user-id="{{ user_tickets.user.id }}" data-bs-toggle="collapse" data-bs-target=".collapse-{{ user_tickets.user.id }}" aria-expanded="false" aria-controls="collapse-{{ user_tickets.user.id }}">
+    {{ user_tickets.user.username }}'s Tickets
 
-                                <!-- Show "On Break" badge -->
-                                {% if user_tickets.user.employeeprofile.is_on_break %}
-                                    <span class="badge badge-warning activity-badge">On Break</span>
-                                {% endif %}
+    <!-- Show "On Break" badge -->
+    {% if user_tickets.user.employeeprofile.is_on_break %}
+        <span class="badge badge-warning activity-badge">On Break</span>
+    {% endif %}
 
-                                <!-- Show "On Call" badge if the user is on a call -->
-                                {% if user_tickets.call_in_progress == True %}
-                                    <span class="badge badge-warning activity-badge">On Call</span>
-                                {% endif %}
-                            </h3>
-                        </div>
+    <!-- Show "On Call" badge if the user is on a call -->
+    {% if user_tickets.call_in_progress %}
+        <span class="badge badge-danger activity-badge call-badge">On Call</span>
+    {% endif %}
+</h3>
 
 
                         <!-- Latest Ticket is always shown -->
@@ -880,7 +874,38 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(fetchActiveTimers, 5000);  // Poll every 5 second
 });
 </script>
+<script>
+// Add this after your existing JavaScript
+function updateCallStatuses() {
+    fetch('{% url "get_call_status" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Update the call status badges for each user
+            data.forEach(status => {
+                const userHeader = document.querySelector(`[data-user-id="${status.user_id}"]`);
+                if (userHeader) {
+                    const callBadge = userHeader.querySelector('.call-badge');
+                    if (status.call_in_progress) {
+                        if (!callBadge) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge badge-danger activity-badge call-badge';
+                            badge.textContent = 'On Call';
+                            userHeader.appendChild(badge);
+                        }
+                    } else if (callBadge) {
+                        callBadge.remove();
+                    }
+                }
+            });
+        });
+}
 
+// Update call statuses every 30 seconds
+setInterval(updateCallStatuses, 30000);
+
+// Initial call status update
+updateCallStatuses();
+</script>
 
 
 </body>

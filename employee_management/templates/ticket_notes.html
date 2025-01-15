@@ -1,42 +1,88 @@
 {% extends 'base.html' %}
-{% block content %}<br><br><br>
+{% block content %}
 
-<!-- ticket_notes.html -->
+<style>
+    .container {
+        margin-left: 80px;
+        margin-top: 100px;
+    }
 
-<h3>Notes for Ticket: {{ ticket.subject }}</h3>
+    .notes-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+    }
 
-<!-- Display the client call note from the Ticket model -->
-<div>
-    <h4>Client Call Note</h4>
-    {% if ticket.client_call_note %}
-        <p><strong>Note:</strong> {{ ticket.client_call_note }}</p>
-    {% else %}
-        <p>No client call note available for this ticket.</p>
-    {% endif %}
+    .notes-table th {
+        background-color: #007bff;
+        color: white;
+        font-weight: 500;
+        padding: 15px;
+        text-align: left;
+    }
+
+    .notes-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .notes-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .notes-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .note-text {
+        max-width: 500px;
+        white-space: pre-wrap;
+    }
+
+    .timestamp {
+        white-space: nowrap;
+        color: #666;
+    }
+</style>
+
+<!-- Sidebar -->
+<div class="col-md-3">
+    {% include 'sidebar.html' %}
 </div>
 
-<!-- Display notes from the Note model -->
-<div>
-    <h4>User-Submitted Notes</h4>
-    {% if notes %}
-        <ul>
-            {% for note in notes %}
-                <li>
-                    <strong>Created by:</strong>
-                    {% if note.created_by %}
-                        {{ note.created_by.username }}
-                    {% else %}
-                        Unknown
-                    {% endif %}
-                    <br>
-                    <strong>Date:</strong> {{ note.created_at }}<br>
-                    <strong>Note:</strong> {{ note.note_text }}
-                </li>
-            {% endfor %}
-        </ul>
+<div class="container">
+    <h3>Notes for Ticket: {{ ticket.subject }}</h3>
+
+    {% if client_call_notes %}
+        <div class="table-responsive">
+            <table class="notes-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Created By</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for note in client_call_notes %}
+                    <tr>
+                        <td class="timestamp">{{ note.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>{{ note.created_by.username }}</td>
+                        <td class="note-text">{{ note.note_text }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% else %}
-        <p>No user-submitted notes available for this ticket.</p>
+        <div class="alert alert-info">
+            No client call notes available for this ticket.
+        </div>
     {% endif %}
 </div>
-
 {% endblock %}
