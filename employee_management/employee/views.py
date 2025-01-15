@@ -324,6 +324,7 @@ def close_ticket(request, ticket_id):
     return redirect('home')
 
 
+@login_required
 def assign_ticket(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
@@ -349,7 +350,11 @@ def assign_ticket(request, ticket_id):
             ticket.assigned_by = request.user
             ticket.assigned_at = timezone.now()
 
+            # Reset time spent if needed
             ticket.reset_individual_time_spent()
+
+            # Update the internal reassignment note in the `Ticket.note` field
+            ticket.note = f"Reassigned to {new_assigned_user.username} by {request.user.username}."
 
             ticket.save()
 
@@ -376,6 +381,8 @@ def assign_ticket(request, ticket_id):
         'form': form,
         'logged_in_users': logged_in_users
     })
+
+
 
 
 from django.views.decorators.csrf import csrf_exempt
@@ -445,46 +452,58 @@ def add_employee(request):
 
 
 
+# views.py
+
 @login_required
 def toggle_break_status(request):
     user_profile = request.user.employeeprofile
-    user_profile.is_on_break = not user_profile.is_on_break  # Toggle break status
+    user_profile.is_on_break = not user_profile.is_on_break
     user_profile.save()
 
-    # Update the session activity for the current session
     today = timezone.now().date()
     try:
         current_session = SessionActivity.objects.filter(user=request.user, date=today, logout_time=None).latest('login_time')
 
         if user_profile.is_on_break:
-            # If the user is now on break, stop all active tickets and record their time
-            active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
+            # Store currently active tickets in session before pausing them
+            active_ticket_ids = list(Ticket.objects.filter(
+                assigned_to=request.user,
+                is_active=True
+            ).values_list('id', flat=True))
+            request.session['active_tickets_before_break'] = active_ticket_ids
+
+            # Pause active tickets
+            active_tickets = Ticket.objects.filter(id__in=active_ticket_ids)
             for ticket in active_tickets:
-                ticket.pause_work()  # Pause the timer and calculate time spent
+                ticket.pause_work()
                 ticket.save()
 
-            # Record the break start time
             current_session.break_start_time = timezone.now()
             current_session.save()
         else:
-            # If the user is resuming work, restart active ticket timers
-            active_tickets = Ticket.objects.filter(assigned_to=request.user, is_active=True)
-            for ticket in active_tickets:
-                if ticket.work_start_time is None:  # If the timer is not already running
-                    ticket.work_start_time = timezone.now()  # Start counting from now
-                    ticket.save()
+            # Only resume tickets that were active before the break
+            active_ticket_ids = request.session.get('active_tickets_before_break', [])
+            tickets_to_resume = Ticket.objects.filter(
+                assigned_to=request.user,
+                id__in=active_ticket_ids
+            )
+            for ticket in tickets_to_resume:
+                ticket.resume_work()
+                ticket.save()
 
-            # Ensure break_start_time is not None before calculating the duration
+            # Clear the stored active tickets
+            request.session.pop('active_tickets_before_break', None)
+
             if current_session.break_start_time:
                 break_duration = timezone.now() - current_session.break_start_time
                 current_session.break_duration += break_duration
-                current_session.work_time = current_session.calculate_work_time()
-            current_session.save()
+                current_session.break_start_time = None
+                current_session.save()
 
     except SessionActivity.DoesNotExist:
-        pass  # No active session found, nothing to update
+        pass
 
-    return redirect('home')
+    return JsonResponse({'status': 'success'})  # Return JSON response
 
 
 
@@ -602,6 +621,7 @@ def start_work(request, ticket_id):
             'time_spent_seconds': total_time_spent_seconds,
             'individual_time_spent_seconds': individual_time_spent_seconds
         })
+
 
 
 @login_required
@@ -781,24 +801,21 @@ def start_end_call(request, ticket_id):
 
         # Start call
         if action == "start_call" and not ticket.call_in_progress:
-            # Check if the work timer is active
-            if not ticket.is_active:
-                # Start work if it's not active
-                ticket.start_work()
+            new_call = Call.objects.create(
+                ticket=ticket,
+                agent=agent,
+                call_start_time=timezone.now()
+            )
+            ticket.call_in_progress = True
+            ticket.save()
 
-            # Start the call after starting the work timer
-            ticket.start_call()
-
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Call and work timer started successfully',
-                'current_status': ticket.status,
-            })
+            return JsonResponse({'status': 'success', 'message': 'Call started successfully','current_status': ticket.status,})
 
         # Handle "end_call" action, but do NOT end the call here. Just return data for the modal.
         elif action == "end_call" and ticket.call_in_progress:
             current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
             if current_call:
+                print(f"Ticket Status: {ticket.status}")
                 return JsonResponse({
                     'status': 'success',
                     'ticket_id': ticket.id,  # Pass ticket.id for form submission (primary key)
@@ -809,7 +826,6 @@ def start_end_call(request, ticket_id):
                 })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
 
 
 @login_required
@@ -833,19 +849,11 @@ def post_call_details(request, ticket_id):
 
             # Mark the call as no longer in progress
             ticket.call_in_progress = False
-
-            # Stop the work timer
-            ticket.stop_work()
-
             ticket.save()
 
             return JsonResponse({'status': 'success', 'message': 'Post-call details saved successfully'})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
-
-
-
-
 
 @login_required
 def view_call_details(request, ticket_id):
@@ -971,55 +979,67 @@ def get_call_status(request):
 def search_ticket(request, ticket_id):
     if request.method == "GET":
         try:
+            # Fetch the ticket by ticket_id
             ticket = Ticket.objects.get(ticket_id=ticket_id)
             users = User.objects.all()  # Fetch all users for the assigned-to dropdown
 
-            # Removed owner logic, no longer needed
+            # Prepare ticket data including the note field
             ticket_data = {
                 "subject": ticket.subject,
                 "assigned_to": ticket.assigned_to.id if ticket.assigned_to else None,
-                "priority": ticket.priority,  # Send priority field in response
+                "priority": ticket.priority,
+                "note": ticket.note  # Ensure the note is included in the response
             }
+
+            # Prepare users data for the dropdown
             users_data = [{"id": user.id, "username": user.username} for user in users]
+
             return JsonResponse({"success": True, "ticket": ticket_data, "users": users_data})
+
         except Ticket.DoesNotExist:
             return JsonResponse({"success": False, "message": "Ticket not found"})
+
     return JsonResponse({"success": False, "message": "Invalid request method"})
 
 
-
+@login_required
 def update_ticket(request, ticket_id):
     if request.method == "POST":
+        # Fetch the ticket by ticket_id
         ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
+
+        # Get data from the form submission
         subject = request.POST.get("subject")
         assigned_to_id = request.POST.get("assigned_to")
-        priority = request.POST.get("priority")  # Get the priority field
-        note_text = request.POST.get("note")  # Get the note text
+        priority = request.POST.get("priority")
+        client_call_note = request.POST.get("client_call_note")  # Make sure we get the correct field from the form
 
-        # Update ticket details
+        # Update the ticket fields
         ticket.subject = subject
-        ticket.priority = priority  # Update the priority
+        ticket.priority = priority
 
         if assigned_to_id:
-            assigned_user = User.objects.get(id=assigned_to_id)
+            assigned_user = get_object_or_404(User, id=assigned_to_id)
             ticket.assigned_to = assigned_user
+
+        # Save the client call note to the new field
+        ticket.client_call_note = client_call_note
 
         ticket.save()
 
-        # Add a new note if note_text is provided
-        if note_text:
-            new_note = Note.objects.create(
-                ticket=ticket,
-                created_by=request.user,  # The user who added the note
-                note_text=note_text
-            )
-            new_note.save()
-
         return JsonResponse({"success": True, "message": "Ticket updated successfully"})
+
     return JsonResponse({"success": False, "message": "Invalid request method"})
 
 
+@login_required
 def view_ticket_notes(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
-    notes = Note.objects.filter(ticket=ticket).order_by('-created_at')  # Fetching notes related to the ticket
-    return render(request, 'ticket_notes.html', {'ticket': ticket, 'notes': notes})
+
+    # Fetch all notes related to the ticket from the Note model
+    notes = Note.objects.filter(ticket=ticket).order_by('-created_at')
+
+    return render(request, 'ticket_notes.html', {
+        'ticket': ticket,  # Pass the ticket to display client_call_note
+        'notes': notes     # Pass the notes to display user-submitted notes
+    })

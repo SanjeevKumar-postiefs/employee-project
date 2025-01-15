@@ -28,35 +28,37 @@
     {% endif %}
 
     <form method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
+    {% csrf_token %}
+    <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
 
-        <!-- Display other fields -->
-        {{ form.subject.errors }}
-        {{ form.subject }}<br><br>
+    <!-- Other form fields -->
+    {{ form.subject.errors }}
+    {{ form.subject }}<br><br>
 
-        {{ form.status.errors }}
-        {{ form.status }}<br><br>
+    {{ form.status.errors }}
+    {{ form.status }}<br><br>
 
-        {{ form.group.errors }}
-        {{ form.group }}<br><br>
+    {{ form.group.errors }}
+    {{ form.group }}<br><br>
 
-        {{ form.note.errors }}
-        {{ form.note }}<br><br>
+    <!-- This is the internal reassignment note -->
+    <label for="note">Reassignment Note:</label>
+    {{ form.note }}<br><br>
 
-        {{ form.priority.errors }}
-        {{ form.priority }}<br><br>
+    {{ form.priority.errors }}
+    {{ form.priority }}<br><br>
 
-        <!-- Reassign to field -->
-        <label for="assigned_user">Reassign to:</label>
-        <select id="assigned_user" name="assigned_user" class="form-control">
-            {% for user in logged_in_users %}
-                <option value="{{ user.id }}" {% if user == ticket.assigned_to %}selected{% endif %}>{{ user.username }}</option>
-            {% endfor %}
-        </select>
+    <!-- Reassign to field -->
+    <label for="assigned_user">Reassign to:</label>
+    <select id="assigned_user" name="assigned_user" class="form-control">
+        {% for user in logged_in_users %}
+            <option value="{{ user.id }}" {% if user == ticket.assigned_to %}selected{% endif %}>{{ user.username }}</option>
+        {% endfor %}
+    </select>
 
-        <button type="submit" class="btn btn-primary mt-3">Reassign Ticket</button>
-    </form>
+    <button type="submit" class="btn btn-primary mt-3">Reassign Ticket</button>
+</form>
+
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

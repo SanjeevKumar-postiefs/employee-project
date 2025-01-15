@@ -221,3 +221,30 @@
 </body>
 </html>
 {% endblock %}
+
+
+    def start_work(self):
+        """Start the timer for this ticket."""
+        if not self.is_active:
+            self.work_start_time = timezone.now()
+            self.is_active = True
+            self.save()
+
+    def pause_work(self):
+        """Pause the timer and accumulate the time spent."""
+        if self.is_active and self.work_start_time:
+            # Accumulate the time from the start of work until now (excluding any breaks)
+            work_duration = timezone.now() - self.work_start_time - self.break_duration
+            self.time_spent += work_duration
+            self.individual_time_spent += work_duration
+
+            # Reset the timer fields
+            self.work_start_time = None
+            self.break_duration = timezone.timedelta(0)  # Reset break duration after pause
+            self.is_active = False
+            self.save()
+
+    def stop_work(self):
+        """Stop the timer and accumulate the time spent."""
+        if self.is_active:
+            self.pause_work()  # Pauses and accumulates the time

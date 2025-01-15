@@ -697,116 +697,7 @@ input:checked + .slider {
     </script>
     {% endif %}
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    let timers = {}; // Store active timers for both total and individual times
-    const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
-    // Helper function to format time in hh:mm:ss
-    function formatTime(seconds) {
-        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${h}:${m}:${s}`;
-    }
-
-    // Load saved timers from localStorage
-    function loadTimers() {
-        const savedTimers = localStorage.getItem(localStorageKey);
-        return savedTimers ? JSON.parse(savedTimers) : {};
-    }
-
-    // Save current timers to localStorage
-    function saveTimers() {
-        localStorage.setItem(localStorageKey, JSON.stringify(timers));
-    }
-
-    // Start both total and individual timers on the frontend
-    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime) {
-        const totalTimerElement = document.getElementById('timer-' + ticketId); // For total time spent
-        const individualTimerElement = document.getElementById('individual-timer-' + ticketId); // For individual time spent
-
-        if (!totalTimerElement || !individualTimerElement) return; // If timers not found, exit
-
-        // Store the start time and accumulated time in localStorage for both timers
-        timers[ticketId] = {
-            totalAccumulatedTime: totalAccumulatedTime,
-            individualAccumulatedTime: individualAccumulatedTime,
-            startTime: startTime
-        };
-        saveTimers();
-
-        // Start a setInterval to update both timers every second
-        timers[ticketId].interval = setInterval(() => {
-            const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
-
-            // Update total time spent
-            totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime + elapsedTime);
-
-            // Update individual time spent
-            individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime + elapsedTime);
-        }, 1000);
-    }
-
-    // Stop the frontend timers for a given ticket
-    function stopFrontendTimers(ticketId) {
-        if (timers[ticketId] && timers[ticketId].interval) {
-            clearInterval(timers[ticketId].interval);
-            delete timers[ticketId];
-            saveTimers();
-        }
-    }
-
-    // Handle Start/Stop button functionality for starting/stopping both timers
-    document.querySelectorAll('.start-button').forEach(button => {
-        button.addEventListener('click', function () {
-            const ticketId = this.dataset.ticketId;
-            const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const url = action === 'start' ? `/tickets/${ticketId}/start/` : `/tickets/${ticketId}/stop/`;
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    this.textContent = action === 'start' ? 'Stop' : 'Start';
-
-                    if (action === 'start') {
-                        const currentTime = Date.now();
-                        const totalAccumulatedTime = data.time_spent_seconds; // Total time spent
-                        const individualAccumulatedTime = data.individual_time_spent_seconds; // Individual time spent
-                        startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, currentTime);
-                    } else {
-                        stopFrontendTimers(ticketId); // Stop both timers
-                    }
-                } else {
-                    alert('Failed to update ticket activity');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
-    });
-
-    // On page load, restore timers from localStorage and resume any running timers
-    const savedTimers = loadTimers();
-    document.querySelectorAll('.timer-span').forEach(timerElement => {
-        const ticketId = timerElement.dataset.ticketId;
-
-        if (savedTimers[ticketId]) {
-            const { totalAccumulatedTime, individualAccumulatedTime, startTime } = savedTimers[ticketId];
-            startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime);
-        }
-    });
-});
-</script>
 
 
 <script>
@@ -989,5 +880,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setInterval(fetchActiveTimers, 5000);  // Poll every 5 second
 });
 </script>
+
+
+
 </body>
 </html>

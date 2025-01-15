@@ -554,7 +554,7 @@ input:checked + .slider {
   </div>
 </div>
 
-<!-- Client Call Modal with Note and Create Ticket -->
+<!-- Client Call Modal with question: Is it a new query? -->
 <div class="modal fade" id="clientCallModal" tabindex="-1" aria-labelledby="clientCallModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -563,43 +563,77 @@ input:checked + .slider {
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Tab navigation -->
-                <ul class="nav nav-tabs" id="clientCallTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link active" id="note-tab" data-bs-toggle="tab" href="#note" role="tab">Note</a>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <a class="nav-link" id="ticket-tab" data-bs-toggle="tab" href="#ticket" role="tab">Create Ticket</a>
-                    </li>
-                </ul>
-
-                <!-- Tab content -->
-                <div class="tab-content mt-3">
-                    <!-- Note tab content -->
-                    <div class="tab-pane fade show active" id="note" role="tabpanel">
-                        <form id="noteForm" method="post">
-                            {% csrf_token %}
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Client Email</label>
-                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter client email">
-                            </div>
-                            <div class="mb-3">
-                                <label for="note" class="form-label">Note</label>
-                                <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the call"></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Save Note</button>
-                        </form>
-                    </div>
-
-                    <!-- Create Ticket tab content -->
-                    <div class="tab-pane fade" id="ticket" role="tabpanel">
-                        <form id="ticketForm" method="post" action="{% url 'create_ticket' %}">
-                            {% csrf_token %}
-                            {{ ticket_form.as_p }}
-                            <button type="submit" class="btn btn-success">Create Ticket</button>
-                        </form>
-                    </div>
+                <!-- Question for user -->
+                <div class="text-center">
+                    <h5>Is it a new query?</h5>
+                    <button type="button" class="btn btn-primary me-2" id="newQueryBtn">Yes</button>
+                    <button type="button" class="btn btn-secondary" id="existingQueryBtn">No</button>
                 </div>
+
+                <!-- New Query Form (Initially Hidden) -->
+                <div id="newQuerySection" style="display: none; margin-top: 20px;">
+                    <h5>New Query</h5>
+                    <form id="newQueryForm" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Client Email</label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter client email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="note" class="form-label">Note</label>
+                            <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the query"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+
+                <!-- Existing Query Form (Initially Hidden) -->
+<div id="existingQuerySection" style="display: none; margin-top: 20px;">
+    <h5>Existing Query</h5>
+    <form id="existingQueryForm" method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="ticket-id" class="form-label">Ticket ID</label>
+            <input type="text" class="form-control" id="ticket-id" name="ticket_id" placeholder="Enter ticket ID">
+        </div>
+        <button type="button" class="btn btn-primary" id="search-ticket">Search</button>
+
+        <!-- Ticket details section (Initially hidden) -->
+        <div id="ticket-details" style="display: none; margin-top: 20px;">
+            <h5>Ticket Details</h5>
+            <div class="mb-3">
+                <label for="subject" class="form-label">Subject</label>
+                <input type="text" class="form-control" id="subject" name="subject">
+            </div>
+            <div class="mb-3">
+                <label for="assigned-to" class="form-label">Assigned To</label>
+                <select class="form-control" id="assigned-to" name="assigned_to">
+                    <!-- Dynamic options for users -->
+                </select>
+            </div>
+
+            <!-- New Priority Dropdown -->
+            <div class="mb-3">
+                <label for="priority" class="form-label">Priority</label>
+                <select class="form-control" id="priority" name="priority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+
+            <!-- New Note Field -->
+            <div class="mb-3">
+                <label for="note" class="form-label">Note</label>
+                <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the ticket"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Update Ticket</button>
+        </div>
+    </form>
+</div>
+
             </div>
         </div>
     </div>
@@ -1139,6 +1173,105 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .catch(error => console.error('Error:', error));
+    });
+});
+</script>
+
+
+<script>
+document.getElementById("search-ticket").addEventListener("click", function() {
+    var ticketId = document.getElementById("ticket-id").value;
+    if (ticketId) {
+        fetch(/tickets/search/${ticketId}/, {
+            method: "GET",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate ticket details
+                document.getElementById("subject").value = data.ticket.subject;
+                document.getElementById("priority").value = data.ticket.priority; // New priority field
+
+                // Populate the assigned-to dropdown
+                var assignedToDropdown = document.getElementById("assigned-to");
+                assignedToDropdown.innerHTML = '';  // Clear existing options
+                data.users.forEach(user => {
+                    var option = document.createElement("option");
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    if (user.id == data.ticket.assigned_to) {
+                        option.selected = true;
+                    }
+                    assignedToDropdown.appendChild(option);
+                });
+
+                // Show the ticket details section
+                document.getElementById("ticket-details").style.display = "block";
+            } else {
+                alert("Ticket not found");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+
+document.getElementById("existingQueryForm").addEventListener("submit", function(event) {
+    event.preventDefault();  // Prevent form submission from reloading the page
+
+    var ticketId = document.getElementById("ticket-id").value;
+    var subject = document.getElementById("subject").value;
+    var assignedTo = document.getElementById("assigned-to").value;
+    var priority = document.getElementById("priority").value;  // New priority field
+    var note = document.getElementById("note").value;  // New note field
+
+    fetch(/tickets/update/${ticketId}/, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+            "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+            "subject": subject,
+            "assigned_to": assignedTo,
+            "priority": priority,  // Include priority
+            "note": note,  // Include note
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Ticket updated successfully");
+        } else {
+            alert("Failed to update ticket");
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("newQueryBtn").addEventListener("click", function() {
+        console.log("New Query button clicked");
+        // Show New Query section and expand it fully
+        document.getElementById("newQuerySection").style.display = "block";
+        document.getElementById("newQuerySection").style.maxHeight = "none";  // Allow full height expansion
+
+        // Hide Existing Query section
+        document.getElementById("existingQuerySection").style.display = "none";
+    });
+
+    document.getElementById("existingQueryBtn").addEventListener("click", function() {
+        console.log("Existing Query button clicked");
+        // Show Existing Query section and expand it fully
+        document.getElementById("existingQuerySection").style.display = "block";
+        document.getElementById("existingQuerySection").style.maxHeight = "none";  // Allow full height expansion
+
+        // Hide New Query section
+        document.getElementById("newQuerySection").style.display = "none";
     });
 });
 </script>

@@ -113,6 +113,7 @@ class Ticket(models.Model):
     assigned_at = models.DateTimeField(null=True, blank=True)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='low')
     note = models.TextField(blank=True)
+    client_call_note = models.TextField(blank=True)
     work_start_time = models.DateTimeField(null=True, blank=True)  # When the user clicks start
     time_spent = models.DurationField(default=timezone.timedelta(0))
     individual_time_spent = models.DurationField(default=timezone.timedelta(0))
@@ -126,32 +127,42 @@ class Ticket(models.Model):
     last_break_time = models.DateTimeField(null=True, blank=True)  # To track when the break started
     break_duration = models.DurationField(default=timezone.timedelta(0))
 
-
     def start_work(self):
         """Start the timer for this ticket."""
         if not self.is_active:
             self.work_start_time = timezone.now()
             self.is_active = True
+            self.break_duration = timezone.timedelta(0)  # Reset break duration
             self.save()
 
     def pause_work(self):
-        """Pause the timer and accumulate the time spent."""
+        """Pause the timer and accumulate the time spent up to the break."""
         if self.is_active and self.work_start_time:
-            # Accumulate the time from the start of work until now (excluding any breaks)
+            # Calculate work duration, subtract break duration if applicable
             work_duration = timezone.now() - self.work_start_time - self.break_duration
             self.time_spent += work_duration
             self.individual_time_spent += work_duration
 
-            # Reset the timer fields
+            # Reset work_start_time to stop counting time
             self.work_start_time = None
             self.break_duration = timezone.timedelta(0)  # Reset break duration after pause
             self.is_active = False
             self.save()
 
+    def resume_work(self):
+        """Resume the work after a break."""
+        if not self.is_active:
+            # Start tracking time again from now, continuing after the break
+            self.work_start_time = timezone.now()
+            self.is_active = True
+            self.save()
+
     def stop_work(self):
-        """Stop the timer and accumulate the time spent."""
+        """Stop the timer and accumulate the time spent, including after the break."""
         if self.is_active:
-            self.pause_work()  # Pauses and accumulates the time
+            # Pause and accumulate time spent before stopping
+            self.pause_work()
+            self.save()
 
     def toggle_break(self):
         """Handle the break toggling logic."""
@@ -194,6 +205,7 @@ class Ticket(models.Model):
 
     def __str__(self):
         return self.subject
+
 
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")

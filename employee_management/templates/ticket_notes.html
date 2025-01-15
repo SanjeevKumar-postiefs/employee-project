@@ -1,15 +1,42 @@
 {% extends 'base.html' %}
-{% block content %}<br><br>
-<!-- ticket_notes.html -->
-<h3>Notes for Ticket #{{ ticket.ticket_id }}</h3>
+{% block content %}<br><br><br>
 
-<ul>
-    {% for note in notes %}
-    <li>
-        <strong>{{ note.created_by.username }} ({{ note.created_at }}):</strong>
-        <p>{{ note.note_text }}</p>
-    </li>
-    {% endfor %}
-</ul>
+<!-- ticket_notes.html -->
+
+<h3>Notes for Ticket: {{ ticket.subject }}</h3>
+
+<!-- Display the client call note from the Ticket model -->
+<div>
+    <h4>Client Call Note</h4>
+    {% if ticket.client_call_note %}
+        <p><strong>Note:</strong> {{ ticket.client_call_note }}</p>
+    {% else %}
+        <p>No client call note available for this ticket.</p>
+    {% endif %}
+</div>
+
+<!-- Display notes from the Note model -->
+<div>
+    <h4>User-Submitted Notes</h4>
+    {% if notes %}
+        <ul>
+            {% for note in notes %}
+                <li>
+                    <strong>Created by:</strong>
+                    {% if note.created_by %}
+                        {{ note.created_by.username }}
+                    {% else %}
+                        Unknown
+                    {% endif %}
+                    <br>
+                    <strong>Date:</strong> {{ note.created_at }}<br>
+                    <strong>Note:</strong> {{ note.note_text }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No user-submitted notes available for this ticket.</p>
+    {% endif %}
+</div>
 
 {% endblock %}

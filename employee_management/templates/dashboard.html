@@ -369,20 +369,20 @@ input:checked + .slider {
 
 </div>
         <div>
-            <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center">
-                {% csrf_token %}
-                <label for="breakToggle" class="switch">
-                    <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
-                    <span class="slider round"></span>
-                </label>
-                <span class="text-dark ms-2">
-                    {% if employee_profile.is_on_break %}
-                    Currently on break.
-                    {% else %}
-                    Active.
-                    {% endif %}
-                </span>
-            </form>
+            <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center me-4" onsubmit="return false;">
+    {% csrf_token %}
+    <label for="breakToggle" class="switch">
+        <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
+        <span class="slider round"></span>
+    </label>
+    <span id="breakStatus" class="text-dark ms-2">
+    {% if employee_profile.is_on_break %}
+    Currently on break.
+    {% else %}
+    Active.
+    {% endif %}
+</span>
+</form>
         </div>
     </div>
 
@@ -471,13 +471,13 @@ input:checked + .slider {
     <!-- Add CSRF token for AJAX request -->
     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
 
-    <button class="btn btn-success start-button" data-ticket-id="{{ ticket.id }}" data-owner-id="{{ ticket.assigned_to.id }}">
-        {% if ticket.is_active %}
-            Stop
-        {% else %}
-            Start
-        {% endif %}
-    </button>
+    <button class="btn btn-success start-button" data-ticket-id="{{ ticket.id }}">
+    {% if ticket.is_active %}
+        Stop
+    {% else %}
+        Start
+    {% endif %}
+</button>
 </td>
 
 
@@ -625,7 +625,7 @@ input:checked + .slider {
                 <!-- Existing Query Form (Initially Hidden) -->
 <div id="existingQuerySection" style="display: none; margin-top: 20px;">
     <h5>Existing Query</h5>
-    <form id="existingQueryForm" method="post">
+    <form id="existingQueryForm" method="post" action="">
         {% csrf_token %}
         <div class="mb-3">
             <label for="ticket-id" class="form-label">Ticket ID</label>
@@ -647,7 +647,6 @@ input:checked + .slider {
                 </select>
             </div>
 
-            <!-- New Priority Dropdown -->
             <div class="mb-3">
                 <label for="priority" class="form-label">Priority</label>
                 <select class="form-control" id="priority" name="priority">
@@ -658,10 +657,10 @@ input:checked + .slider {
                 </select>
             </div>
 
-            <!-- New Note Field -->
+            <!-- Important: change the name to match 'client_call_note' -->
             <div class="mb-3">
-                <label for="note" class="form-label">Note</label>
-                <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the ticket"></textarea>
+                <label for="client_call_note" class="form-label">Note</label>
+                <textarea class="form-control" id="client_call_note" name="client_call_note" rows="4" placeholder="Enter note about the ticket"></textarea>
             </div>
 
             <button type="submit" class="btn btn-success">Update Ticket</button>
@@ -669,10 +668,12 @@ input:checked + .slider {
     </form>
 </div>
 
+
             </div>
         </div>
     </div>
 </div>
+
 
 
 
@@ -761,116 +762,7 @@ input:checked + .slider {
 
 
 
-    <script>
-document.addEventListener('DOMContentLoaded', function () {
-    let timers = {}; // Store active timers for both total and individual times
-    const localStorageKey = 'ticketTimers'; // Key for storing timer data
 
-    // Helper function to format time in hh:mm:ss
-    function formatTime(seconds) {
-        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${h}:${m}:${s}`;
-    }
-
-    // Load saved timers from localStorage
-    function loadTimers() {
-        const savedTimers = localStorage.getItem(localStorageKey);
-        return savedTimers ? JSON.parse(savedTimers) : {};
-    }
-
-    // Save current timers to localStorage
-    function saveTimers() {
-        localStorage.setItem(localStorageKey, JSON.stringify(timers));
-    }
-
-    // Start both total and individual timers on the frontend
-    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime) {
-        const totalTimerElement = document.getElementById('timer-' + ticketId); // For total time spent
-        const individualTimerElement = document.getElementById('individual-timer-' + ticketId); // For individual time spent
-
-        if (!totalTimerElement || !individualTimerElement) return; // If timers not found, exit
-
-        // Store the start time and accumulated time in localStorage for both timers
-        timers[ticketId] = {
-            totalAccumulatedTime: totalAccumulatedTime,
-            individualAccumulatedTime: individualAccumulatedTime,
-            startTime: startTime
-        };
-        saveTimers();
-
-        // Start a setInterval to update both timers every second
-        timers[ticketId].interval = setInterval(() => {
-            const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000;
-
-            // Update total time spent
-            totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime + elapsedTime);
-
-            // Update individual time spent
-            individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime + elapsedTime);
-        }, 1000);
-    }
-
-    // Stop the frontend timers for a given ticket
-    function stopFrontendTimers(ticketId) {
-        if (timers[ticketId] && timers[ticketId].interval) {
-            clearInterval(timers[ticketId].interval);
-            delete timers[ticketId];
-            saveTimers();
-        }
-    }
-
-    // Handle Start/Stop button functionality for starting/stopping both timers
-    document.querySelectorAll('.start-button').forEach(button => {
-        button.addEventListener('click', function () {
-            const ticketId = this.dataset.ticketId;
-            const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
-            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const url = action === 'start' ? `/tickets/${ticketId}/start/` : `/tickets/${ticketId}/stop/`;
-
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken,
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    this.textContent = action === 'start' ? 'Stop' : 'Start';
-
-                    if (action === 'start') {
-                        const currentTime = Date.now();
-                        const totalAccumulatedTime = data.time_spent_seconds; // Total time spent
-                        const individualAccumulatedTime = data.individual_time_spent_seconds; // Individual time spent
-                        startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, currentTime);
-                    } else {
-                        stopFrontendTimers(ticketId); // Stop both timers
-                    }
-                } else {
-                    alert('Failed to update ticket activity');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        });
-    });
-
-    // On page load, restore timers from localStorage and resume any running timers
-    const savedTimers = loadTimers();
-    document.querySelectorAll('.timer-span').forEach(timerElement => {
-        const ticketId = timerElement.dataset.ticketId;
-
-        if (savedTimers[ticketId]) {
-            const { totalAccumulatedTime, individualAccumulatedTime, startTime } = savedTimers[ticketId];
-            startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime);
-        }
-    });
-});
-</script>
 
 
 <script>
@@ -945,22 +837,28 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
+                    // Check if it's the start call action
                     if (formData.get('action') === 'start_call') {
+                        // Update the button to "End Call" and change the class dynamically
                         const button = this.querySelector('button');
                         button.textContent = 'End Call';
                         button.classList.remove('btn-warning');
                         button.classList.add('btn-danger');
+
+                        // Update the hidden input field to handle "end_call" next time
                         this.querySelector('input[name="action"]').value = 'end_call';
                     }
 
+                    // If it's the end call action, populate modal with ticket details
                     if (formData.get('action') === 'end_call') {
-                        // Open the modal and populate data
+                        // Open the modal for post-call details
                         $('#postCallModal').modal('show');
-                        document.getElementById('modal-ticket-id').value = data.ticket_id;  // Primary key for form submission
-                        document.getElementById('modal-ticket-id-display').value = data.ticket_display_id;  // Display custom ticket_id
 
+                        // Populate the modal fields with data from the response
+                        document.getElementById('modal-ticket-id').value = data.ticket_id;
+                        document.getElementById('modal-ticket-id-display').value = data.ticket_id;
                         document.getElementById('modal-subject').value = data.subject;
-
+                        document.getElementById('modal-call-duration').value = data.call_duration;
 
                         // Set the status in the modal (populate the select box with the current status)
                         const statusSelect = document.getElementById('modal-status');
@@ -976,45 +874,56 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Handle Post-Call Form Submission via AJAX (this will end the call)
-    document.getElementById('postCallForm').addEventListener('submit', function (e) {
-        e.preventDefault();  // Prevent the default form submission
+    // Handle both close button and close icon for hiding the modal
+    const closeButton = document.querySelector('#postCallModal .btn-secondary');
+    const closeIcon = document.querySelector('#postCallModal .close');
 
-        const formData = new FormData(this);
-        const ticketId = document.getElementById('modal-ticket-id').value;  // This is ticket.id (primary key)
-
-        if (ticketId) {
-            fetch(`/ticket/post_call_details/${ticketId}/`, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    $('#postCallModal').modal('hide');
-                    location.reload();  // Reload the page to reflect changes (after submission)
-                } else {
-                    console.error('Error saving post-call details.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        } else {
-            console.error('Error: Ticket ID is missing.');
-        }
-    });
-
-    // Close the modal without submitting form when Close/X is clicked
-    document.querySelectorAll('.modal-footer .btn-secondary, .modal-header .close').forEach(function(button) {
-        button.addEventListener('click', function() {
-            $('#postCallModal').modal('hide');  // Just close the modal without form submission
+    // Close button
+    if (closeButton) {
+        closeButton.addEventListener('click', function() {
+            $('#postCallModal').modal('hide');
         });
-    });
+    }
+
+    // Close icon
+    if (closeIcon) {
+        closeIcon.addEventListener('click', function() {
+            $('#postCallModal').modal('hide');
+        });
+    }
 });
 
+// Handle the form submission from the modal via AJAX
+document.getElementById('postCallForm').addEventListener('submit', function (e) {
+    e.preventDefault();  // Prevent the default form submission
+
+    const formData = new FormData(this);
+    const ticketId = document.getElementById('modal-ticket-id').value;
+
+    if (ticketId) {
+        fetch(`/ticket/post_call_details/${ticketId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Close the modal and reload the dashboard after successful submission
+                $('#postCallModal').modal('hide');
+                location.reload();  // Reload the page to reflect the changes
+            } else {
+                console.error('Error saving post-call details.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        console.error('Error: Ticket ID is missing.');
+    }
+});
 </script>
 
 <script>
@@ -1048,80 +957,201 @@ document.addEventListener('DOMContentLoaded', function () {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let timers = {};
+    const localStorageKey = 'ticketTimers';
     const breakToggle = document.getElementById('breakToggle');
-    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
+    const breakStatus = document.getElementById('breakStatus');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Timer management
-    let timers = {}; // Store active timers
-
-    function stopAllTimers() {
-        // Stop all running timers and update the backend with the accumulated time
-        Object.keys(timers).forEach(ticketId => {
-            clearInterval(timers[ticketId].interval); // Stop the timer interval
-            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-
-            // Update the time on the server
-            fetch('/update_time_spent/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    time_spent: timeSpent
-                })
-            }).then(response => response.json()).then(data => {
-                if (data.status !== 'success') {
-                    console.error('Failed to update time spent:', data.message);
-                }
-            });
-
-            timers[ticketId] = { accumulatedTime: timeSpent, running: false }; // Update local storage or state
-        });
-
-        // Clear all timer intervals
-        timers = {};
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
     }
 
-    function startAllTimers() {
-        // Resumes all active tickets' timers on the backend
-        Object.keys(timers).forEach(ticketId => {
-            timers[ticketId].startTime = Date.now();
-            timers[ticketId].interval = setInterval(() => {
-                const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
-                document.getElementById('timer-' + ticketId).textContent = formatTime(updatedTime);
-            }, 1000);
-        });
-    }
+    // Start both total and individual timers
+    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime) {
+        const totalTimerElement = document.getElementById('timer-' + ticketId);
+        const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
 
-    // Listen for changes to the break toggle and update the status via AJAX
-    breakToggle.addEventListener('change', function() {
-        if (this.checked) {
-            stopAllTimers();  // If break is toggled on, stop all active timers
-        } else {
-            startAllTimers();  // If break is toggled off, resume the timers
+        if (!totalTimerElement || !individualTimerElement) return;
+
+        // Clear existing interval if any
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
         }
 
-        // Toggle the break status via an AJAX request
+        // Initialize timer state
+        timers[ticketId] = {
+            totalAccumulatedTime: totalAccumulatedTime,
+            individualAccumulatedTime: individualAccumulatedTime,
+            startTime: startTime,
+            isActive: true,
+            currentTotal: totalAccumulatedTime,
+            currentIndividual: individualAccumulatedTime
+        };
+
+        // Set initial display
+        totalTimerElement.textContent = formatTime(totalAccumulatedTime);
+        individualTimerElement.textContent = formatTime(individualAccumulatedTime);
+
+        // Start the running timer
+        timers[ticketId].interval = setInterval(() => {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const totalTime = totalAccumulatedTime + elapsedTime;
+            const individualTime = individualAccumulatedTime + elapsedTime;
+
+            timers[ticketId].currentTotal = totalTime;
+            timers[ticketId].currentIndividual = individualTime;
+
+            totalTimerElement.textContent = formatTime(totalTime);
+            individualTimerElement.textContent = formatTime(individualTime);
+        }, 1000);
+
+        // Save to localStorage
+        localStorage.setItem(localStorageKey, JSON.stringify(timers));
+    }
+
+    // Stop the timers
+    function stopFrontendTimers(ticketId) {
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+            const elapsedTime = Math.floor((Date.now() - timers[ticketId].startTime) / 1000);
+
+            // Update final values
+            timers[ticketId].totalAccumulatedTime = timers[ticketId].currentTotal;
+            timers[ticketId].individualAccumulatedTime = timers[ticketId].currentIndividual;
+            timers[ticketId].isActive = false;
+
+            // Update display with final values
+            const totalTimerElement = document.getElementById('timer-' + ticketId);
+            const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+
+            if (totalTimerElement) {
+                totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime);
+            }
+            if (individualTimerElement) {
+                individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime);
+            }
+
+            delete timers[ticketId];
+            localStorage.setItem(localStorageKey, JSON.stringify(timers));
+        }
+    }
+
+    // Handle break toggle
+    function handleBreakToggle(isBreak) {
+        breakStatus.textContent = isBreak ? 'Currently on break.' : 'Active.';
+
+        document.querySelectorAll('.start-button').forEach(button => {
+            const ticketId = button.dataset.ticketId;
+
+            if (isBreak && timers[ticketId] && timers[ticketId].isActive) {
+                // Pause timer
+                clearInterval(timers[ticketId].interval);
+                timers[ticketId].isPausedForBreak = true;
+                timers[ticketId].pausedAt = {
+                    total: timers[ticketId].currentTotal,
+                    individual: timers[ticketId].currentIndividual,
+                    time: Date.now()
+                };
+
+                // Keep displaying the current time
+                const totalTimerElement = document.getElementById('timer-' + ticketId);
+                const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+
+                if (totalTimerElement) {
+                    totalTimerElement.textContent = formatTime(timers[ticketId].currentTotal);
+                }
+                if (individualTimerElement) {
+                    individualTimerElement.textContent = formatTime(timers[ticketId].currentIndividual);
+                }
+            } else if (!isBreak && timers[ticketId] && timers[ticketId].isPausedForBreak) {
+                // Resume timer with preserved values
+                const pausedValues = timers[ticketId].pausedAt;
+                if (pausedValues) {
+                    startFrontendTimers(
+                        ticketId,
+                        pausedValues.total,
+                        pausedValues.individual,
+                        Date.now()
+                    );
+                    timers[ticketId].isPausedForBreak = false;
+                    delete timers[ticketId].pausedAt;
+                }
+            }
+        });
+
         fetch("{% url 'toggle_break_status' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({})
         })
-        .then(() => {
-            // Optionally reload the page after toggling the break to update ticket visibility
-            window.location.reload();
-        })
-        .catch(error => {
-            console.error('Error:', error);
+        .then(response => response.json())
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Start/Stop button click handler
+    document.querySelectorAll('.start-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (breakToggle.checked) return;
+
+            const ticketId = this.dataset.ticketId;
+            const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
+
+            fetch(`/tickets/${ticketId}/${action}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.textContent = action === 'start' ? 'Stop' : 'Start';
+
+                    if (action === 'start') {
+                        startFrontendTimers(
+                            ticketId,
+                            data.time_spent_seconds,
+                            data.individual_time_spent_seconds,
+                            Date.now()
+                        );
+                    } else {
+                        stopFrontendTimers(ticketId);
+                    }
+                } else {
+                    alert('Failed to update ticket activity');
+                }
+            })
+            .catch(error => console.error('Error:', error));
         });
     });
-});
 
+    // Break toggle event listener
+    breakToggle.addEventListener('change', function() {
+        handleBreakToggle(this.checked);
+    });
+
+    // Initialize active timers from localStorage
+    const savedTimers = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
+    Object.entries(savedTimers).forEach(([ticketId, timerData]) => {
+        if (timerData.isActive) {
+            startFrontendTimers(
+                ticketId,
+                timerData.totalAccumulatedTime,
+                timerData.individualAccumulatedTime,
+                timerData.startTime
+            );
+        }
+    });
+});
 </script>
 
 
@@ -1144,9 +1174,9 @@ document.getElementById("search-ticket").addEventListener("click", function() {
             if (data.success) {
                 // Populate ticket details
                 document.getElementById("subject").value = data.ticket.subject;
-                document.getElementById("priority").value = data.ticket.priority; // New priority field
+                document.getElementById("priority").value = data.ticket.priority;
 
-                // Populate the assigned-to dropdown
+                // Populate assigned-to dropdown
                 var assignedToDropdown = document.getElementById("assigned-to");
                 assignedToDropdown.innerHTML = '';  // Clear existing options
                 data.users.forEach(user => {
@@ -1159,7 +1189,10 @@ document.getElementById("search-ticket").addEventListener("click", function() {
                     assignedToDropdown.appendChild(option);
                 });
 
-                // Show the ticket details section
+                // Populate the note field
+                document.getElementById("note").value = data.ticket.note || "";  // If no note, set empty string
+
+                // Show ticket details section
                 document.getElementById("ticket-details").style.display = "block";
             } else {
                 alert("Ticket not found");
@@ -1169,14 +1202,16 @@ document.getElementById("search-ticket").addEventListener("click", function() {
     }
 });
 
+
+
 document.getElementById("existingQueryForm").addEventListener("submit", function(event) {
     event.preventDefault();  // Prevent form submission from reloading the page
 
     var ticketId = document.getElementById("ticket-id").value;
     var subject = document.getElementById("subject").value;
     var assignedTo = document.getElementById("assigned-to").value;
-    var priority = document.getElementById("priority").value;  // New priority field
-    var note = document.getElementById("note").value;  // New note field
+    var priority = document.getElementById("priority").value;
+    var clientCallNote = document.getElementById("client_call_note").value;  // Ensure the correct ID
 
     fetch(`/tickets/update/${ticketId}/`, {
         method: "POST",
@@ -1187,14 +1222,32 @@ document.getElementById("existingQueryForm").addEventListener("submit", function
         body: new URLSearchParams({
             "subject": subject,
             "assigned_to": assignedTo,
-            "priority": priority,  // Include priority
-            "note": note,  // Include note
+            "priority": priority,
+            "client_call_note": clientCallNote  // Make sure the field name is correct
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             alert("Ticket updated successfully");
+
+            // Hide the modal after update
+            var modal = document.getElementById("clientCallModal");
+            if (modal) {
+                modal.classList.remove('show');
+                modal.setAttribute('aria-hidden', 'true');
+                modal.style.display = 'none';
+
+                var modalBackdrop = document.querySelector('.modal-backdrop');
+                if (modalBackdrop) {
+                    modalBackdrop.remove();
+                }
+
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+
+                window.location.reload();
+            }
         } else {
             alert("Failed to update ticket");
         }
