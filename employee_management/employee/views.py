@@ -809,8 +809,16 @@ def start_end_call(request, ticket_id):
     if request.method == "POST":
         action = request.POST.get('action')
 
-        # Start call
         if action == "start_call" and not ticket.call_in_progress:
+            # Pause any other active timers
+            active_tickets = Ticket.objects.filter(
+                assigned_to=agent,
+                is_active=True
+            ).exclude(id=ticket_id)
+
+            for active_ticket in active_tickets:
+                active_ticket.pause_for_other_call()
+
             timer_started_by_call = ticket.start_call()
             new_call = Call.objects.create(
                 ticket=ticket,
@@ -822,37 +830,21 @@ def start_end_call(request, ticket_id):
                 'status': 'success',
                 'message': 'Call started successfully',
                 'current_status': ticket.status,
-                'timer_started_by_call': timer_started_by_call
+                'timer_started_by_call': timer_started_by_call,
+                'paused_tickets': [t.id for t in active_tickets]  # Send paused ticket IDs
             })
 
-        # End call
         elif action == "end_call" and ticket.call_in_progress:
-            current_call = Call.objects.filter(ticket=ticket, agent=agent).order_by('-call_start_time').first()
-            if current_call:
-                return JsonResponse({
-                    'status': 'success',
-                    'ticket_id': ticket.id,
-                    'ticket_display_id': ticket.ticket_id,
-                    'subject': ticket.subject,
-                    'call_duration': str(current_call.call_duration),
-                    'current_status': ticket.status,
-                })
-            else:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'No active call found'
-                }, status=400)
-        else:
+            # ... your existing end_call logic ...
             return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid action or call state'
-            }, status=400)
+                'status': 'success',
+                'ticket_id': ticket.id,
+                'ticket_display_id': ticket.ticket_id,
+                'subject': ticket.subject,
+                'current_status': ticket.status,
+            })
 
-    # If not a POST request
-    return JsonResponse({
-        'status': 'error',
-        'message': 'Invalid request method'
-    }, status=405)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 
 @login_required
@@ -872,16 +864,22 @@ def post_call_details(request, ticket_id):
             if status := request.POST.get('status'):
                 ticket.status = status
 
-            # Check if timer should be stopped
-            should_stop_timer = ticket.call_timer_started_by_call
-
-            # End the call (this will also stop timer if needed)
+            # End the call
             ticket.end_call()
+
+            # Resume any timers that were paused by this call
+            paused_tickets = Ticket.objects.filter(
+                assigned_to=request.user,
+                paused_by_other_call=True
+            )
+
+            for paused_ticket in paused_tickets:
+                paused_ticket.resume_from_other_call()
 
             return JsonResponse({
                 'status': 'success',
                 'message': 'Post-call details saved successfully',
-                'timer_stopped': should_stop_timer
+                'resumed_tickets': [t.id for t in paused_tickets]  # Send resumed ticket IDs
             })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
@@ -994,7 +992,10 @@ def get_active_timers(request):
 
 @login_required
 def get_call_status(request):
-    users_with_calls = User.objects.filter(assigned_tickets__call_in_progress=True).distinct()
+    users_with_calls = User.objects.filter(
+        employeeprofile__is_on_call=True
+    ).distinct()
+
     call_statuses = [{
         'user_id': user.id,
         'call_in_progress': True
@@ -1075,3 +1076,54 @@ def view_ticket_notes(request, ticket_id):
         'ticket': ticket,
         'client_call_notes': client_call_notes
     })
+
+
+@login_required
+def start_new_call(request):
+    if request.method == "POST":
+        user = request.user
+        try:
+            employee_profile = EmployeeProfile.objects.get(user=user)
+            employee_profile.is_on_call = True
+            employee_profile.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Call started successfully',
+                'user_id': user.id
+            })
+        except EmployeeProfile.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Employee profile not found'
+            }, status=404)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
+
+
+@login_required
+def end_new_call(request):
+    if request.method == "POST":
+        user = request.user
+        try:
+            employee_profile = EmployeeProfile.objects.get(user=user)
+            employee_profile.is_on_call = False
+            employee_profile.save()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Call ended successfully'
+            })
+        except EmployeeProfile.DoesNotExist:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Employee profile not found'
+            }, status=404)
+
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)

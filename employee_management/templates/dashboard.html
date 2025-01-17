@@ -268,6 +268,13 @@ input:checked + .slider {
     max-height: none;  /* Remove height limitation */
 }
 
+.start-button.paused-by-call {
+    background-color: #6c757d;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+
 </style>
 </head>
 <body>
@@ -836,6 +843,17 @@ document.querySelectorAll('.call-action-form').forEach(function(form) {
                         startButton.click();
                     }
 
+                    // Update UI for paused tickets
+                    if (data.paused_tickets) {
+                        data.paused_tickets.forEach(pausedId => {
+                            const pausedButton = document.querySelector(`.start-button[data-ticket-id="${pausedId}"]`);
+                            if (pausedButton) {
+                                pausedButton.textContent = 'Paused';
+                                pausedButton.classList.add('paused-by-call');
+                            }
+                        });
+                    }
+
                     // Update call button
                     const button = this.querySelector('button');
                     button.textContent = 'End Call';
@@ -895,6 +913,18 @@ document.getElementById('postCallForm').addEventListener('submit', function (e) 
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
+
+                // Resume paused timers
+                if (data.resumed_tickets) {
+                    data.resumed_tickets.forEach(resumedId => {
+                        const resumedButton = document.querySelector(`.start-button[data-ticket-id="${resumedId}"]`);
+                        if (resumedButton) {
+                            resumedButton.textContent = 'Stop';
+                            resumedButton.classList.remove('paused-by-call');
+                        }
+                    });
+                }
+
                 // Find the call form to check if timer should be stopped
                 const callForm = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"]`);
                 const timerStartedByCall = callForm ? callForm.dataset.timerStartedByCall === 'true' : false;
@@ -1251,25 +1281,99 @@ document.getElementById("existingQueryForm").addEventListener("submit", function
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    document.getElementById("newQueryBtn").addEventListener("click", function() {
-        console.log("New Query button clicked");
-        // Show New Query section and expand it fully
-        document.getElementById("newQuerySection").style.display = "block";
-        document.getElementById("newQuerySection").style.maxHeight = "none";  // Allow full height expansion
+    const clientCallModal = document.getElementById("clientCallModal");
+    const newQueryBtn = document.getElementById("newQueryBtn");
+    const existingQueryBtn = document.getElementById("existingQueryBtn");
+    const newQuerySection = document.getElementById("newQuerySection");
+    const existingQuerySection = document.getElementById("existingQuerySection");
 
-        // Hide Existing Query section
-        document.getElementById("existingQuerySection").style.display = "none";
-    });
+    // Handle modal close events
+    if (clientCallModal) {
+        // Handle modal close button click
+        const closeButton = clientCallModal.querySelector('.btn-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', endNewCall);
+        }
 
-    document.getElementById("existingQueryBtn").addEventListener("click", function() {
-        console.log("Existing Query button clicked");
-        // Show Existing Query section and expand it fully
-        document.getElementById("existingQuerySection").style.display = "block";
-        document.getElementById("existingQuerySection").style.maxHeight = "none";  // Allow full height expansion
+        // Handle modal backdrop click (clicking outside the modal)
+        clientCallModal.addEventListener('hidden.bs.modal', endNewCall);
 
-        // Hide New Query section
-        document.getElementById("newQuerySection").style.display = "none";
-    });
+        // Handle page reload/close
+        window.addEventListener('beforeunload', endNewCall);
+    }
+
+    if (newQueryBtn) {
+        newQueryBtn.addEventListener("click", function() {
+            newQuerySection.style.display = "block";
+            existingQuerySection.style.display = "none";
+            startNewCall();
+        });
+    }
+
+    if (existingQueryBtn) {
+        existingQueryBtn.addEventListener("click", function() {
+            existingQuerySection.style.display = "block";
+            newQuerySection.style.display = "none";
+            startNewCall();
+        });
+    }
+
+    function startNewCall() {
+        fetch('/start-new-call/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Call started successfully');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function endNewCall() {
+        fetch('/end-new-call/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                console.log('Call ended successfully');
+                // Reset the form sections
+                if (newQuerySection) newQuerySection.style.display = "none";
+                if (existingQuerySection) existingQuerySection.style.display = "none";
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Add form submission handlers
+    const newQueryForm = document.getElementById("newQueryForm");
+    const existingQueryForm = document.getElementById("existingQueryForm");
+
+    if (newQueryForm) {
+        newQueryForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            // Your existing form submission code...
+            endNewCall();
+        });
+    }
+
+    if (existingQueryForm) {
+        existingQueryForm.addEventListener("submit", function(event) {
+            event.preventDefault();
+            // Your existing form submission code...
+            endNewCall();
+        });
+    }
 });
 </script>
 </body>

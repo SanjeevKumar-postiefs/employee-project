@@ -29,6 +29,7 @@ class EmployeeProfile(models.Model):
         ('on_break', 'On Break'),
         ('offline', 'Offline')
     ], default='offline')
+    is_on_call = models.BooleanField(default=False)
 
 
 class DailyActivity(models.Model):
@@ -126,6 +127,8 @@ class Ticket(models.Model):
     call_timer_started_by_call = models.BooleanField(default=False)
     last_break_time = models.DateTimeField(null=True, blank=True)  # To track when the break started
     break_duration = models.DurationField(default=timezone.timedelta(0))
+    paused_by_other_call = models.BooleanField(default=False)
+    paused_time = models.DateTimeField(null=True, blank=True)
 
     def start_work(self):
         """Start the timer for this ticket."""
@@ -217,6 +220,26 @@ class Ticket(models.Model):
                 self.call_timer_started_by_call = False
 
             self.call_in_progress = False
+            self.save()
+
+    def pause_for_other_call(self):
+        """Pause the timer because of another call"""
+        if self.is_active and not self.paused_by_other_call:
+            self.paused_time = timezone.now()
+            self.paused_by_other_call = True
+            self.is_active = False
+            self.save()
+
+    def resume_from_other_call(self):
+        """Resume the timer after other call ends"""
+        if self.paused_by_other_call:
+            self.is_active = True
+            self.paused_by_other_call = False
+            # Update work_start_time to maintain accurate duration
+            if self.paused_time:
+                time_diff = timezone.now() - self.paused_time
+                self.work_start_time = self.work_start_time + time_diff
+            self.paused_time = None
             self.save()
 
     def __str__(self):
