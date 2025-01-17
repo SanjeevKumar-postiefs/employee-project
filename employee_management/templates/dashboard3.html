@@ -691,7 +691,6 @@ input:checked + .slider {
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="path/to/timer.js"></script>
 
 
     <script>
@@ -821,39 +820,30 @@ document.addEventListener('DOMContentLoaded', function() {
     const breakToggle = document.getElementById('breakToggle');
     const breakStatus = document.getElementById('breakStatus');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    let activeTicketId = null;
-    let activeCallTicketId = null;
 
     // Add CSS for disabled button styling
     const style = document.createElement('style');
     style.textContent = `
         .start-button.started-by-call {
             opacity: 0.7;
-            cursor: not-allowed !important;
-            background-color: #6c757d !important;
-            border-color: #6c757d !important;
-            pointer-events: all !important;
+            cursor: not-allowed !important;  /* Force the not-allowed cursor */
+            background-color: #6c757d !important;  /* Force the background color */
+            border-color: #6c757d !important;  /* Force the border color */
+            pointer-events: all !important;  /* Ensure hover effects work */
         }
-        .start-button.blocked {
-            opacity: 0.7;
-            cursor: not-allowed !important;
-            background-color: #6c757d !important;
-            border-color: #6c757d !important;
-            pointer-events: all !important;
-        }
-        .call-action-form button.blocked {
-            opacity: 0.7;
-            cursor: not-allowed !important;
-            pointer-events: all !important;
-        }
-        /* Hover states */
-        .start-button.blocked:hover,
         .start-button.started-by-call:hover,
-        .call-action-form button.blocked:hover {
+        .start-button.started-by-call:focus,
+        .start-button.started-by-call:active {
             opacity: 0.7 !important;
             cursor: not-allowed !important;
             background-color: #6c757d !important;
             border-color: #6c757d !important;
+            box-shadow: none !important;
+        }
+        /* Handle disabled state */
+        .start-button.started-by-call[disabled] {
+            cursor: not-allowed !important;
+            pointer-events: all !important;
         }
     `;
     document.head.appendChild(style);
@@ -875,44 +865,6 @@ document.addEventListener('DOMContentLoaded', function() {
                String(now.getUTCHours()).padStart(2, '0') + ':' +
                String(now.getUTCMinutes()).padStart(2, '0') + ':' +
                String(now.getUTCSeconds()).padStart(2, '0');
-    }
-
-    function blockOtherTicketButtons(currentTicketId) {
-    document.querySelectorAll('.start-button').forEach(button => {
-        const ticketId = button.dataset.ticketId;
-        if (ticketId !== currentTicketId) {
-            button.classList.add('blocked');
-            button.disabled = true;
-        }
-    });
-}
-
-    function unblockAllTicketButtons() {
-        document.querySelectorAll('.start-button').forEach(button => {
-            button.classList.remove('blocked');
-            button.disabled = false;
-        });
-    }
-
-    function blockAllTicketInteractions(exceptTicketId) {
-        document.querySelectorAll('.start-button, .call-action-form button').forEach(button => {
-            const ticketId = button.closest('[data-ticket-id]')?.dataset.ticketId;
-            if (ticketId !== exceptTicketId) {
-                button.classList.add('blocked');
-                button.disabled = true;
-            }
-        });
-    }
-
-    function unblockAllTicketInteractions() {
-        document.querySelectorAll('.start-button, .call-action-form button').forEach(button => {
-            button.classList.remove('blocked');
-            button.disabled = false;
-        });
-        // Reapply blocks if there's an active timer
-        if (activeTicketId && !activeCallTicketId) {
-            blockOtherTicketButtons(activeTicketId);
-        }
     }
 
     // Timer management functions
@@ -1116,54 +1068,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (formData.get('action') === 'start_call') {
                         // Store whether the timer was started by this call
                         form.dataset.timerStartedByCall = data.timer_started_by_call;
-                        activeCallTicketId = ticketId;
-                        blockAllTicketInteractions(ticketId);
 
-                        // Get the start button and handle timer
+                        // If timer isn't running and should be started by call
                         const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
-                        if (startButton && data.timer_started_by_call) {
-                            // Get the timer elements
-                            const totalTimerElement = document.getElementById('timer-' + ticketId);
-                            const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
-
-                            // Parse current display values if they exist
-                            let totalTime = 0;
-                            let individualTime = 0;
-
-                            if (totalTimerElement && individualTimerElement) {
-                                // Convert HH:MM:SS to seconds
-                                const parseTimeToSeconds = (timeStr) => {
-                                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
-                                    return hours * 3600 + minutes * 60 + seconds;
-                                };
-
-                                // Get current display values
-                                totalTime = parseTimeToSeconds(totalTimerElement.textContent);
-                                individualTime = parseTimeToSeconds(individualTimerElement.textContent);
-                            }
-
-                            // Check for existing timer in memory
-                            if (timers[ticketId]) {
-                                totalTime = Math.max(totalTime, timers[ticketId].currentTotal || 0);
-                                individualTime = Math.max(individualTime, timers[ticketId].currentIndividual || 0);
-                            } else {
-                                // Check localStorage for existing timer
-                                const savedTimers = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
-                                if (savedTimers[ticketId]) {
-                                    totalTime = Math.max(totalTime, savedTimers[ticketId].currentTotal || 0);
-                                    individualTime = Math.max(individualTime, savedTimers[ticketId].currentIndividual || 0);
-                                }
-                            }
-
-                            // Use server values as fallback
-                            totalTime = Math.max(totalTime, data.time_spent_seconds || 0);
-                            individualTime = Math.max(individualTime, data.individual_time_spent_seconds || 0);
-
-                            // Start timer with preserved values
+                        if (startButton && startButton.textContent.trim() === 'Start' && data.timer_started_by_call) {
+                            // Directly start the timer instead of clicking the button
                             startFrontendTimers(
                                 ticketId,
-                                totalTime,
-                                individualTime,
+                                data.time_spent_seconds || 0,
+                                data.individual_time_spent_seconds || 0,
                                 Date.now(),
                                 true // Indicate this timer was started by call
                             );
@@ -1222,8 +1135,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    activeCallTicketId = null;
-                    unblockAllTicketInteractions();
                     // Resume paused timers
                     if (data.resumed_tickets) {
                         data.resumed_tickets.forEach(resumedId => {
@@ -1291,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
 
+            // Check for break state
             if (breakToggle.checked) return;
 
             const ticketId = this.dataset.ticketId;
@@ -1298,12 +1210,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Block interaction if timer was started by call
             if (timers[ticketId] && timers[ticketId].startedByCall) {
                 alert('This timer was started by a call and can only be stopped by ending the call.');
-                return;
-            }
-
-            // Block if there's an active call on another ticket
-            if (activeCallTicketId && activeCallTicketId !== ticketId) {
-                alert('Please end the current call before starting a new timer.');
                 return;
             }
 
@@ -1322,18 +1228,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.textContent = action === 'start' ? 'Stop' : 'Start';
 
                     if (action === 'start') {
-                        activeTicketId = ticketId;
-                        blockOtherTicketButtons(ticketId);
                         startFrontendTimers(
                             ticketId,
                             data.time_spent_seconds,
                             data.individual_time_spent_seconds,
                             Date.now(),
-                            false
+                            false // Not started by call
                         );
                     } else {
-                        activeTicketId = null;
-                        unblockAllTicketButtons();
                         stopFrontendTimers(ticketId);
                     }
                 } else {
