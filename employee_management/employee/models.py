@@ -288,6 +288,7 @@ class ClientCallNote(models.Model):
     note_text = models.TextField()
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    call_duration_seconds = models.FloatField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']

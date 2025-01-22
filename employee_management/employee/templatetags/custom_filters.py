@@ -31,3 +31,15 @@ def format_timedelta(value):
             return f"{seconds}s"
 
     return value
+
+@register.filter
+def format_duration(seconds):
+    if not seconds:
+        return '-'
+    try:
+        seconds = float(seconds)
+        minutes = int(seconds // 60)
+        remaining_seconds = int(seconds % 60)
+        return f"{minutes}m {remaining_seconds}s"
+    except (ValueError, TypeError):
+        return '-'

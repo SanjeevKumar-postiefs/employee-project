@@ -1041,6 +1041,7 @@ def update_ticket(request, ticket_id):
         assigned_to_id = request.POST.get("assigned_to")
         priority = request.POST.get("priority")
         client_call_note = request.POST.get("client_call_note")
+        call_duration_seconds = request.POST.get("call_duration_seconds")
 
         # Update the ticket fields
         ticket.subject = subject
@@ -1050,16 +1051,16 @@ def update_ticket(request, ticket_id):
             assigned_user = get_object_or_404(User, id=assigned_to_id)
             ticket.assigned_to = assigned_user
 
-        # Create a new ClientCallNote instead of updating ticket.client_call_note
-        if client_call_note:  # Only create if there's a note
+        # Create a new ClientCallNote
+        if client_call_note:
             ClientCallNote.objects.create(
                 ticket=ticket,
                 note_text=client_call_note,
-                created_by=request.user
+                created_by=request.user,
+                call_duration_seconds=call_duration_seconds if call_duration_seconds else None
             )
 
         ticket.save()
-
         return JsonResponse({"success": True, "message": "Ticket updated successfully"})
 
     return JsonResponse({"success": False, "message": "Invalid request method"})

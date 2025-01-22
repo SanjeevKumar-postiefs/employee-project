@@ -55,6 +55,52 @@
     border-color: #ffffff;
 }
 
+/* Add these specific styles for the profile icon dropdown */
+.nav-item .dropdown .btn.btn-secondary.rounded-circle {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #6c757d;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-item .dropdown .btn.btn-secondary.rounded-circle:hover {
+    background-color: #5a6268;
+    transform: none;
+}
+
+.nav-item .dropdown .dropdown-menu {
+    min-width: 120px;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 8px;
+}
+
+.nav-item .dropdown .dropdown-item {
+    padding: 0.5rem 1rem;
+    font-size: 14px;
+    color: #495057;
+    transition: background-color 0.2s ease;
+}
+
+.nav-item .dropdown .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #0d6efd;
+}
+
+/* Override any conflicting button styles */
+.nav-item .dropdown .btn.btn-secondary.rounded-circle {
+    transform: none !important;
+    border-radius: 50% !important;
+}
 
 /* Sidebar styling */
 .sidebar {
@@ -274,6 +320,225 @@ input:checked + .slider {
     cursor: not-allowed;
 }
 
+.modal-content {
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    background: #f8f9fa;
+    border-radius: 15px 15px 0 0;
+    padding: 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+/* Custom Toggle Switch Styling */
+.query-toggle-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin: 2rem 0;
+}
+
+.toggle-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.toggle-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.toggle-circle.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.toggle-label {
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+/* Form Styling */
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 0.5rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    transform: translateY(-1px);
+}
+
+/* Break Toggle Container */
+.break-toggle-container {
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Status Toggle Wrapper */
+.status-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Modern Switch Styling */
+.modern-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+    margin: 0;
+}
+
+.modern-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.modern-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #28a745; /* Default green color */
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.modern-slider .toggle-circle {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Add this rule to move the circle */
+.modern-switch input:checked + .modern-slider .toggle-circle {
+    transform: translateX(24px);
+}
+
+.modern-switch input:checked + .modern-slider {
+    background-color: #dc3545; /* Red color for break state */
+}
+
+.modern-switch input:not(:checked) + .modern-slider {
+    background-color: #28a745; /* Green color for active state */
+}
+
+/* Status Indicator Styling */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+}
+
+.status-text.active {
+    color: #28a745;
+}
+
+.status-text.break {
+    color: #dc3545;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+
+.status-text.active + .status-dot {
+    background-color: #28a745;
+    animation: pulse-green 2s infinite;
+}
+
+.status-text.break + .status-dot {
+    background-color: #dc3545;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
 
 </style>
 </head>
@@ -296,7 +561,7 @@ input:checked + .slider {
                     <li class="nav-item"><a class="nav-link" href="{% url 'user_tickets' user.id %}">View tickets</a></li>
                     <li class="nav-item">
                         <div class="dropdown">
-                            <button class="btn btn-secondary rounded-circle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px; border-radius: 50%;">
+                            <button class="btn btn-secondary rounded-circle profile-button" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                 {{ user.username|slice:":2"|upper }}
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -374,22 +639,29 @@ input:checked + .slider {
     New Call
     </button>
 </div>
-        <div>
-            <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center me-4" onsubmit="return false;">
-    {% csrf_token %}
-    <label for="breakToggle" class="switch">
-        <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
-        <span class="slider round"></span>
-    </label>
-    <span id="breakStatus" class="text-dark ms-2">
-    {% if employee_profile.is_on_break %}
-    Currently on break.
-    {% else %}
-    Active.
-    {% endif %}
-</span>
-</form>
+        <div class="break-toggle-container">
+    <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center" onsubmit="return false;">
+        {% csrf_token %}
+        <div class="status-toggle-wrapper">
+            <label class="modern-switch">
+                <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
+                <span class="modern-slider">
+                    <span class="toggle-circle"></span>
+                </span>
+            </label>
+            <div class="status-indicator">
+                <span id="breakStatus" class="status-text {% if employee_profile.is_on_break %}break{% else %}active{% endif %}">
+                    {% if employee_profile.is_on_break %}
+                    On Break
+                    {% else %}
+                    Active
+                    {% endif %}
+                </span>
+                <span class="status-dot"></span>
+            </div>
         </div>
+    </form>
+</div>
     </div>
 
 
@@ -531,7 +803,7 @@ input:checked + .slider {
                             <a href="{% url 'view_call_details' ticket.id %}" class="btn btn-outline-info">Call Details</a>
 
                             <!-- View Notes Button -->
-                            <a href="{% url 'view_ticket_notes' ticket.id %}" class="btn btn-outline-warning">View Notes</a> <!-- New button to view ticket notes -->
+                            <a href="{% url 'view_ticket_notes' ticket.id %}" class="btn btn-outline-warning">From existing query</a> <!-- New button to view ticket notes -->
                             </div>
                         </td>
                     </tr>
@@ -606,14 +878,22 @@ input:checked + .slider {
             <div class="modal-body">
                 <!-- Question for user -->
                 <div class="text-center">
-                    <h5>Is it a new query?</h5>
-                    <button type="button" class="btn btn-primary me-2" id="newQueryBtn">Yes</button>
-                    <button type="button" class="btn btn-secondary" id="existingQueryBtn">No</button>
+                    <h5 class="mb-4">Is it a new query?</h5>
+                    <div class="query-toggle-container">
+                        <div class="toggle-option" data-value="new">
+                            <div class="toggle-circle" id="newQueryCircle"></div>
+                            <span class="toggle-label">New Query</span>
+                        </div>
+                        <div class="toggle-option" data-value="existing">
+                            <div class="toggle-circle" id="existingQueryCircle"></div>
+                            <span class="toggle-label">Existing Query</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- New Query Form (Initially Hidden) -->
-<div id="newQuerySection" style="display: none; margin-top: 20px;">
-    <h5>New Query</h5>
+<div id="newQuerySection" class="query-section" style="display: none; margin-top: 20px;">
+
     <form id="newQueryForm" method="post">
         {% csrf_token %}
         <!-- Move the toggle to the top -->
@@ -659,7 +939,7 @@ input:checked + .slider {
 </div>
 
                 <!-- Existing Query Form (Initially Hidden) -->
-<div id="existingQuerySection" style="display: none; margin-top: 20px;">
+<div id="existingQuerySection" class="query-section" style="display: none; margin-top: 20px;">
     <h5>Existing Query</h5>
     <form id="existingQueryForm" method="post" action="">
         {% csrf_token %}
@@ -719,7 +999,6 @@ input:checked + .slider {
                 <tr>
                     <th>Client name</th>
                     <th>Client email</th>
-                    <th>CC</th>
                     <th>Call Duration</th>
                     <th>Ticket Created</th>
                     <th>Note</th>
@@ -1093,7 +1372,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleBreakToggle(isBreak) {
-        breakStatus.textContent = isBreak ? 'Currently on break.' : 'Active.';
+        // Update text and classes
+        const breakStatus = document.getElementById('breakStatus');
+        breakStatus.textContent = isBreak ? 'On Break' : 'Active';
+
+        // Remove existing classes and add the appropriate one
+        breakStatus.classList.remove('active', 'break');
+        breakStatus.classList.add(isBreak ? 'break' : 'active');
+
+        // Update the toggle color
+        const modernSlider = document.querySelector('.modern-slider');
+        if (modernSlider) {
+            modernSlider.style.backgroundColor = isBreak ? '#dc3545' : '#28a745';
+        }
 
         document.querySelectorAll('.start-button').forEach(button => {
             const ticketId = button.dataset.ticketId;
@@ -1125,7 +1416,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         pausedValues.total,
                         pausedValues.individual,
                         Date.now(),
-                        timers[ticketId].startedByCall // Preserve startedByCall state during break resume
+                        timers[ticketId].startedByCall
                     );
                     timers[ticketId].isPausedForBreak = false;
                     delete timers[ticketId].pausedAt;
@@ -1447,6 +1738,40 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const newQueryCircle = document.getElementById('newQueryCircle');
+    const existingQueryCircle = document.getElementById('existingQueryCircle');
+    const newQuerySection = document.getElementById('newQuerySection');
+    const existingQuerySection = document.getElementById('existingQuerySection');
+
+    // Handle toggle circle clicks
+    document.querySelectorAll('.toggle-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.dataset.value;
+
+            // Reset all circles
+            document.querySelectorAll('.toggle-circle').forEach(circle => {
+                circle.classList.remove('active');
+            });
+
+            // Activate clicked circle
+            this.querySelector('.toggle-circle').classList.add('active');
+
+            // Show appropriate section
+            if (value === 'new') {
+                newQuerySection.style.display = 'block';
+                existingQuerySection.style.display = 'none';
+                startNewCall();
+            } else {
+                existingQuerySection.style.display = 'block';
+                newQuerySection.style.display = 'none';
+                startNewCall();
+            }
+        });
+    });
+});
+</script>
 
 <script>
 document.getElementById("search-ticket").addEventListener("click", function() {
@@ -1491,27 +1816,41 @@ document.getElementById("search-ticket").addEventListener("click", function() {
     }
 });
 
-document.getElementById("existingQueryForm").addEventListener("submit", function(event) {
-    event.preventDefault();  // Prevent form submission from reloading the page
+document.getElementById("existingQueryForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    // First end the call to get duration
+    const endCallResponse = await fetch('/end-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    }).then(response => response.json());
 
     var ticketId = document.getElementById("ticket-id").value;
     var subject = document.getElementById("subject").value;
     var assignedTo = document.getElementById("assigned-to").value;
     var priority = document.getElementById("priority").value;
-    var clientCallNote = document.getElementById("client_call_note").value;  // Ensure the correct ID
+    var clientCallNote = document.getElementById("client_call_note").value;
+
+    // Create form data and append call duration if available
+    const formData = new FormData();
+    formData.append("subject", subject);
+    formData.append("assigned_to", assignedTo);
+    formData.append("priority", priority);
+    formData.append("client_call_note", clientCallNote);
+
+    if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
+        formData.append("call_duration_seconds", endCallResponse.call_duration);
+    }
 
     fetch(`/tickets/update/${ticketId}/`, {
         method: "POST",
         headers: {
             "X-CSRFToken": "{{ csrf_token }}",
-            "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-            "subject": subject,
-            "assigned_to": assignedTo,
-            "priority": priority,
-            "client_call_note": clientCallNote  // Make sure the field name is correct
-        })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -1533,7 +1872,7 @@ document.getElementById("existingQueryForm").addEventListener("submit", function
                 document.body.classList.remove('modal-open');
                 document.body.style.overflow = '';
 
-                window.location.reload();
+                window.location.reload()
             }
         } else {
             alert("Failed to update ticket");
@@ -1714,7 +2053,6 @@ function updateNewQueriesTable(queries) {
         row.innerHTML = `
             <td>${query.client_name || '-'}</td>
             <td>${query.client_email || '-'}</td>
-            <td>${query.cc_email || '-'}</td>
             <td>${query.call_duration || '-'}</td>
             <td>
                 <span class="badge ${query.ticket_created ? 'bg-success' : 'bg-danger'}">
