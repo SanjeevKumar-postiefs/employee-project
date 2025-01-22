@@ -30,6 +30,7 @@ class EmployeeProfile(models.Model):
         ('offline', 'Offline')
     ], default='offline')
     is_on_call = models.BooleanField(default=False)
+    call_start_time = models.DateTimeField(null=True, blank=True)
 
 
 class DailyActivity(models.Model):
@@ -293,3 +294,25 @@ class ClientCallNote(models.Model):
 
     def __str__(self):
         return f"Client Call Note for {self.ticket.ticket_id} at {self.created_at}"
+
+
+class NewCallQuery(models.Model):
+    agent = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='new_call_queries')
+    primary_email = models.EmailField(default='levelone@example.com')  # Fixed LEVELONE team email
+    client_name = models.CharField(max_length=255,null=True, blank=True)
+    client_email = models.EmailField()
+    cc_email = models.EmailField(blank=True, null=True)
+    note = models.TextField()
+    call_start_time = models.DateTimeField(auto_now_add=True)
+    call_end_time = models.DateTimeField(null=True, blank=True)
+    ticket_created = models.BooleanField(default=False)
+    call_duration_seconds = models.FloatField(null=True, blank=True)
+
+    @property
+    def call_duration(self):
+        if self.call_end_time:
+            return self.call_end_time - self.call_start_time
+        return None
+
+    def __str__(self):
+        return f"Call Query from {self.client_email} at {self.call_start_time}"

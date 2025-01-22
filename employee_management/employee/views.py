@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote,NewCallQuery
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -1085,12 +1085,14 @@ def start_new_call(request):
         try:
             employee_profile = EmployeeProfile.objects.get(user=user)
             employee_profile.is_on_call = True
+            employee_profile.call_start_time = timezone.now()
             employee_profile.save()
 
             return JsonResponse({
                 'status': 'success',
                 'message': 'Call started successfully',
-                'user_id': user.id
+                'user_id': user.id,
+                'call_start_time': employee_profile.call_start_time.isoformat()
             })
         except EmployeeProfile.DoesNotExist:
             return JsonResponse({
@@ -1110,20 +1112,80 @@ def end_new_call(request):
         user = request.user
         try:
             employee_profile = EmployeeProfile.objects.get(user=user)
-            employee_profile.is_on_call = False
-            employee_profile.save()
+            if employee_profile.call_start_time:
+                call_duration = timezone.now() - employee_profile.call_start_time
+                call_duration_seconds = call_duration.total_seconds()
 
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Call ended successfully'
-            })
+                employee_profile.is_on_call = False
+                employee_profile.call_start_time = None
+                employee_profile.save()
+
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Call ended successfully',
+                    'call_duration': call_duration_seconds
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'No call start time found'
+                })
         except EmployeeProfile.DoesNotExist:
             return JsonResponse({
                 'status': 'error',
                 'message': 'Employee profile not found'
             }, status=404)
-
     return JsonResponse({
         'status': 'error',
         'message': 'Invalid request method'
     }, status=405)
+
+# views.py
+@csrf_exempt
+def save_new_call_query(request):
+    if request.method == 'POST':
+        data = request.POST
+        try:
+            employee_profile = EmployeeProfile.objects.get(user=request.user)
+
+            # Create new call query
+            query = NewCallQuery.objects.create(
+                agent=request.user,
+                client_name=data.get('client_name'),
+                client_email=data.get('client_email'),
+                cc_email=data.get('cc_email'),
+                note=data.get('note'),
+                ticket_created=data.get('create_ticket') == 'on',
+                call_duration_seconds=float(data.get('call_duration_seconds', 0))
+            )
+
+            # Reset employee profile call status
+            employee_profile.is_on_call = False
+            employee_profile.call_start_time = None
+            employee_profile.save()
+
+            return JsonResponse({'status': 'success', 'id': query.id})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error'}, status=400)
+
+def get_call_queries(request):
+    new_queries = NewCallQuery.objects.filter(agent=request.user).order_by('-call_start_time')
+
+    def format_duration(seconds):
+        if seconds is None:
+            return '-'
+        minutes = int(seconds // 60)
+        remaining_seconds = int(seconds % 60)
+        return f"{minutes}m {remaining_seconds}s"
+
+    return JsonResponse({
+        'new_queries': [{
+            'client_name': q.client_name,
+            'client_email': q.client_email,
+            'cc_email': q.cc_email,
+            'call_duration': format_duration(q.call_duration_seconds),
+            'ticket_created': q.ticket_created,
+            'note': q.note
+        } for q in new_queries]
+    })

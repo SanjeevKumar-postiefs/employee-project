@@ -540,7 +540,7 @@ input:checked + .slider {
             </tbody>
         </table>
     </div>
-</div>
+
 
 <!-- Post-Call Details Modal (Bootstrap) -->
 <div class="modal fade" id="postCallModal" tabindex="-1" role="dialog" aria-labelledby="postCallModalLabel" aria-hidden="true">
@@ -612,21 +612,51 @@ input:checked + .slider {
                 </div>
 
                 <!-- New Query Form (Initially Hidden) -->
-                <div id="newQuerySection" style="display: none; margin-top: 20px;">
-                    <h5>New Query</h5>
-                    <form id="newQueryForm" method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Client Email</label>
-                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter client email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="note" class="form-label">Note</label>
-                            <textarea class="form-control" id="note" name="note" rows="4" placeholder="Enter note about the query"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Send</button>
-                    </form>
+<div id="newQuerySection" style="display: none; margin-top: 20px;">
+    <h5>New Query</h5>
+    <form id="newQueryForm" method="post">
+        {% csrf_token %}
+        <!-- Move the toggle to the top -->
+        <div class="mb-3 form-check">
+            <div class="d-flex align-items-center">
+                <label class="form-check-label me-2" for="create_ticket">Need to create ticket?</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="create_ticket" name="create_ticket">
                 </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="primary_email" class="form-label">Primary Email (LEVELONE)</label>
+            <input type="email" class="form-control" id="primary_email" name="primary_email" value="levelone@example.com" readonly>
+        </div>
+
+        <!-- Add the new client name field -->
+        <div class="mb-3">
+            <label for="client_name" class="form-label">Client Name</label>
+            <input type="text" class="form-control" id="client_name" name="client_name" required placeholder="Enter client name">
+        </div>
+
+        <!-- Email fields that will be toggled -->
+        <div id="emailFields" style="display: none;">
+            <div class="mb-3">
+                <label for="client_email" class="form-label">Client Email</label>
+                <input type="email" class="form-control" id="client_email" name="client_email" placeholder="Enter client email">
+            </div>
+            <div class="mb-3">
+                <label for="cc_email" class="form-label">CC</label>
+                <input type="email" class="form-control" id="cc_email" name="cc_email" placeholder="Enter CC email (optional)">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="note" class="form-label">Note</label>
+            <textarea class="form-control" id="note" name="note" rows="4" required placeholder="Enter note about the query"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="newQuerySubmitBtn">Save</button>
+    </form>
+</div>
 
                 <!-- Existing Query Form (Initially Hidden) -->
 <div id="existingQuerySection" style="display: none; margin-top: 20px;">
@@ -679,7 +709,29 @@ input:checked + .slider {
 </div>
 
 
-
+<!-- Add this after your existing modals -->
+<div class="mt-4">
+    <h4>Call Details</h4>
+    <!-- New Queries Table -->
+    <div id="newQueriesTable">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Client name</th>
+                    <th>Client email</th>
+                    <th>CC</th>
+                    <th>Call Duration</th>
+                    <th>Ticket Created</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody id="newQueriesBody">
+                <!-- Will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
 
 
 
@@ -915,7 +967,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Timer management functions
     function pauseFrontendTimer(ticketId) {
         if (timers[ticketId] && timers[ticketId].interval) {
             clearInterval(timers[ticketId].interval);
@@ -1493,28 +1544,32 @@ document.getElementById("existingQueryForm").addEventListener("submit", function
 
 </script>
 <script>
+// Define callStartTime in the global scope
+let callStartTime = null;
+
 document.addEventListener("DOMContentLoaded", function() {
     const clientCallModal = document.getElementById("clientCallModal");
     const newQueryBtn = document.getElementById("newQueryBtn");
     const existingQueryBtn = document.getElementById("existingQueryBtn");
     const newQuerySection = document.getElementById("newQuerySection");
     const existingQuerySection = document.getElementById("existingQuerySection");
+    const createTicketToggle = document.getElementById("create_ticket");
+    const submitButton = document.getElementById("newQuerySubmitBtn");
+    const emailFields = document.getElementById("emailFields");
+    const clientEmailInput = document.getElementById("client_email");
+    const ccEmailInput = document.getElementById("cc_email");
 
-    // Handle modal close events
+    // Modal handling
     if (clientCallModal) {
-        // Handle modal close button click
         const closeButton = clientCallModal.querySelector('.btn-close');
         if (closeButton) {
             closeButton.addEventListener('click', endNewCall);
         }
-
-        // Handle modal backdrop click (clicking outside the modal)
         clientCallModal.addEventListener('hidden.bs.modal', endNewCall);
-
-        // Handle page reload/close
         window.addEventListener('beforeunload', endNewCall);
     }
 
+    // Button handlers
     if (newQueryBtn) {
         newQueryBtn.addEventListener("click", function() {
             newQuerySection.style.display = "block";
@@ -1531,63 +1586,146 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function startNewCall() {
-        fetch('/start-new-call/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
+    // Create ticket toggle handler
+    if (createTicketToggle) {
+        createTicketToggle.addEventListener("change", function() {
+            submitButton.textContent = this.checked ? "Send" : "Save";
+            emailFields.style.display = this.checked ? "block" : "none";
+            clientEmailInput.required = this.checked;
+
+            if (!this.checked) {
+                clientEmailInput.value = "";
+                ccEmailInput.value = "";
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                console.log('Call started successfully');
-            }
-        })
-        .catch(error => console.error('Error:', error));
+
+            this.checked ? this.classList.add("bg-success") : this.classList.remove("bg-success");
+        });
     }
 
-    function endNewCall() {
-        fetch('/end-new-call/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                console.log('Call ended successfully');
-                // Reset the form sections
-                if (newQuerySection) newQuerySection.style.display = "none";
-                if (existingQuerySection) existingQuerySection.style.display = "none";
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    // Add form submission handlers
+    // Form submission handlers
     const newQueryForm = document.getElementById("newQueryForm");
-    const existingQueryForm = document.getElementById("existingQueryForm");
-
     if (newQueryForm) {
-        newQueryForm.addEventListener("submit", function(event) {
+        newQueryForm.addEventListener("submit", async function(event) {
             event.preventDefault();
-            // Your existing form submission code...
-            endNewCall();
+
+            // First end the call to get duration
+            const endCallResponse = await fetch('/end-new-call/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json());
+
+            if (endCallResponse.status === 'success') {
+                const formData = new FormData(this);
+
+                // Add the call duration to the form data
+                if (endCallResponse.call_duration) {
+                    formData.append('call_duration_seconds', endCallResponse.call_duration);
+                }
+
+                // Save the call query
+                fetch('/save-new-call-query/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Call query saved successfully');
+                        window.location.reload();
+                        loadCallQueries();
+                        bootstrap.Modal.getInstance(document.getElementById('clientCallModal')).hide();
+                    } else {
+                        alert('Error saving call query');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
         });
     }
 
-    if (existingQueryForm) {
-        existingQueryForm.addEventListener("submit", function(event) {
-            event.preventDefault();
-            // Your existing form submission code...
-            endNewCall();
-        });
-    }
+    // Initial load of queries
+    loadCallQueries();
 });
+
+// Call handling functions
+function startNewCall() {
+    fetch('/start-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Call started successfully');
+            callStartTime = new Date(data.call_start_time);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function endNewCall() {
+    if (!callStartTime) return; // Don't end if no call is started
+
+    fetch('/end-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Call ended successfully');
+            callStartTime = null;
+            if (newQuerySection) newQuerySection.style.display = "none";
+            if (existingQuerySection) existingQuerySection.style.display = "none";
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Query loading functions
+function loadCallQueries() {
+    fetch('/get-call-queries/')
+    .then(response => response.json())
+    .then(data => {
+        updateNewQueriesTable(data.new_queries);
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateNewQueriesTable(queries) {
+    const tbody = document.getElementById("newQueriesBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    queries.forEach(query => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${query.client_name || '-'}</td>
+            <td>${query.client_email || '-'}</td>
+            <td>${query.cc_email || '-'}</td>
+            <td>${query.call_duration || '-'}</td>
+            <td>
+                <span class="badge ${query.ticket_created ? 'bg-success' : 'bg-danger'}">
+                    ${query.ticket_created ? '✓' : '✗'}
+                </span>
+            </td>
+            <td>${query.note}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
 </script>
 </body>
 </html>
