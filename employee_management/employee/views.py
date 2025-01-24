@@ -1,9 +1,11 @@
+import os
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote,NewCallQuery
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote,NewCallQuery,TicketNotification
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -780,14 +782,36 @@ def dashboard(request):
     # Count of tickets by status
     ticket_status_counts = Ticket.objects.filter(assigned_to=user).values('status').annotate(count=models.Count('status'))
 
-    # Total time spent on tickets (sum of all time_spent)
+    # Total time spent on tickets
     total_time_spent = Ticket.objects.filter(assigned_to=user).aggregate(total_time=models.Sum('time_spent'))['total_time']
     total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
 
-    # Fetch all tickets assigned to the user
-    tickets = Ticket.objects.filter(assigned_to=user).order_by('-created_at')
+    # Fetch all tickets assigned to the user (excluding closed and resolved)
+    tickets = Ticket.objects.filter(
+        assigned_to=user
+    ).exclude(
+        status__in=['closed', 'resolved']
+    ).order_by('-created_at')
 
     ticket_statuses = Ticket._meta.get_field('status').choices
+
+    # Get all active tickets with exceeded time limits
+    exceeded_tickets = []
+    for ticket in tickets:
+        if ticket.has_exceeded_time_limit():
+            time_elapsed = timezone.now() - ticket.created_at
+            exceeded_tickets.append({
+                'id': ticket.id,
+                'ticket_id': ticket.ticket_id,
+                'subject': ticket.subject,
+                'priority': ticket.priority,
+                'time_elapsed': time_elapsed,
+                'created_at': ticket.created_at
+            })
+
+    sound_path = os.path.join(settings.STATIC_ROOT, 'sounds', 'notification.mp3')
+    print(f"Sound file exists: {os.path.exists(sound_path)}")
+    print(f"Sound file path: {sound_path}")
 
     context = {
         'employee_profile': employee_profile,
@@ -795,7 +819,9 @@ def dashboard(request):
         'ticket_status_counts': ticket_status_counts,
         'total_time_spent': total_time_spent_hours,
         'tickets': tickets,
-        'ticket_statuses':ticket_statuses,
+        'ticket_statuses': ticket_statuses,
+        'exceeded_tickets': exceeded_tickets,
+        'current_time': timezone.now(),
     }
 
     return render(request, 'dashboard.html', context)
@@ -1190,3 +1216,44 @@ def get_call_queries(request):
             'note': q.note
         } for q in new_queries]
     })
+
+
+@login_required
+def check_exceeded_tickets(request):
+    user = request.user
+    current_time = timezone.now()
+
+    # Get active tickets assigned to the user
+    tickets = Ticket.objects.filter(
+        assigned_to=user
+    ).exclude(
+        status__in=['closed', 'resolved']
+    )
+
+    exceeded_tickets = []
+    for ticket in tickets:
+        if ticket.has_exceeded_time_limit():
+            time_elapsed = current_time - ticket.created_at
+
+            # Check if we should notify (every 1 minute)
+            notification, created = TicketNotification.objects.get_or_create(
+                ticket=ticket,
+                user=user,
+                defaults={'message': f'Ticket #{ticket.ticket_id} has exceeded its time limit'}
+            )
+
+            # Changed from 600 to 60 seconds (1 minute)
+            if created or (current_time - notification.last_notified).total_seconds() >= 60:
+                notification.last_notified = current_time
+                notification.save()
+
+                exceeded_tickets.append({
+                    'id': ticket.id,
+                    'ticket_id': ticket.ticket_id,
+                    'subject': ticket.subject,
+                    'priority': ticket.priority,
+                    'time_elapsed': time_elapsed.total_seconds(),
+                    'created_at': ticket.created_at.isoformat()
+                })
+
+    return JsonResponse({'exceeded_tickets': exceeded_tickets})

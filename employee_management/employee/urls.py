@@ -55,4 +55,5 @@ urlpatterns=[
     path('end-new-call/', views.end_new_call, name='end_new_call'),
     path('save-new-call-query/', views.save_new_call_query, name='save_new_call_query'),
     path('get-call-queries/', views.get_call_queries, name='get_call_queries'),
+    path('check-exceeded-tickets/', views.check_exceeded_tickets, name='check_exceeded_tickets'),
 ]

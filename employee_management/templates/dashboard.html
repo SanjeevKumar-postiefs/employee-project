@@ -540,9 +540,206 @@ input:checked + .slider {
     }
 }
 
+/* Priority Alert Styles */
+    .priority-alert {
+        position: relative;
+        overflow: hidden;  /* Important for the sweep effect */
+    }
+
+    .priority-alert td {
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Sweep effect for all priority levels */
+    .priority-alert td::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.8) 50%,
+            transparent 100%
+        );
+        animation: sweep 2s infinite;
+    }
+
+    /* Urgent Priority - Bright Red */
+    .priority-urgent.priority-alert td {
+        background: linear-gradient(
+            45deg,
+            rgba(255, 0, 0, 0.2),
+            rgba(255, 0, 0, 0.3)
+        ) !important;
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+        border: 1px solid rgba(255, 0, 0, 0.5) !important;
+    }
+
+    .priority-urgent.priority-alert td::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 0, 0, 0.1),
+            rgba(255, 0, 0, 0.2)
+        );
+        animation: pulse-urgent 2s infinite;
+    }
+
+    /* High Priority - Bright Yellow */
+    .priority-high.priority-alert td {
+        background: linear-gradient(
+            45deg,
+            rgba(255, 215, 0, 0.2),
+            rgba(255, 215, 0, 0.3)
+        ) !important;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        border: 1px solid rgba(255, 215, 0, 0.5) !important;
+    }
+
+    .priority-high.priority-alert td::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 215, 0, 0.1),
+            rgba(255, 215, 0, 0.2)
+        );
+        animation: pulse-high 2s infinite;
+    }
+
+    /* Medium Priority - Bright Orange */
+    .priority-medium.priority-alert td {
+        background: linear-gradient(
+            45deg,
+            rgba(255, 140, 0, 0.2),
+            rgba(255, 140, 0, 0.3)
+        ) !important;
+        box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+        border: 1px solid rgba(255, 140, 0, 0.5) !important;
+    }
+
+    .priority-medium.priority-alert td::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 140, 0, 0.1),
+            rgba(255, 140, 0, 0.2)
+        );
+        animation: pulse-medium 2s infinite;
+    }
+
+    /* Low Priority - Bright Green */
+    .priority-low.priority-alert td {
+        background: linear-gradient(
+            45deg,
+            rgba(0, 255, 0, 0.2),
+            rgba(0, 255, 0, 0.3)
+        ) !important;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+        border: 1px solid rgba(0, 255, 0, 0.5) !important;
+    }
+
+    .priority-low.priority-alert td::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(0, 255, 0, 0.1),
+            rgba(0, 255, 0, 0.2)
+        );
+        animation: pulse-low 2s infinite;
+    }
+
+    /* Sweep Animation */
+    @keyframes sweep {
+        0% {
+            left: -100%;
+        }
+        50% {
+            left: 100%;
+        }
+        100% {
+            left: 100%;
+        }
+    }
+
+    /* Priority-specific pulse animations */
+    @keyframes pulse-urgent {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse-high {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse-medium {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes pulse-low {
+        0%, 100% {
+            opacity: 0.6;
+        }
+        50% {
+            opacity: 1;
+        }
+    }
+
+    /* Ensure table cells have proper positioning for effects */
+    .table td {
+        position: relative;
+    }
+
+    /* Add z-index to ensure content stays above effects */
+    .table td * {
+        position: relative;
+        z-index: 1;
+    }
+
 </style>
+<audio id="notificationSound" preload="auto">
+<source src="{% static 'sounds/notification.wav' %}" type="audio/wav">
+</audio>
 </head>
 <body>
+
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top custom-navbar">
@@ -717,7 +914,10 @@ input:checked + .slider {
             <tbody>
                 {% for ticket in tickets %}
                     {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
-                    <tr class="{% if ticket.is_active %}table-active{% endif %}">
+                    <tr class="{{ ticket.get_priority_class }}" data-ticket-id="{{ ticket.id }}"
+                        data-priority="{{ ticket.priority|lower }}"
+                        data-created-at="{{ ticket.created_at|date:'Y-m-d H:i:s' }}">
+
                         <td class="align-middle">
                             <!-- Plus Button outside the table, placed next to Ticket ID -->
                             <div class="plus-button-container">
@@ -2064,6 +2264,163 @@ function updateNewQueriesTable(queries) {
         tbody.appendChild(row);
     });
 }
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let notificationQueue = [];
+    let isShowingNotification = false;
+    const notificationSound = document.getElementById('notificationSound');
+
+    // Initialize sound with user interaction
+    function initializeAudio() {
+        notificationSound.load();
+        notificationSound.volume = 1.0;
+
+        // Try to play and immediately pause to enable audio
+        notificationSound.play().then(() => {
+            notificationSound.pause();
+            notificationSound.currentTime = 0;
+        }).catch(e => {
+            console.log("Audio initialization failed, will retry on user interaction");
+        });
+    }
+
+    // Function to play notification sound
+    async function playNotificationSound() {
+        try {
+            notificationSound.currentTime = 0;
+            await notificationSound.play();
+
+            // Play second beep after delay
+            setTimeout(async () => {
+                notificationSound.currentTime = 0;
+                try {
+                    await notificationSound.play();
+                } catch(e) {
+                    console.error("Second beep failed:", e);
+                }
+            }, 300);
+        } catch(e) {
+            console.error("Sound play failed:", e);
+            // Request user interaction if needed
+            requestUserInteraction();
+        }
+    }
+
+    // Function to request user interaction
+    function requestUserInteraction() {
+        Swal.fire({
+            title: 'Enable Notifications',
+            text: 'Click OK to enable notification sounds',
+            icon: 'info',
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                initializeAudio();
+            }
+        });
+    }
+
+    function showNotification(ticket) {
+        // Play sound first
+        playNotificationSound().catch(console.error);
+
+        const hours = Math.floor(ticket.time_elapsed / 3600);
+        const minutes = Math.floor((ticket.time_elapsed % 3600) / 60);
+        const timeText = hours > 0 ?
+            `${hours}h ${minutes}m` :
+            `${minutes}m`;
+
+        const priorityColors = {
+            urgent: '#ff4444',
+            high: '#ffbb33',
+            medium: '#ff8800',
+            low: '#00C851'
+        };
+
+        Swal.fire({
+            html: `
+                <div class="priority-notification ${ticket.priority.toLowerCase()}"
+                     style="background: linear-gradient(45deg, ${priorityColors[ticket.priority.toLowerCase()]}22, ${priorityColors[ticket.priority.toLowerCase()]}44);
+                            border-left: 4px solid ${priorityColors[ticket.priority.toLowerCase()]};
+                            padding: 15px;
+                            border-radius: 8px;">
+                    <h4 style="margin-bottom: 10px; color: ${priorityColors[ticket.priority.toLowerCase()]}">
+                        ⚠️ Time Limit Exceeded!
+                    </h4>
+                    <div style="text-align: left;">
+                        <strong>Ticket:</strong> #${ticket.ticket_id}<br>
+                        <strong>Subject:</strong> ${ticket.subject}<br>
+                        <strong>Priority:</strong>
+                        <span style="color: ${priorityColors[ticket.priority.toLowerCase()]}">
+                            ${ticket.priority.toUpperCase()}
+                        </span><br>
+                        <strong>Exceeded by:</strong> ${timeText}
+                    </div>
+                </div>
+            `,
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            toast: true,
+            position: 'top-right',
+            showCloseButton: true,
+            customClass: {
+                popup: 'animated-notification'
+            },
+            didOpen: (toast) => {
+                // Try to play sound when notification opens
+                playNotificationSound().catch(console.error);
+            }
+        }).then(() => {
+            isShowingNotification = false;
+            setTimeout(processNotificationQueue, 1000);
+        });
+    }
+
+    function checkExceededTickets() {
+        fetch('/check-exceeded-tickets/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.exceeded_tickets && data.exceeded_tickets.length > 0) {
+                console.log("Received exceeded tickets:", data.exceeded_tickets);
+                notificationQueue = notificationQueue.concat(data.exceeded_tickets);
+                processNotificationQueue();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function processNotificationQueue() {
+        if (notificationQueue.length > 0 && !isShowingNotification) {
+            isShowingNotification = true;
+            const ticket = notificationQueue.shift();
+            showNotification(ticket);
+        }
+    }
+
+    // Initialize audio on page load
+    initializeAudio();
+
+    // Add click handler to enable audio
+    document.addEventListener('click', function initAudioOnClick() {
+        initializeAudio();
+        document.removeEventListener('click', initAudioOnClick);
+    }, { once: true });
+
+    // Check every minute
+    setInterval(checkExceededTickets, 60000);
+
+    // Initial check
+    checkExceededTickets();
+});
 </script>
 </body>
 </html>

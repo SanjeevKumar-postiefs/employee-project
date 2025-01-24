@@ -246,6 +246,34 @@ class Ticket(models.Model):
     def __str__(self):
         return self.subject
 
+    def get_priority_threshold(self):
+        """Returns the time threshold for the ticket's priority"""
+        thresholds = {
+            'urgent': timedelta(minutes=15),
+            'high': timedelta(minutes=30),
+            'medium': timedelta(hours=1),
+            'low': timedelta(hours=2)
+        }
+        return thresholds.get(self.priority.lower())
+
+    def has_exceeded_time_limit(self):
+        """Checks if the ticket has exceeded its time limit"""
+        if not self.created_at:
+            return False
+
+        threshold = self.get_priority_threshold()
+        if not threshold:
+            return False
+
+        time_elapsed = timezone.now() - self.created_at
+        return time_elapsed > threshold
+
+    def get_priority_class(self):
+        """Returns the CSS class for the ticket's priority status"""
+        if self.has_exceeded_time_limit():
+            return f'priority-alert priority-{self.priority.lower()}'
+        return ''
+
 
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
@@ -317,3 +345,14 @@ class NewCallQuery(models.Model):
 
     def __str__(self):
         return f"Call Query from {self.client_email} at {self.call_start_time}"
+
+class TicketNotification(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='notifications')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    last_notified = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
