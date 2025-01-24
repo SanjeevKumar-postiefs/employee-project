@@ -543,199 +543,138 @@ input:checked + .slider {
 /* Priority Alert Styles */
     .priority-alert {
         position: relative;
-        overflow: hidden;  /* Important for the sweep effect */
-    }
-
-    .priority-alert td {
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Sweep effect for all priority levels */
-    .priority-alert td::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.8) 50%,
-            transparent 100%
-        );
-        animation: sweep 2s infinite;
     }
 
     /* Urgent Priority - Bright Red */
     .priority-urgent.priority-alert td {
-        background: linear-gradient(
-            45deg,
-            rgba(255, 0, 0, 0.2),
-            rgba(255, 0, 0, 0.3)
-        ) !important;
-        box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
-        border: 1px solid rgba(255, 0, 0, 0.5) !important;
-    }
-
-    .priority-urgent.priority-alert td::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-            90deg,
-            rgba(255, 0, 0, 0.1),
-            rgba(255, 0, 0, 0.2)
-        );
-        animation: pulse-urgent 2s infinite;
+        background-color: rgba(255, 0, 0, 0.15) !important;
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        animation: pulse-urgent 2s infinite !important;
     }
 
     /* High Priority - Bright Yellow */
     .priority-high.priority-alert td {
-        background: linear-gradient(
-            45deg,
-            rgba(255, 215, 0, 0.2),
-            rgba(255, 215, 0, 0.3)
-        ) !important;
-        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-        border: 1px solid rgba(255, 215, 0, 0.5) !important;
-    }
-
-    .priority-high.priority-alert td::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-            90deg,
-            rgba(255, 215, 0, 0.1),
-            rgba(255, 215, 0, 0.2)
-        );
-        animation: pulse-high 2s infinite;
+        background-color: rgba(255, 255, 0, 0.2) !important;
+        box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+        animation: pulse-high 2s infinite !important;
     }
 
     /* Medium Priority - Bright Orange */
     .priority-medium.priority-alert td {
-        background: linear-gradient(
-            45deg,
-            rgba(255, 140, 0, 0.2),
-            rgba(255, 140, 0, 0.3)
-        ) !important;
-        box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
-        border: 1px solid rgba(255, 140, 0, 0.5) !important;
-    }
-
-    .priority-medium.priority-alert td::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-            90deg,
-            rgba(255, 140, 0, 0.1),
-            rgba(255, 140, 0, 0.2)
-        );
-        animation: pulse-medium 2s infinite;
+        background-color: rgba(255, 165, 0, 0.2) !important;
+        box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
+        animation: pulse-medium 2s infinite !important;
     }
 
     /* Low Priority - Bright Green */
     .priority-low.priority-alert td {
-        background: linear-gradient(
-            45deg,
-            rgba(0, 255, 0, 0.2),
-            rgba(0, 255, 0, 0.3)
-        ) !important;
-        box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
-        border: 1px solid rgba(0, 255, 0, 0.5) !important;
+        background-color: rgba(0, 255, 0, 0.15) !important;
+        box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        animation: pulse-low 2s infinite !important;
     }
 
-    .priority-low.priority-alert td::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-            90deg,
-            rgba(0, 255, 0, 0.1),
-            rgba(0, 255, 0, 0.2)
-        );
-        animation: pulse-low 2s infinite;
-    }
-
-    /* Sweep Animation */
-    @keyframes sweep {
+    /* Animation for Urgent Priority */
+    @keyframes pulse-urgent {
         0% {
-            left: -100%;
+            background-color: rgba(255, 0, 0, 0.15) !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
         }
         50% {
-            left: 100%;
+            background-color: rgba(255, 0, 0, 0.3) !important;
+            box-shadow: 0 0 25px rgba(255, 0, 0, 0.5);
         }
         100% {
-            left: 100%;
+            background-color: rgba(255, 0, 0, 0.15) !important;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
         }
     }
 
-    /* Priority-specific pulse animations */
-    @keyframes pulse-urgent {
-        0%, 100% {
-            opacity: 0.6;
-        }
-        50% {
-            opacity: 1;
-        }
-    }
-
+    /* Animation for High Priority */
     @keyframes pulse-high {
-        0%, 100% {
-            opacity: 0.6;
+        0% {
+            background-color: rgba(255, 255, 0, 0.2) !important;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
         }
         50% {
-            opacity: 1;
+            background-color: rgba(255, 255, 0, 0.35) !important;
+            box-shadow: 0 0 25px rgba(255, 255, 0, 0.5);
+        }
+        100% {
+            background-color: rgba(255, 255, 0, 0.2) !important;
+            box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
         }
     }
 
+    /* Animation for Medium Priority */
     @keyframes pulse-medium {
-        0%, 100% {
-            opacity: 0.6;
+        0% {
+            background-color: rgba(255, 165, 0, 0.2) !important;
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
         }
         50% {
-            opacity: 1;
+            background-color: rgba(255, 165, 0, 0.35) !important;
+            box-shadow: 0 0 25px rgba(255, 165, 0, 0.5);
+        }
+        100% {
+            background-color: rgba(255, 165, 0, 0.2) !important;
+            box-shadow: 0 0 15px rgba(255, 165, 0, 0.3);
         }
     }
 
+    /* Animation for Low Priority */
     @keyframes pulse-low {
-        0%, 100% {
-            opacity: 0.6;
+        0% {
+            background-color: rgba(0, 255, 0, 0.15) !important;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
         }
         50% {
-            opacity: 1;
+            background-color: rgba(0, 255, 0, 0.3) !important;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.5);
+        }
+        100% {
+            background-color: rgba(0, 255, 0, 0.15) !important;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
         }
     }
 
-    /* Ensure table cells have proper positioning for effects */
-    .table td {
-        position: relative;
+    /* Enhanced notification styling */
+    .swal2-popup {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 15px !important;
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.2) !important;
     }
 
-    /* Add z-index to ensure content stays above effects */
-    .table td * {
-        position: relative;
-        z-index: 1;
+    .priority-notification {
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .priority-notification.urgent {
+        background: linear-gradient(45deg, #ff0000, #ff3333);
+        color: white;
+    }
+
+    .priority-notification.high {
+        background: linear-gradient(45deg, #ffd700, #ffed4a);
+        color: black;
+    }
+
+    .priority-notification.medium {
+        background: linear-gradient(45deg, #ffa500, #ffc04d);
+        color: black;
+    }
+
+    .priority-notification.low {
+        background: linear-gradient(45deg, #00ff00, #33ff33);
+        color: black;
     }
 
 </style>
 <audio id="notificationSound" preload="auto">
-<source src="{% static 'sounds/notification.wav' %}" type="audio/wav">
+    <source src="{% static 'sounds/notification.wav' %}" type="audio/wav">
 </audio>
 </head>
 <body>
@@ -2271,60 +2210,29 @@ document.addEventListener('DOMContentLoaded', function() {
     let notificationQueue = [];
     let isShowingNotification = false;
     const notificationSound = document.getElementById('notificationSound');
+    notificationSound.volume = 0.5; // Reduce volume to 50%
 
-    // Initialize sound with user interaction
-    function initializeAudio() {
-        notificationSound.load();
-        notificationSound.volume = 1.0;
-
-        // Try to play and immediately pause to enable audio
-        notificationSound.play().then(() => {
-            notificationSound.pause();
-            notificationSound.currentTime = 0;
-        }).catch(e => {
-            console.log("Audio initialization failed, will retry on user interaction");
-        });
-    }
-
-    // Function to play notification sound
-    async function playNotificationSound() {
+    function playSound() {
         try {
             notificationSound.currentTime = 0;
-            await notificationSound.play();
+            const playPromise = notificationSound.play();
 
-            // Play second beep after delay
-            setTimeout(async () => {
-                notificationSound.currentTime = 0;
-                try {
-                    await notificationSound.play();
-                } catch(e) {
-                    console.error("Second beep failed:", e);
-                }
-            }, 300);
-        } catch(e) {
-            console.error("Sound play failed:", e);
-            // Request user interaction if needed
-            requestUserInteraction();
-        }
-    }
-
-    // Function to request user interaction
-    function requestUserInteraction() {
-        Swal.fire({
-            title: 'Enable Notifications',
-            text: 'Click OK to enable notification sounds',
-            icon: 'info',
-            confirmButtonText: 'OK'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                initializeAudio();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // Play succeeded
+                    console.log("Sound played successfully");
+                }).catch(error => {
+                    console.error("Sound play failed:", error);
+                });
             }
-        });
+        } catch(e) {
+            console.error("Sound play error:", e);
+        }
     }
 
     function showNotification(ticket) {
         // Play sound first
-        playNotificationSound().catch(console.error);
+        playSound();
 
         const hours = Math.floor(ticket.time_elapsed / 3600);
         const minutes = Math.floor((ticket.time_elapsed % 3600) / 60);
@@ -2368,10 +2276,6 @@ document.addEventListener('DOMContentLoaded', function() {
             showCloseButton: true,
             customClass: {
                 popup: 'animated-notification'
-            },
-            didOpen: (toast) => {
-                // Try to play sound when notification opens
-                playNotificationSound().catch(console.error);
             }
         }).then(() => {
             isShowingNotification = false;
@@ -2390,7 +2294,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.exceeded_tickets && data.exceeded_tickets.length > 0) {
-                console.log("Received exceeded tickets:", data.exceeded_tickets);
                 notificationQueue = notificationQueue.concat(data.exceeded_tickets);
                 processNotificationQueue();
             }
@@ -2406,17 +2309,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Initialize audio on page load
-    initializeAudio();
-
-    // Add click handler to enable audio
-    document.addEventListener('click', function initAudioOnClick() {
-        initializeAudio();
-        document.removeEventListener('click', initAudioOnClick);
-    }, { once: true });
-
-    // Check every minute
-    setInterval(checkExceededTickets, 60000);
+    // Check every 10 minutes
+    setInterval(checkExceededTickets, 600000);
 
     // Initial check
     checkExceededTickets();
