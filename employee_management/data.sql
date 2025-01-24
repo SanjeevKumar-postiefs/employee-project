@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 22, 2025 at 01:48 PM
+-- Generation Time: Jan 24, 2025 at 06:14 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -141,7 +141,11 @@ INSERT INTO `auth_permission` (`id`, `name`, `content_type_id`, `codename`) VALU
 (77, 'Can add new call query', 20, 'add_newcallquery'),
 (78, 'Can change new call query', 20, 'change_newcallquery'),
 (79, 'Can delete new call query', 20, 'delete_newcallquery'),
-(80, 'Can view new call query', 20, 'view_newcallquery');
+(80, 'Can view new call query', 20, 'view_newcallquery'),
+(81, 'Can add ticket notification', 21, 'add_ticketnotification'),
+(82, 'Can change ticket notification', 21, 'change_ticketnotification'),
+(83, 'Can delete ticket notification', 21, 'delete_ticketnotification'),
+(84, 'Can view ticket notification', 21, 'view_ticketnotification');
 
 -- --------------------------------------------------------
 
@@ -170,10 +174,10 @@ CREATE TABLE `auth_user` (
 INSERT INTO `auth_user` (`id`, `password`, `last_login`, `is_superuser`, `username`, `first_name`, `last_name`, `email`, `is_staff`, `is_active`, `date_joined`) VALUES
 (12, 'pbkdf2_sha256$600000$B2QQOVRcndLTvC5i2GDwYj$Ql7Shjmra+2rsNTQPLwnzla28oUxJ109NV7hBVt/EZE=', '2025-01-09 10:19:09.995417', 1, 'admin', '', '', 'admin@gmail.com', 1, 1, '2024-10-25 09:04:39.482323'),
 (13, 'pbkdf2_sha256$600000$f8DmTqWfeOGbTm72fd5pAb$muim+iKMHt4IGxwssxjMUdkVcytUSFNDyQSmqulHenE=', '2025-01-16 10:30:03.439688', 0, 'sanjeev', 'sanjeev', 'kumar', 'sanjeev@gmail.com', 0, 1, '2024-10-25 09:35:53.197315'),
-(14, 'pbkdf2_sha256$600000$9lThxBjICjJ4OyVvBVHWts$fAXrWQhLT+V4gf0B+N6/h9PNa9PktSdamBNzaDaazag=', '2025-01-22 10:34:53.494151', 0, 'Ajil', 'Ajil', 'TU', 'ajil@gmail.com', 0, 1, '2024-10-25 09:38:10.503884'),
+(14, 'pbkdf2_sha256$600000$9lThxBjICjJ4OyVvBVHWts$fAXrWQhLT+V4gf0B+N6/h9PNa9PktSdamBNzaDaazag=', '2025-01-24 05:02:22.119955', 0, 'Ajil', 'Ajil', 'TU', 'ajil@gmail.com', 0, 1, '2024-10-25 09:38:10.503884'),
 (15, 'pbkdf2_sha256$600000$pZ3F32yjPfSpXFAsaVaIfX$TX1DaGyKSpLt7CXQ4Zb14FvpPxAPFF78o4Dh+WYQRks=', '2024-11-18 10:50:04.740806', 0, 'Jayamohan', 'Jayamohan', 'x', 'jayamohan@gmail.com', 0, 1, '2024-10-25 10:57:17.559935'),
 (16, 'pbkdf2_sha256$600000$RmmQaw7LOqBnvTF00zMvoR$9Zh0gyPknaXFnzcWaYT8a7zZMbx6Kn0xNa3D7XZWvPk=', '2024-10-30 03:40:21.940231', 0, 'Georgy', 'Georgy', 'Cheriyan', 'Georgy@gmail.com', 0, 1, '2024-10-28 06:58:42.078089'),
-(17, 'pbkdf2_sha256$600000$pCIXsYCDKtCUWJ9oFE5UVx$QQRyWznGi7iG9nKIWUt8kdoCB2afDa4zgSJOmzyFlN4=', '2025-01-22 10:48:20.602908', 0, 'jobin', 'jobin', 'ps', 'jobin@gmail.com', 0, 1, '2024-10-29 05:46:56.459314'),
+(17, 'pbkdf2_sha256$600000$pCIXsYCDKtCUWJ9oFE5UVx$QQRyWznGi7iG9nKIWUt8kdoCB2afDa4zgSJOmzyFlN4=', '2025-01-24 03:58:22.720469', 0, 'jobin', 'jobin', 'ps', 'jobin@gmail.com', 0, 1, '2024-10-29 05:46:56.459314'),
 (18, 'pbkdf2_sha256$600000$VOGstnPjqJROKoQlMpLUAr$Z/skEG1BQUYK4yxAPvPJwSFvjfXtxsR8hl0V0kvBpfs=', '2024-12-12 11:03:14.760213', 0, 'didith', 'didith', 'antony', 'didith@gmail.com', 0, 1, '2024-10-29 05:48:06.536978'),
 (23, 'pbkdf2_sha256$600000$t7ObAVGZGE0Z4dvZjdmCgf$e5WqOrVXtk78D2N65gpUGcjo2IUgWK2KKaXrrReYB3I=', NULL, 0, 'manuel', 'manuel', 'sijo', 'manuel@gmail.com', 0, 1, '2024-10-29 06:05:37.039900');
 
@@ -268,6 +272,7 @@ INSERT INTO `django_content_type` (`id`, `app_label`, `model`) VALUES
 (13, 'employee', 'sessionactivity'),
 (2, 'employee', 'ticket'),
 (9, 'employee', 'tickethistory'),
+(21, 'employee', 'ticketnotification'),
 (11, 'employee', 'useractivity'),
 (8, 'sessions', 'session');
 
@@ -375,7 +380,8 @@ INSERT INTO `django_migrations` (`id`, `app`, `name`, `applied`) VALUES
 (84, 'employee', '0040_newcallquery', '2025-01-21 12:46:16.852870'),
 (85, 'employee', '0041_newcallquery_client_name', '2025-01-22 04:10:44.681011'),
 (86, 'employee', '0042_employeeprofile_call_start_time_and_more', '2025-01-22 05:25:19.129327'),
-(87, 'employee', '0043_clientcallnote_call_duration_seconds', '2025-01-22 10:02:20.749638');
+(87, 'employee', '0043_clientcallnote_call_duration_seconds', '2025-01-22 10:02:20.749638'),
+(88, 'employee', '0044_ticketnotification', '2025-01-23 06:28:31.571838');
 
 -- --------------------------------------------------------
 
@@ -420,7 +426,6 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('d7fgof5ud8d224o6uh4xo625jzqgxe4b', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1tDcBn:DCz0ApttJD_WYXCalvrmCiMWhs6CaE3G9YucVvrRrvo', '2024-12-04 04:19:39.202226'),
 ('d96tci9zfon7a24gv9yvc7707ad6weql', '.eJxVjDsOwjAQBe_iGlnG8ZeSPmewdr1rHECOFCcV4u4QKQW0b2beSyTY1pq2zkuaSFzE2YrT74iQH9x2Qndot1nmua3LhHJX5EG7HGfi5_Vw_w4q9PqtcwDjvFKBggJk4zUUZYaCvgRj_KCKZe21KxHJRR0HS55YW86IGosT7w8BbThE:1t8ZUj:xob4psOQhb8LRWO7hYfWHVL6HGWKu8pAUKTMUQsjxPQ', '2024-11-06 06:36:21.213684'),
 ('emhlyq9her12hfk7bc08qiwwx9bpa4at', '.eJxVjssOgjAQRf-lW6WZPmyHLt27c0-mL0EJJFBMjPHfhYSFbs89Oblv1tBS2maZ09R0kTkmLDv-Qk_hkYZtiXcabiMP41CmzvNN4fs688sYU3_e3b9AS3O7dSWGGrxGq2xCj5iNScasLBgkr2IW-YQos86WRCCpBNbRm2gV6UDbq57m0lAo3bMrrzUpQepKiArsFYwD6UBxNHWt9QHAAbDPF5_yRQw:1t8val:Jl5nc8oJcg8lQpuuOXCwxpQ4Y5HTRmlDIRYycYnfr_w', '2024-11-07 06:17:03.891487'),
-('esjhhk99c8youuhjvs8ka2fx7p1a71gf', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1taa76:0K3T_0ebTn6zEPJrP2b8JktLg16nC2yh_W0WcOmIIPA', '2025-02-05 12:45:44.420428'),
 ('f70uclmajpsabpi3jkw6d79zhlyxgw4m', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t8a8G:nFu3BP1aOtucBx6trK1D-fQnkKlmD23fcobNmN1Jcic', '2024-11-06 07:17:12.595735'),
 ('fpzmc5yg2eybh99jk5m3bzarj91q8nnn', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t8Xcb:vlAmznwC0uwtMP-HeDZED7ywAyC2zMSAj-Y7lckLAx0', '2024-11-06 04:36:21.436231'),
 ('gnkw18zj2ie0p7srt6z9a224rh5cywlz', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1tKx5S:sv04X15z4MpLAYUu7yxc7LkHZMVvjnwpGOPOTmNeoMY', '2024-12-24 10:03:26.509895'),
@@ -429,6 +434,7 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('hk63ws1od83t5wa7q4uv13qgrfl5gd5w', 'e30:1t8a7v:eeM3c9_kqLf5Iw8FBQSVrjdl4vo-M0vU-KEu6VEuonM', '2024-11-06 07:16:51.952743'),
 ('hkgv0loildv9xow9plg95uyge4l4c8l2', 'e30:1tBoFk:3Rz_nyT7t7T-fISnuqro5ySjZrkeph_7HW8tiuwM0rA', '2024-11-29 04:48:16.994234'),
 ('hm5unnij6ppih3keugobfoxpnxw1gafk', '.eJxVjMsOwiAQAP-FsyEgTz167zc0u8siVQNJaU_GfzckPeh1ZjJvMcO-lXnvvM5LElehjTj9QgR6ch0mPaDem6RWt3VBORJ52C6nlvh1O9q_QYFexhctXFRO0WdDyiBl50BzyIFjOFv02iVl3cDOUvCeow5Ga4wEPigvPl8M0zeq:1t8zzd:leUb0r2ijpXbMYU1KQugijAzMgucrG1M4JRyl0enW3M', '2024-11-07 10:54:01.137841'),
+('ia8mqpi5n36mb1kfn3e1bg3ny0q4qyv0', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1tbBpm:E4GOKurIdYvLFubZ_AZDE1L1xTH08nPH-4W7O0EjDxI', '2025-02-07 05:02:22.182561'),
 ('ig5de6ncmz8w96t3553qxb6gjmlt8pal', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t8bvT:LsnpVEBYZYvd4MfQQQJcuP_2fuu_FedxfCFYBIsksKk', '2024-11-06 09:12:07.388217'),
 ('iu1akaqqds5bhb5jlffe1to654t1t0ex', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t8cVq:zYF1sOhA6iqqHWydzfYxijSRfA7R16UO3iSX0qtogNM', '2024-11-06 09:49:42.768591'),
 ('j3v3wruhopzylrmlchl4liqid3wl0hbg', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t9GNq:sn8w32gto8Klrza1zqBAr6sm4RTrwK_kBmLCfeMlfD4', '2024-11-08 04:24:06.687600'),
@@ -443,7 +449,6 @@ INSERT INTO `django_session` (`session_key`, `session_data`, `expire_date`) VALU
 ('mpcnjks6klse01bu4ricx8ga8q6ck6cc', '.eJxVjLsOAiEQAP-F2hB5CHuW9n4D2WVBTg0kx11l_HcluULbmcm8RMBtLWHraQkzi7NQXhx-IWF8pDoM37HemoytrstMciRyt11eG6fnZW__BgV7GV8NcTqSBW98AgLIziXnviw6QDKcVT4B6GyzRxVRGwUTk2Nv0Eb04v0B_fU4JQ:1t8utS:LTIbZD3L0OC-Ambp2uS01vrT8XzlJ7icf3g7l2usOjg', '2024-11-07 05:27:18.964135'),
 ('mx2d6uq8d02125lez04tqwccxpbm2suy', '.eJxVjLsOAiEQAP-F2hB5CHuW9n4D2WVBTg0kx11l_HcluULbmcm8RMBtLWHraQkzi7NQXhx-IWF8pDoM37HemoytrstMciRyt11eG6fnZW__BgV7GV8NcTqSBW98AgLIziXnviw6QDKcVT4B6GyzRxVRGwUTk2Nv0Eb04v0B_fU4JQ:1t8bdw:Iu3mssgsADOd40DKeJR-MBcvtpZ6j3YbaZRVX7afhEw', '2024-11-06 08:54:00.655511'),
 ('nm6o8w8t5bqi6sk8ztaoniyyvc3reern', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t9N1O:y60lBPGAdqXzuqWtqYVx1tn0MaxmXkWNZj6ab5_Bvtk', '2024-11-08 11:29:22.621270'),
-('nq2p6rcoopb6caugohproztwp1rqd9ml', '.eJxVjLsOAiEQAP-F2hB5CHuW9n4D2WVBTg0kx11l_HcluULbmcm8RMBtLWHraQkzi7NQXhx-IWF8pDoM37HemoytrstMciRyt11eG6fnZW__BgV7GV8NcTqSBW98AgLIziXnviw6QDKcVT4B6GyzRxVRGwUTk2Nv0Eb04v0B_fU4JQ:1taa25:VnPLWd-ADAgAUcdmUhy1gk3gKOKJ0Wci9l_406vIdrU', '2025-02-05 12:40:33.010405'),
 ('nsqhgyjpo1xp5bbt2eqs53gwzr55u2im', 'e30:1t2mRj:IlfHbnnB0QiLACUhmWaOL1tnreL4pdLGqcMEc0v_0bY', '2024-11-04 07:03:19.757767'),
 ('nznl9xsvl4fx4plkhto6i6q4e2ixw1u3', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t8YKg:BXgiElji4NB3F6xl3QstH6TdgYANNgtRGzYiINKYlUc', '2024-11-06 05:21:54.387266'),
 ('o3r7kema7hkuxtqwttjwpmfwlp2d4tds', '.eJxVjM0OwiAQhN-FsyGFbvnx6N1nILuwSNXQpLQn47srSQ96m8z3zbxEwH0rYW-8hjmJs1AgTr8lYXxw7STdsd4WGZe6rTPJrsiDNnldEj8vh_t3ULCV73rwSqFll6YM1itiwsFZmydWI2PWJvIIzivIBhAogdM9GdIxGSQU7w8LmziX:1t9NBt:Ws-H7ikvIL_7E3FPfPCVRkyTB63YMb7hjUwzs4Wmd2w', '2024-11-08 11:40:13.607125'),
@@ -637,7 +642,8 @@ INSERT INTO `employee_call` (`id`, `call_start_time`, `call_end_time`, `call_not
 (143, '2025-01-16 10:17:47.778909', '2025-01-16 10:18:05.197550', 'dvwgs', 14, 63),
 (144, '2025-01-16 10:18:44.623367', '2025-01-16 10:18:52.057559', 'wf', 17, 65),
 (145, '2025-01-16 11:32:33.367352', '2025-01-16 11:32:41.651073', 'test', 14, 66),
-(146, '2025-01-22 12:06:53.049810', '2025-01-22 12:07:01.701196', 'svv', 14, 66);
+(146, '2025-01-22 12:06:53.049810', '2025-01-22 12:07:01.701196', 'svv', 14, 66),
+(147, '2025-01-23 06:00:22.847670', '2025-01-23 06:00:31.547845', 'dw', 14, 66);
 
 -- --------------------------------------------------------
 
@@ -681,7 +687,8 @@ INSERT INTO `employee_clientcallnote` (`id`, `note_text`, `created_at`, `created
 (6, 'test note duration', '2025-01-22 10:08:46.669295', 14, 63, NULL),
 (7, 'no notes', '2025-01-22 10:28:52.547152', 14, 66, 13.751505),
 (8, 'notes for 11114', '2025-01-22 10:31:42.224698', 14, 63, 16.185206),
-(9, 'urgent ticket resolve needed', '2025-01-22 12:46:41.355211', 14, 66, 25.232285);
+(9, 'urgent ticket resolve needed', '2025-01-22 12:46:41.355211', 14, 66, 25.232285),
+(10, 'color check', '2025-01-23 06:01:05.286265', 14, 66, 19.694305);
 
 -- --------------------------------------------------------
 
@@ -790,8 +797,12 @@ INSERT INTO `employee_dailyactivity` (`id`, `date`, `login_time`, `logout_time`,
 (105, '2025-01-16', '2025-01-16 10:30:03.444672', '2025-01-16 10:30:56.226686', 0, 0, 13),
 (106, '2025-01-17', '2025-01-17 03:51:20.152100', NULL, 0, 0, 14),
 (107, '2025-01-21', '2025-01-21 12:46:33.434608', '2025-01-21 12:50:11.206584', 0, 0, 14),
-(108, '2025-01-22', '2025-01-22 10:34:53.508044', NULL, 0, 0, 14),
-(109, '2025-01-22', '2025-01-22 10:48:20.607906', NULL, 0, 0, 17);
+(108, '2025-01-22', '2025-01-22 10:34:53.508044', '2025-01-22 12:50:45.794709', 0, 0, 14),
+(109, '2025-01-22', '2025-01-22 10:48:20.607906', '2025-01-22 12:50:51.427730', 0, 0, 17),
+(110, '2025-01-23', '2025-01-23 12:27:56.050441', NULL, 0, 0, 14),
+(111, '2025-01-23', '2025-01-23 12:35:53.515229', NULL, 0, 0, 17),
+(112, '2025-01-24', '2025-01-24 05:02:22.146598', NULL, 0, 0, 14),
+(113, '2025-01-24', '2025-01-24 03:58:22.720469', '2025-01-24 04:22:46.038327', 0, 0, 17);
 
 -- --------------------------------------------------------
 
@@ -824,7 +835,7 @@ INSERT INTO `employee_employeeprofile` (`id`, `level`, `skill`, `is_admin`, `use
 (11, '1', 'Windows', 0, 14, 'offline', 0, 1, 0, 0, 0, NULL),
 (12, '1', 'Windows', 0, 15, 'offline', 0, 0, 0, 0, 0, NULL),
 (13, '1', 'Linux', 1, 16, 'offline', 0, 0, 0, 0, 0, NULL),
-(14, '1', 'Windows', 0, 17, 'offline', 0, 1, 0, 0, 0, NULL),
+(14, '1', 'Windows', 0, 17, 'offline', 0, 0, 0, 0, 0, NULL),
 (15, '1', 'Linux', 0, 18, 'offline', 0, 0, 0, 0, 0, NULL),
 (16, '1', 'Linux', 1, 23, 'offline', 0, 0, 0, 0, 0, NULL);
 
@@ -1506,8 +1517,32 @@ INSERT INTO `employee_sessionactivity` (`id`, `date`, `login_time`, `logout_time
 (590, '2025-01-22', '2025-01-22 10:02:42.067600', '2025-01-22 10:08:10.339967', 0, 328272367, 14, NULL),
 (591, '2025-01-22', '2025-01-22 10:08:15.713138', '2025-01-22 10:24:04.198626', 0, 948485488, 14, NULL),
 (592, '2025-01-22', '2025-01-22 10:24:08.952105', '2025-01-22 10:34:48.199533', 0, 639247428, 14, NULL),
-(593, '2025-01-22', '2025-01-22 10:34:53.511205', NULL, 91959810, 0, 14, NULL),
-(594, '2025-01-22', '2025-01-22 10:48:20.610903', NULL, 15356501, 0, 17, NULL);
+(593, '2025-01-22', '2025-01-22 10:34:53.511205', '2025-01-22 12:50:45.812783', 91959810, 8060341768, 14, NULL),
+(594, '2025-01-22', '2025-01-22 10:48:20.610903', '2025-01-22 12:50:51.427730', 15356501, 7335460326, 17, NULL),
+(595, '2025-01-23', '2025-01-23 04:00:02.377835', '2025-01-23 05:39:03.016121', 8673859, 5931964427, 14, NULL),
+(596, '2025-01-23', '2025-01-23 05:39:08.036536', '2025-01-23 05:52:30.980528', 0, 802943992, 14, NULL),
+(597, '2025-01-23', '2025-01-23 05:52:35.771482', '2025-01-23 05:58:23.538207', 0, 347766725, 14, NULL),
+(598, '2025-01-23', '2025-01-23 05:58:30.180210', '2025-01-23 06:28:42.907325', 0, 1812727115, 14, NULL),
+(599, '2025-01-23', '2025-01-23 06:28:47.703296', '2025-01-23 06:34:28.189139', 0, 340485843, 14, NULL),
+(600, '2025-01-23', '2025-01-23 06:34:35.572817', '2025-01-23 07:00:38.511710', 0, 1562938893, 14, NULL),
+(601, '2025-01-23', '2025-01-23 06:36:30.797813', '2025-01-23 07:00:55.523725', 0, 1464725912, 17, NULL),
+(602, '2025-01-23', '2025-01-23 07:00:43.538355', '2025-01-23 11:26:46.660427', 0, 15963122072, 14, NULL),
+(603, '2025-01-23', '2025-01-23 07:01:02.498415', '2025-01-23 11:28:57.477426', 0, 16074979011, 17, NULL),
+(604, '2025-01-23', '2025-01-23 11:26:51.195968', '2025-01-23 11:56:26.828050', 0, 1775632082, 14, NULL),
+(605, '2025-01-23', '2025-01-23 11:29:06.695623', '2025-01-23 12:25:11.273573', 0, 3364577950, 17, NULL),
+(606, '2025-01-23', '2025-01-23 11:56:31.537008', '2025-01-23 12:03:38.570233', 0, 427033225, 14, NULL),
+(607, '2025-01-23', '2025-01-23 12:03:43.534566', '2025-01-23 12:11:41.307188', 0, 477772622, 14, NULL),
+(608, '2025-01-23', '2025-01-23 12:11:46.670881', '2025-01-23 12:14:15.486357', 0, 148815476, 14, NULL),
+(609, '2025-01-23', '2025-01-23 12:14:20.770696', '2025-01-23 12:15:18.719701', 0, 57949005, 14, NULL),
+(610, '2025-01-23', '2025-01-23 12:15:23.839836', '2025-01-23 12:20:35.541780', 0, 311701944, 14, NULL),
+(611, '2025-01-23', '2025-01-23 12:20:43.042752', '2025-01-23 12:26:14.573497', 0, 331530745, 14, NULL),
+(612, '2025-01-23', '2025-01-23 12:25:17.336658', '2025-01-23 12:26:09.484358', 0, 52147700, 17, NULL),
+(613, '2025-01-23', '2025-01-23 12:26:19.866609', '2025-01-23 12:27:45.788680', 0, 85922071, 14, NULL),
+(614, '2025-01-23', '2025-01-23 12:27:56.053294', NULL, 0, 0, 14, NULL),
+(615, '2025-01-23', '2025-01-23 12:35:53.523223', NULL, 0, 0, 17, NULL),
+(616, '2025-01-24', '2025-01-24 03:55:31.874106', '2025-01-24 04:22:39.845346', 0, 1627971240, 14, NULL),
+(617, '2025-01-24', '2025-01-24 03:58:22.734522', '2025-01-24 04:22:46.044847', 0, 1463310325, 17, NULL),
+(618, '2025-01-24', '2025-01-24 05:02:22.150603', NULL, 0, 0, 14, NULL);
 
 -- --------------------------------------------------------
 
@@ -1562,7 +1597,8 @@ INSERT INTO `employee_ticket` (`id`, `subject`, `status`, `group`, `created_at`,
 (63, 'error checking', 'open', 'Windows', '2024-11-11 05:57:11.425689', 15, 14, '2024-12-13 04:52:25.961586', 'assigned to ajil', 15, NULL, '11114', '2024-11-11 05:57:11.425689', 1810780233, NULL, 0, 'medium', 17428343, '2025-01-16 10:18:05.201347', 'old', '2025-01-16 10:17:47.773004', 0, 0, 970396092, 0, NULL, 'this is the 2nd note', 0, NULL),
 (64, 'error checking', 'closed', 'Windows', '2024-11-12 08:13:44.869834', 17, 14, '2024-12-05 08:58:30.479426', 'assigned to ajil', 17, NULL, '112233', '2024-11-12 08:13:44.869834', 585277981351, NULL, 0, 'low', 0, NULL, '', NULL, 0, 0, 285010417569, 0, NULL, '', 0, NULL),
 (65, 'testing table', 'open', 'Windows', '2024-11-18 10:50:59.658362', 15, 17, '2024-12-13 04:49:22.902642', 'reassigned to jobin', 14, NULL, '111221', '2024-12-27 06:19:18.489622', 8397932876, NULL, 0, 'low', 7449075, '2025-01-16 10:18:52.060449', 'note1', '2025-01-16 10:18:44.611374', 0, 0, 106314631, 0, NULL, '', 0, NULL),
-(66, 'priority field', 'open', 'Windows', '2024-12-04 05:24:11.637533', 14, 14, '2024-12-10 13:19:13.132685', 'testing note', 17, 14, '100200', '2024-12-27 06:14:07.000000', 60336001691, NULL, 0, 'urgent', 8668217, '2025-01-22 12:07:01.701196', 'testing the time1', '2025-01-22 12:06:53.032979', 0, 0, 59654803483, 0, NULL, 'new note for client call', 0, NULL);
+(66, 'priority field', 'open', 'Windows', '2024-12-04 05:24:11.637533', 14, 14, '2024-12-10 13:19:13.132685', 'testing note', 17, 14, '100200', '2024-12-27 06:14:07.000000', 60353192228, NULL, 0, 'low', 8715796, '2025-01-23 06:00:31.547845', 'testing the time1', '2025-01-23 06:00:22.832049', 0, 0, 59671994020, 0, NULL, 'new note for client call', 0, NULL),
+(70, 'ticket priority check', 'pending', 'Windows', '2025-01-23 06:38:25.023302', 17, 14, '0000-00-00 00:00:00.000000', 'this is about to check the ticket priority color and notification implementation', 17, NULL, '111111', '2025-01-23 06:38:25.023302', 0, NULL, 0, 'urgent', 0, NULL, '', NULL, 0, 0, 0, 0, NULL, '', 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -1577,6 +1613,33 @@ CREATE TABLE `employee_tickethistory` (
   `assigned_to_id` int(11) DEFAULT NULL,
   `ticket_id` bigint(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `employee_ticketnotification`
+--
+
+CREATE TABLE `employee_ticketnotification` (
+  `id` bigint(20) NOT NULL,
+  `message` longtext NOT NULL,
+  `created_at` datetime(6) NOT NULL,
+  `is_read` tinyint(1) NOT NULL,
+  `last_notified` datetime(6) NOT NULL,
+  `ticket_id` bigint(20) NOT NULL,
+  `user_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `employee_ticketnotification`
+--
+
+INSERT INTO `employee_ticketnotification` (`id`, `message`, `created_at`, `is_read`, `last_notified`, `ticket_id`, `user_id`) VALUES
+(1, 'Ticket #11114 has exceeded its time limit', '2025-01-23 06:34:36.151315', 0, '2025-01-24 05:13:10.806716', 63, 14),
+(2, 'Ticket #100200 has exceeded its time limit', '2025-01-23 06:34:36.227829', 0, '2025-01-24 05:13:10.806716', 66, 14),
+(3, 'Ticket #11112 has exceeded its time limit', '2025-01-23 06:36:31.422265', 0, '2025-01-24 04:21:23.865875', 61, 17),
+(4, 'Ticket #111221 has exceeded its time limit', '2025-01-23 06:36:31.671160', 0, '2025-01-24 04:21:23.865875', 65, 17),
+(5, 'Ticket #111111 has exceeded its time limit', '2025-01-23 06:53:54.779761', 0, '2025-01-24 05:13:10.806716', 70, 14);
 
 --
 -- Indexes for dumped tables
@@ -1733,6 +1796,14 @@ ALTER TABLE `employee_tickethistory`
   ADD KEY `employee_tickethistory_ticket_id_fecac1d2_fk_employee_ticket_id` (`ticket_id`);
 
 --
+-- Indexes for table `employee_ticketnotification`
+--
+ALTER TABLE `employee_ticketnotification`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `employee_ticketnotif_ticket_id_bad65151_fk_employee_` (`ticket_id`),
+  ADD KEY `employee_ticketnotification_user_id_91e4e917_fk_auth_user_id` (`user_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -1752,7 +1823,7 @@ ALTER TABLE `auth_group_permissions`
 -- AUTO_INCREMENT for table `auth_permission`
 --
 ALTER TABLE `auth_permission`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=81;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=85;
 
 --
 -- AUTO_INCREMENT for table `auth_user`
@@ -1782,19 +1853,19 @@ ALTER TABLE `django_admin_log`
 -- AUTO_INCREMENT for table `django_content_type`
 --
 ALTER TABLE `django_content_type`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `django_migrations`
 --
 ALTER TABLE `django_migrations`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=88;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
 
 --
 -- AUTO_INCREMENT for table `employee_call`
 --
 ALTER TABLE `employee_call`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=147;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=148;
 
 --
 -- AUTO_INCREMENT for table `employee_callnote`
@@ -1806,13 +1877,13 @@ ALTER TABLE `employee_callnote`
 -- AUTO_INCREMENT for table `employee_clientcallnote`
 --
 ALTER TABLE `employee_clientcallnote`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `employee_dailyactivity`
 --
 ALTER TABLE `employee_dailyactivity`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=110;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=114;
 
 --
 -- AUTO_INCREMENT for table `employee_employeeprofile`
@@ -1836,19 +1907,25 @@ ALTER TABLE `employee_notification`
 -- AUTO_INCREMENT for table `employee_sessionactivity`
 --
 ALTER TABLE `employee_sessionactivity`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=595;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=619;
 
 --
 -- AUTO_INCREMENT for table `employee_ticket`
 --
 ALTER TABLE `employee_ticket`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT for table `employee_tickethistory`
 --
 ALTER TABLE `employee_tickethistory`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `employee_ticketnotification`
+--
+ALTER TABLE `employee_ticketnotification`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
@@ -1953,6 +2030,13 @@ ALTER TABLE `employee_ticket`
 ALTER TABLE `employee_tickethistory`
   ADD CONSTRAINT `employee_tickethistory_assigned_to_id_876e10e5_fk_auth_user_id` FOREIGN KEY (`assigned_to_id`) REFERENCES `auth_user` (`id`),
   ADD CONSTRAINT `employee_tickethistory_ticket_id_fecac1d2_fk_employee_ticket_id` FOREIGN KEY (`ticket_id`) REFERENCES `employee_ticket` (`id`);
+
+--
+-- Constraints for table `employee_ticketnotification`
+--
+ALTER TABLE `employee_ticketnotification`
+  ADD CONSTRAINT `employee_ticketnotif_ticket_id_bad65151_fk_employee_` FOREIGN KEY (`ticket_id`) REFERENCES `employee_ticket` (`id`),
+  ADD CONSTRAINT `employee_ticketnotification_user_id_91e4e917_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
