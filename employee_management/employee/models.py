@@ -105,13 +105,26 @@ class Ticket(models.Model):
         ('high', 'High'),
         ('urgent', 'Urgent'),
     ]
+    ENVIRONMENT_CHOICES = [
+        ('postiefs', 'Postiefs'),
+        ('aws', 'AWS'),
+        ('azure', 'Azure'),
+        ('oracle', 'Oracle'),
+        ('google', 'Google'),
+    ]
+    environment = models.CharField(
+        max_length=50,
+        choices=ENVIRONMENT_CHOICES,
+        default='postiefs',  # Setting Postiefs as default
+        help_text="Select the cloud environment"
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='user_tickets')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_tickets')
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
                                     related_name='assigned_tickets')
     assigned_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
                                     related_name='assigner_tickets')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(editable=False)
     assigned_at = models.DateTimeField(null=True, blank=True)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='low')
     note = models.TextField(blank=True)
@@ -130,6 +143,14 @@ class Ticket(models.Model):
     break_duration = models.DurationField(default=timezone.timedelta(0))
     paused_by_other_call = models.BooleanField(default=False)
     paused_time = models.DateTimeField(null=True, blank=True)
+    status_changed = models.DateTimeField(null=True, blank=True)
+    is_acknowledged = models.BooleanField(default=False)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.id:  # Only set the created_at time when the object is first created
+            self.created_at = timezone.localtime(timezone.now())
+        super().save(*args, **kwargs)
 
     def start_work(self):
         """Start the timer for this ticket."""
@@ -271,18 +292,68 @@ class Ticket(models.Model):
     def get_priority_class(self):
         """Returns the CSS class for the ticket's priority status"""
         if self.has_exceeded_time_limit():
-            return f'priority-alert priority-{self.priority.lower()}'
+            base_class = f'priority-{self.priority.lower()}'
+            if not self.status_changed or (
+                self.status_changed and
+                (timezone.now() - self.status_changed) > timezone.timedelta(minutes=1)
+            ):
+                return f'priority-alert {base_class}'
+            return base_class
         return ''
 
+    def should_send_notification(self):
+        """Check if we should send a pre-notification"""
+        if not self.created_at:
+            return False
 
-class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
-    message = models.TextField()
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+        threshold = self.get_priority_threshold()
+        if not threshold:
+            return False
 
-    def __str__(self):
-        return f"Notification for {self.user.username}: {self.message}"
+        time_elapsed = timezone.now() - self.created_at
+        notification_threshold = threshold - timezone.timedelta(minutes=5)  # 5 minutes before
+
+        return (time_elapsed >= notification_threshold and
+                time_elapsed < threshold and
+                not self.status_changed)
+
+    def should_color_individual_time(self):
+        """Determines if the individual time column should be colored"""
+        if not self.has_exceeded_time_limit():
+            return False
+        if not self.status_changed:
+            return True
+        # Check if status was changed after the time limit was exceeded
+        time_elapsed = timezone.now() - self.created_at
+        threshold = self.get_priority_threshold()
+        if threshold and time_elapsed > threshold:
+            return False
+        return True
+
+    def acknowledge(self, user):
+        """
+        Acknowledge the ticket and create a notification if needed
+        """
+        if self.assigned_to == user:
+            # Only acknowledge if the current user is the assigned user
+            self.is_acknowledged = True
+            self.acknowledged_at = timezone.now()
+            self.save()
+
+            # Clear any pending notifications for this ticket
+            TicketNotification.objects.filter(
+                ticket=self,
+                user=user,
+                is_read=False
+            ).update(is_read=True)
+
+    def reset_acknowledgment(self):
+        """
+        Reset acknowledgment when ticket is reassigned
+        """
+        self.is_acknowledged = False
+        self.acknowledged_at = None
+        self.save()
 
 
 class CallNote(models.Model):
@@ -353,6 +424,35 @@ class TicketNotification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     last_notified = models.DateTimeField(auto_now_add=True)
+    notification_counter = models.IntegerField(default=0)
+    last_notification_time = models.DateTimeField(auto_now_add=True)
+
+    def should_resend(self):
+        if not self.is_read:
+            now = timezone.now()
+            time_diff = now - self.last_notification_time
+            return time_diff.total_seconds() >= 60  # Check if a minute has passed
 
     class Meta:
         ordering = ['-created_at']
+
+class TicketAlert(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='alerts')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    acknowledged = models.BooleanField(default=False)
+    last_alert_time = models.DateTimeField(auto_now_add=True)
+    alert_count = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['ticket', 'user']
+
+    @classmethod
+    def cleanup_old_alerts(cls):
+        # Remove alerts that are older than 24 hours and acknowledged
+        cleanup_date = timezone.now() - timezone.timedelta(hours=24)
+        cls.objects.filter(
+            acknowledged=True,
+            created_at__lt=cleanup_date
+        ).delete()

@@ -30,6 +30,7 @@
     <form method="POST">
     {% csrf_token %}
     <input type="hidden" name="ticket_id" value="{{ ticket.ticket_id }}">
+    <input type="hidden" name="environment" value="{{ ticket.environment }}">  <!-- Add this line -->
 
     <!-- Other form fields -->
     {{ form.subject.errors }}
@@ -40,6 +41,9 @@
 
     {{ form.group.errors }}
     {{ form.group }}<br><br>
+
+    {{ form.environment.errors }}
+    {{ form.environment }}<br><br>  <!-- Add this line if you want to show the environment field -->
 
     <!-- This is the internal reassignment note -->
     <label for="note">Reassignment Note:</label>
@@ -57,7 +61,7 @@
     </select>
 
     <button type="submit" class="btn btn-primary mt-3">Reassign Ticket</button>
-</form>
+    </form>
 
 
     <script>

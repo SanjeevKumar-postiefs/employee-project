@@ -68,16 +68,40 @@ class TicketForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ['ticket_id', 'subject', 'status', 'group', 'assigned_to', 'note', 'priority']
+        fields = ['ticket_id', 'subject', 'status', 'group', 'environment', 'assigned_to', 'note', 'priority']
         widgets = {
-            'subject': forms.Textarea(attrs={'rows': 4, 'maxlength': 300}),
-            'note': forms.Textarea(attrs={'rows': 4}),
+            'subject': forms.Textarea(attrs={
+                'rows': 4,
+                'maxlength': 300,
+                'class': 'form-control',
+                'placeholder': 'Enter ticket subject'
+            }),
+            'note': forms.Textarea(attrs={
+                'rows': 4,
+                'class': 'form-control',
+                'placeholder': 'Enter ticket notes'
+            }),
             'priority': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'group': forms.Select(attrs={'class': 'form-select'}),
+            'environment': forms.Select(attrs={'class': 'form-select'}),
+            'ticket_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter ticket ID'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
+        is_assign = kwargs.pop('is_assign', False)  # Add this parameter
         group = kwargs.pop('group', None)
         super().__init__(*args, **kwargs)
+
+        # Make fields optional during assignment
+        if is_assign:
+            self.fields['ticket_id'].required = False
+            self.fields['subject'].required = False
+            self.fields['environment'].required = False
+
         active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
         user_ids = [session.get_decoded().get('_auth_user_id') for session in active_sessions]
         logged_in_users = User.objects.filter(id__in=user_ids, is_active=True, employeeprofile__is_on_break=False)

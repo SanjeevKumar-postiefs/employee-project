@@ -22,35 +22,11 @@
 
     {% include 'nav.html' %}
 
-    <!-- Notification Pop-up -->
-    {% if user.is_authenticated %}
-        {% for notification in notifications %}
-            <div id="ticket-notification-{{ notification.id }}" class="alert alert-info alert-dismissible fade show" role="alert" style="position:fixed; top:10px; right:10px; z-index: 1050;">
-                <strong>{{ notification.message }}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="closeNotification({{ notification.id }})"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+
 
     {% block content %}{% endblock %}
 </div>
 
-<script>
-    // Function to mark notification as read
-    function closeNotification(notificationId) {
-        fetch("{% url 'mark_notification_as_read' %}?id=" + notificationId, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        }).then(response => response.json())
-          .then(data => {
-              if (data.status === 'success') {
-                  const notificationElement = document.getElementById('ticket-notification-' + notificationId);
-                  notificationElement.remove();
-              }
-          });
-    }
-</script>
+
 </body>
 </html>

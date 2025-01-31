@@ -5,13 +5,21 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,Notification,CallNote,Call,ClientCallNote,NewCallQuery,TicketNotification
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,TicketNotification,TicketAlert
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
 from django.shortcuts import render, redirect,HttpResponse
 from django.db import IntegrityError
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from datetime import timedelta,datetime
+import json
+from django.utils import timezone
+import pytz
 
+# Activate the Asia/Kolkata timezone
+timezone.activate(pytz.timezone('Asia/Kolkata'))
 
 def get_logged_in_users():
     active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
@@ -51,7 +59,7 @@ def home(request):
         skill_filter = request.GET.get('skill', None)
 
         # Only fetch unread notifications for the current user
-        notifications = Notification.objects.filter(user=request.user,
+        notifications = TicketNotification.objects.filter(user=request.user,
                                                     is_read=False) if request.user.is_authenticated else []
 
         # Filter tickets based on skill if selected, otherwise show all tickets
@@ -261,7 +269,9 @@ def create_ticket(request):
             ticket = form.save(commit=False)
             ticket.created_by = request.user
             ticket.assigned_by = request.user
-            ticket.assigned_at = timezone.now()
+            current_time = timezone.localtime()
+            ticket.created_at = current_time
+            ticket.assigned_at = current_time
             ticket.save()
             return redirect('/')
     else:
@@ -283,7 +293,10 @@ def create_ticket(request):
 def user_tickets(request, user_id):
     user = get_object_or_404(User, id=user_id)
     tickets = Ticket.objects.filter(assigned_to=user)
-    notifications = Notification.objects.filter(user=request.user, is_read=False)
+    notifications = TicketNotification.objects.filter(user=request.user, is_read=False)
+    # Convert created_at times to local timezone
+    for ticket in tickets:
+        ticket.created_at = timezone.localtime(ticket.created_at)
     return render(request, 'view_tickets.html', {
         'tickets': tickets,
         'user': user,
@@ -341,50 +354,37 @@ def close_ticket(request, ticket_id):
 def assign_ticket(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
-    # Check authorization
-    if ticket.assigned_to != request.user and not request.user.employeeprofile.is_admin:
-        return render(request, 'homepage.html', {
-            'error': "You are not authorized to assign this ticket.",
-            'ticket_id': ticket_id,
-        })
-
     if request.method == 'POST':
-        form = TicketForm(request.POST, instance=ticket)
+        form = TicketForm(request.POST, instance=ticket, is_assign=True)  # Add is_assign=True
 
         if form.is_valid():
             ticket = form.save(commit=False)
 
-            # Get the 'assigned_user' from the POST request
             new_assigned_user_id = request.POST.get('assigned_user')
             new_assigned_user = get_object_or_404(User, id=new_assigned_user_id)
 
-            # Set the assigned_to field manually
+            # Reset acknowledgment
+            ticket.reset_acknowledgment()
+
+            # Update ticket
             ticket.assigned_to = new_assigned_user
             ticket.assigned_by = request.user
             ticket.assigned_at = timezone.now()
-
-            # Reset time spent if needed
-            ticket.reset_individual_time_spent()
-
-            # Update the internal reassignment note in the `Ticket.note` field
-            ticket.note = f"Reassigned to {new_assigned_user.username} by {request.user.username}."
-
             ticket.save()
 
-            # Notify the user about the assignment
-            messages.success(request, f"Ticket {ticket.ticket_id} assigned successfully to {new_assigned_user.username}.")
-
-            # Create a notification for the assigned user
-            if new_assigned_user_id != request.user.id:
-                Notification.objects.create(
+            # Create notification
+            if str(new_assigned_user.id) != str(request.user.id):
+                TicketNotification.objects.create(
+                    ticket=ticket,
                     user=new_assigned_user,
-                    message=f"Ticket with ID: {ticket.ticket_id} has been assigned to you."
+                    message=f"Ticket #{ticket.ticket_id} has been assigned to you by {request.user.username}. Please acknowledge.",
+                    last_notification_time=timezone.now()
                 )
 
             return redirect('home')
 
     else:
-        form = TicketForm(instance=ticket)
+        form = TicketForm(instance=ticket, is_assign=True)  # Add is_assign=True
 
     # Get all active users excluding the current user
     logged_in_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
@@ -408,26 +408,25 @@ def update_ticket_status(request):
             ticket_id = data.get('ticket_id')
             new_status = data.get('new_status')
 
-            # Validate that both ticket_id and new_status are provided
             if not ticket_id or not new_status:
                 return JsonResponse({'success': False, 'message': 'Invalid request data'})
 
-            # Fetch the ticket
             ticket = get_object_or_404(Ticket, id=ticket_id)
 
-            # Check if the current user is the owner of the ticket
             if ticket.assigned_to != request.user:
                 return JsonResponse({'success': False, 'message': 'You are not authorized to change the status of this ticket'})
 
-            # Update the ticket status
+            # Update the ticket status and reset individual time spent
             ticket.status = new_status
+            ticket.individual_time_spent = timezone.timedelta(0)  # Reset individual time
+            ticket.status_changed = timezone.now()  # Set the status change time
             ticket.save()
 
-            # Return success response with updated status
             return JsonResponse({
                 'success': True,
                 'new_status': new_status,
-                'new_status_label': ticket.get_status_display()  # Send the label for display
+                'new_status_label': ticket.get_status_display(),
+                'status_changed': ticket.status_changed.isoformat()  # Include the timestamp
             })
 
         except Exception as e:
@@ -655,13 +654,6 @@ def stop_work(request, ticket_id):
         })
 
 
-
-
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from datetime import timedelta
-import json
-
 @csrf_exempt
 def update_time_spent(request):
     if request.method == 'POST':
@@ -757,61 +749,102 @@ def filter_users_by_group(request):
 
     return JsonResponse({'users': []})
 
-@login_required
-def mark_notification_as_read(request):
-    notification_id = request.GET.get('id')
-    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
-    notification.is_read = True
-    notification.save()
-    return JsonResponse({'status': 'success'})
-
 from django.db import models  # <-- Add this import
+from datetime import datetime, time, timedelta
+from django.utils import timezone
+
 @login_required
 def dashboard(request):
     user = request.user
+    now = timezone.localtime(timezone.now())
+    local_today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
+    local_today_end = timezone.make_aware(datetime.combine(now.date(), time.max))
 
-    # Get the employee profile for the logged-in user
     try:
         employee_profile = EmployeeProfile.objects.get(user=user)
     except EmployeeProfile.DoesNotExist:
         employee_profile = None
 
-    # Total number of tickets for the user
-    total_tickets = Ticket.objects.filter(assigned_to=user).count()
+    # 1. Today's Tickets
+    todays_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        assigned_at__range=(local_today_start, local_today_end)
+    ).count()
 
-    # Count of tickets by status
+    # 2. Open Tickets
+    open_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        assigned_at__range=(local_today_start, local_today_end),
+        status='open',
+        status_changed__isnull=True  # This means the status hasn't been changed
+    ).count()
+
+    # 3. Closed Tickets
+    closed_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        status_changed__range=(local_today_start, local_today_end),
+        status__in=['closed', 'resolved']
+    ).count()
+
+    # 4. Total Call Time (from Call model and NewCallQuery)
+    total_duration = timedelta(0)
+
+    # Get duration from Call model
+    calls = Call.objects.filter(
+        agent=user,
+        call_start_time__range=(local_today_start, local_today_end),
+        call_end_time__isnull=False
+    )
+    for call in calls:
+        if call.call_end_time and call.call_start_time:
+            duration = call.call_end_time - call.call_start_time
+            total_duration += duration
+
+    # Get duration from NewCallQuery model
+    new_calls = NewCallQuery.objects.filter(
+        agent=user,
+        call_start_time__range=(local_today_start, local_today_end),
+        call_duration_seconds__isnull=False
+    )
+    for call in new_calls:
+        total_duration += timedelta(seconds=call.call_duration_seconds or 0)
+
+    # Format the duration for display
+    total_seconds = int(total_duration.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    formatted_duration = f"{hours}h {minutes}m"
+
+    # Get overall ticket statistics
+    total_tickets = Ticket.objects.filter(assigned_to=user).count()
     ticket_status_counts = Ticket.objects.filter(assigned_to=user).values('status').annotate(count=models.Count('status'))
 
-    # Total time spent on tickets
+    # Calculate total time spent on tickets
     total_time_spent = Ticket.objects.filter(assigned_to=user).aggregate(total_time=models.Sum('time_spent'))['total_time']
     total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
 
-    # Fetch all tickets assigned to the user (excluding closed and resolved)
+    # Get active tickets
     tickets = Ticket.objects.filter(
         assigned_to=user
     ).exclude(
         status__in=['closed', 'resolved']
     ).order_by('-created_at')
 
+    # Get ticket statuses for dropdown
     ticket_statuses = Ticket._meta.get_field('status').choices
 
-    # Get all active tickets with exceeded time limits
+    # Get exceeded time limit tickets
     exceeded_tickets = []
     for ticket in tickets:
         if ticket.has_exceeded_time_limit():
-            time_elapsed = timezone.now() - ticket.created_at
             exceeded_tickets.append({
                 'id': ticket.id,
                 'ticket_id': ticket.ticket_id,
                 'subject': ticket.subject,
                 'priority': ticket.priority,
-                'time_elapsed': time_elapsed,
+                'time_elapsed': timezone.now() - ticket.created_at,
                 'created_at': ticket.created_at
             })
-
-    sound_path = os.path.join(settings.STATIC_ROOT, 'sounds', 'notification.mp3')
-    print(f"Sound file exists: {os.path.exists(sound_path)}")
-    print(f"Sound file path: {sound_path}")
 
     context = {
         'employee_profile': employee_profile,
@@ -822,9 +855,76 @@ def dashboard(request):
         'ticket_statuses': ticket_statuses,
         'exceeded_tickets': exceeded_tickets,
         'current_time': timezone.now(),
+        'todays_tickets': todays_tickets,
+        'open_tickets': open_tickets,
+        'closed_tickets': closed_tickets,
+        'call_duration': formatted_duration
     }
 
     return render(request, 'dashboard.html', context)
+
+@login_required
+def get_daily_stats(request):
+    """API endpoint for getting daily statistics"""
+    user = request.user
+    now = timezone.localtime(timezone.now())
+    local_today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
+    local_today_end = timezone.make_aware(datetime.combine(now.date(), time.max))
+
+    # Calculate today's tickets
+    todays_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        assigned_at__range=(local_today_start, local_today_end)
+    ).count()
+
+    # Calculate open tickets
+    open_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        assigned_at__range=(local_today_start, local_today_end),
+        status='open',
+        status_changed__isnull=True  # This means the status hasn't been changed
+    ).count()
+
+    # Calculate closed tickets
+    closed_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        status_changed__range=(local_today_start, local_today_end),
+        status__in=['closed', 'resolved']
+    ).count()
+
+    # Calculate total call duration from both models
+    total_duration = timedelta(0)
+
+    # Add Call model durations
+    calls = Call.objects.filter(
+        agent=user,
+        call_start_time__range=(local_today_start, local_today_end),
+        call_end_time__isnull=False
+    )
+    for call in calls:
+        if call.call_end_time and call.call_start_time:
+            duration = call.call_end_time - call.call_start_time
+            total_duration += duration
+
+    # Add NewCallQuery durations
+    new_calls = NewCallQuery.objects.filter(
+        agent=user,
+        call_start_time__range=(local_today_start, local_today_end),
+        call_duration_seconds__isnull=False
+    )
+    for call in new_calls:
+        total_duration += timedelta(seconds=call.call_duration_seconds or 0)
+
+    # Format duration
+    total_seconds = int(total_duration.total_seconds())
+    formatted_duration = f"{total_seconds // 3600}h {(total_seconds % 3600) // 60}m"
+
+    return JsonResponse({
+        'todays_tickets': todays_tickets,
+        'open_tickets': open_tickets,
+        'closed_tickets': closed_tickets,
+        'call_duration': formatted_duration
+    })
 
 
 @login_required
@@ -1220,40 +1320,208 @@ def get_call_queries(request):
 
 @login_required
 def check_exceeded_tickets(request):
-    user = request.user
-    current_time = timezone.now()
+    try:
+        user = request.user
+        current_time = timezone.now()
+        last_check = request.session.get('last_notification_check')
 
-    # Get active tickets assigned to the user
-    tickets = Ticket.objects.filter(
-        assigned_to=user
-    ).exclude(
-        status__in=['closed', 'resolved']
-    )
+        # If we have a last check time and it's been less than 5 minutes
+        if last_check:
+            try:
+                last_check_time = datetime.fromisoformat(last_check)
+                time_diff = (current_time - last_check_time).total_seconds()
 
-    exceeded_tickets = []
-    for ticket in tickets:
-        if ticket.has_exceeded_time_limit():
-            time_elapsed = current_time - ticket.created_at
+                # Return empty if it's been less than 5 minutes (except for initial page load)
+                if time_diff < 300 and request.headers.get('HTTP_REFERER'):
+                    return JsonResponse({'notifications': []})
+            except ValueError:
+                pass
 
-            # Check if we should notify (every 1 minute)
-            notification, created = TicketNotification.objects.get_or_create(
-                ticket=ticket,
-                user=user,
-                defaults={'message': f'Ticket #{ticket.ticket_id} has exceeded its time limit'}
-            )
+        # Get active tickets
+        tickets = Ticket.objects.filter(
+            assigned_to=user
+        ).exclude(
+            status__in=['closed', 'resolved']
+        )
 
-            # Changed from 600 to 60 seconds (1 minute)
-            if created or (current_time - notification.last_notified).total_seconds() >= 60:
-                notification.last_notified = current_time
-                notification.save()
-
-                exceeded_tickets.append({
+        notifications = []
+        for ticket in tickets:
+            if ticket.has_exceeded_time_limit():
+                time_elapsed = current_time - ticket.created_at
+                notifications.append({
                     'id': ticket.id,
                     'ticket_id': ticket.ticket_id,
                     'subject': ticket.subject,
                     'priority': ticket.priority,
                     'time_elapsed': time_elapsed.total_seconds(),
+                    'type': 'exceeded',
                     'created_at': ticket.created_at.isoformat()
                 })
 
-    return JsonResponse({'exceeded_tickets': exceeded_tickets})
+        # Update last check time only if notifications were found
+        if notifications:
+            request.session['last_notification_check'] = current_time.isoformat()
+            request.session.modified = True
+
+        return JsonResponse({'notifications': notifications})
+
+    except Exception as e:
+        print(f"Error in check_exceeded_tickets: {str(e)}")
+        return JsonResponse({'notifications': []})
+
+
+@login_required
+def check_pre_notifications(request):
+    try:
+        user = request.user
+        current_time = timezone.now()
+        last_check = request.session.get('last_pre_notification_check')
+
+        # If we have a last check time and it's been less than 1 minute
+        if last_check:
+            try:
+                last_check_time = datetime.fromisoformat(last_check)
+                time_diff = (current_time - last_check_time).total_seconds()
+
+                # Return empty if it's been less than 1 minute (except for initial page load)
+                if time_diff < 60 and request.headers.get('HTTP_REFERER'):
+                    return JsonResponse({'notifications': []})
+            except ValueError:
+                pass
+
+        tickets = Ticket.objects.filter(
+            assigned_to=user
+        ).exclude(
+            status__in=['closed', 'resolved']
+        )
+
+        notifications = []
+        for ticket in tickets:
+            if ticket.should_send_notification():
+                notification_key = f'pre_notify_{ticket.id}'
+                if not request.session.get(notification_key):
+                    notifications.append({
+                        'id': ticket.id,
+                        'ticket_id': ticket.ticket_id,
+                        'subject': ticket.subject,
+                        'priority': ticket.priority,
+                        'type': 'pre_notification',
+                        'message': f'The SLA of ticket #{ticket.ticket_id} is going to end in 5 minutes'
+                    })
+                    request.session[notification_key] = True
+                    request.session.modified = True
+
+        if notifications:
+            request.session['last_pre_notification_check'] = current_time.isoformat()
+            request.session.modified = True
+
+        return JsonResponse({'notifications': notifications})
+
+    except Exception as e:
+        print(f"Error in check_pre_notifications: {str(e)}")
+        return JsonResponse({'notifications': []})
+
+
+@login_required
+def acknowledge_ticket(request, ticket_id):
+    if request.method == 'POST':
+        ticket = get_object_or_404(Ticket, id=ticket_id, assigned_to=request.user)
+        ticket.acknowledge(request.user)
+
+        # Mark all notifications for this ticket as read
+        TicketNotification.objects.filter(
+            ticket=ticket,
+            user=request.user,
+            is_read=False
+        ).update(is_read=True)
+
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False}, status=400)
+
+
+@login_required
+def check_pending_notifications(request):
+    notifications = TicketNotification.objects.filter(
+        user=request.user,
+        is_read=False
+    ).select_related('ticket')
+
+    current_time = timezone.now()
+    response_data = []
+
+    for notification in notifications:
+        # Include notification if it's unread and either:
+        # 1. The ticket is not acknowledged, or
+        # 2. It's time to resend the notification
+        if not notification.ticket.is_acknowledged or notification.should_resend():
+            notification.notification_counter += 1
+            notification.last_notification_time = current_time
+            notification.save()
+
+            response_data.append({
+                'ticket_id': notification.ticket.id,
+                'message': notification.message,
+                'ticket_number': notification.ticket.ticket_id  # Include ticket number for display
+            })
+
+    return JsonResponse({'notifications': response_data})
+
+
+# views.py
+@login_required
+def check_ticket_alerts(request):
+    current_time = timezone.now()
+    alerts = TicketAlert.objects.filter(
+        user=request.user,
+        acknowledged=False,
+        # Only get alerts that haven't been shown in the last minute
+        last_alert_time__lte=current_time - timezone.timedelta(seconds=60)
+    ).select_related('ticket')
+
+    response_data = []
+    for alert in alerts:
+        alert.last_alert_time = current_time
+        alert.alert_count += 1
+        alert.save()
+
+        response_data.append({
+            'ticket_id': alert.ticket.id,
+            'ticket_number': alert.ticket.ticket_id,
+            'subject': alert.ticket.subject,
+            'priority': alert.ticket.priority,
+            'created_at': alert.ticket.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'alert_count': alert.alert_count
+        })
+
+    return JsonResponse({'alerts': response_data})
+
+
+@login_required
+def acknowledge_alert(request, ticket_id):
+    if request.method == 'POST':
+        try:
+            # Get the ticket first
+            ticket = get_object_or_404(Ticket, id=ticket_id)
+
+            # Update all alerts for this ticket and user
+            alerts = TicketAlert.objects.filter(
+                ticket_id=ticket_id,
+                user=request.user,
+                acknowledged=False
+            )
+            alerts.update(acknowledged=True)
+
+            # Acknowledge the ticket itself
+            ticket.acknowledge(request.user)
+
+            return JsonResponse({'success': True})
+
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': str(e)
+            }, status=400)
+
+    return JsonResponse({'success': False}, status=400)
+
+

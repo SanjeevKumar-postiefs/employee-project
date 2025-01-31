@@ -325,6 +325,83 @@ input:checked + .slider {
         background-color: #dc3545;
     }
 
+
+
+/* Priority-based coloring and animations */
+/* Urgent priority */
+tr.priority-urgent .time-column.total-time,
+.time-column.total-time.priority-urgent,
+tr.priority-urgent .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-urgent {
+    background-color: rgba(255, 68, 68, 0.1);
+    animation: pulse-urgent 2s infinite;
+}
+
+/* High priority */
+tr.priority-high .time-column.total-time,
+.time-column.total-time.priority-high,
+tr.priority-high .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-high {
+    background-color: rgba(255, 187, 51, 0.1);
+    animation: pulse-high 2s infinite;
+}
+
+/* Medium priority */
+tr.priority-medium .time-column.total-time,
+.time-column.total-time.priority-medium,
+tr.priority-medium .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-medium {
+    background-color: rgba(255, 136, 0, 0.1);
+    animation: pulse-medium 2s infinite;
+}
+
+/* Low priority */
+tr.priority-low .time-column.total-time,
+.time-column.total-time.priority-low,
+tr.priority-low .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-low {
+    background-color: rgba(0, 200, 81, 0.1);
+    animation: pulse-low 2s infinite;
+}
+
+/* Single set of pulse animations */
+@keyframes pulse-urgent {
+    0% { background-color: rgba(255, 68, 68, 0.1); }
+    50% { background-color: rgba(255, 68, 68, 0.3); }
+    100% { background-color: rgba(255, 68, 68, 0.1); }
+}
+
+@keyframes pulse-high {
+    0% { background-color: rgba(255, 187, 51, 0.1); }
+    50% { background-color: rgba(255, 187, 51, 0.3); }
+    100% { background-color: rgba(255, 187, 51, 0.1); }
+}
+
+@keyframes pulse-medium {
+    0% { background-color: rgba(255, 136, 0, 0.1); }
+    50% { background-color: rgba(255, 136, 0, 0.3); }
+    100% { background-color: rgba(255, 136, 0, 0.1); }
+}
+
+@keyframes pulse-low {
+    0% { background-color: rgba(0, 200, 81, 0.1); }
+    50% { background-color: rgba(0, 200, 81, 0.3); }
+    100% { background-color: rgba(0, 200, 81, 0.1); }
+}
+
+/* Reset styles for non-exceeded tickets */
+.time-column.individual-time:not(.exceeded),
+.time-column.total-time:not(.priority-urgent):not(.priority-high):not(.priority-medium):not(.priority-low) {
+    background-color: transparent;
+    animation: none;
+}
+
+/* Status changed color reset */
+.time-column.individual-time:not(.exceeded) {
+    background-color: transparent !important;
+    animation: none !important;
+}
+
 </style>
 
 
@@ -402,15 +479,7 @@ input:checked + .slider {
     {% endif %}
 </div>
 
-<!-- Notification Pop-up -->
-        {% if user.is_authenticated %}
-            {% for notification in notifications %}
-                <div id="ticket-notification-{{ notification.id }}" class="alert alert-info alert-dismissible fade show" role="alert" style="position:fixed; top:10px; right:10px; z-index: 1050;">
-                    <strong>{{ notification.message }}</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="closeNotification({{ notification.id }})"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+
 
 
 
@@ -468,13 +537,14 @@ input:checked + .slider {
                                         <th>Subject</th>
                                         <th>Status</th>
                                         <th>Priority</th>
-                                        <th>Time Spent</th>
-                                        <th>Individual Time Spent</th>
+                                        <th>Total Spent</th>
+                                        <th>Individual Spent</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% if user_tickets.latest_ticket %}
-                                        <tr class="{% if user_tickets.latest_ticket.is_active %}ticket-active{% endif %}">
+                                        <tr data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                                            class="{% if user_tickets.latest_ticket.is_active %}ticket-active{% endif %} {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }} priority-alert{% endif %}">
                                             <td>
                                                 <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ user_tickets.latest_ticket.id }}" aria-expanded="false" aria-controls="options-{{ user_tickets.latest_ticket.id }}">
                                                     +
@@ -484,7 +554,8 @@ input:checked + .slider {
                                             <td>{{ user_tickets.latest_ticket.subject }}</td>
                                             <td id="ticket-status-{{ user_tickets.latest_ticket.id }}">{{ user_tickets.latest_ticket.status }}</td>
                                             <td>{{ user_tickets.latest_ticket.priority|title }}</td>
-                                                <td>
+                                                <!-- Time Spent Column -->
+<td class="time-column total-time {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }}{% endif %}">
     <span id="timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
         {% if user_tickets.latest_ticket.time_spent %}
             {{ user_tickets.latest_ticket.time_spent|format_duration }}
@@ -493,15 +564,17 @@ input:checked + .slider {
         {% endif %}
     </span>
 </td>
-<td>
-                    <span id="individual-timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
-                        {% if user_tickets.latest_ticket.individual_time_spent %}
-                            {{ user_tickets.latest_ticket.individual_time_spent|format_duration }}
-                        {% else %}
-                            00:00:00
-                        {% endif %}
-                    </span>
-                </td>
+
+<!-- Individual Time Spent Column -->
+<td class="time-column individual-time {% if user_tickets.latest_ticket.has_exceeded_time_limit and not user_tickets.latest_ticket.status_changed %}exceeded{% endif %}">
+    <span id="individual-timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+        {% if user_tickets.latest_ticket.individual_time_spent %}
+            {{ user_tickets.latest_ticket.individual_time_spent|format_duration }}
+        {% else %}
+            00:00:00
+        {% endif %}
+    </span>
+</td>
                                         </tr>
 
                                         <!-- Options for Latest Ticket -->
@@ -539,7 +612,8 @@ input:checked + .slider {
                             <!-- Collapsible section for older tickets -->
 
                                         {% for ticket in user_tickets.older_tickets %}
-                                            <tr class="collapse collapse-{{ user_tickets.user.id }} {% if ticket.is_active %}ticket-active{% endif %}">
+                                            <tr data-ticket-id="{{ ticket.id }}"
+                                                class="collapse collapse-{{ user_tickets.user.id }} {% if ticket.is_active %}ticket-active{% endif %} {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }} priority-alert{% endif %}">
                                                 <td>
                                                     <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ ticket.id }}" aria-expanded="false" aria-controls="options-{{ ticket.id }}">
                                                         +
@@ -551,14 +625,14 @@ input:checked + .slider {
                                                 <td>{{ ticket.priority }}</td>
 
                                                         <!-- Total Time Spent -->
-<td>
+<td class="time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
     <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.time_spent|format_duration }}
     </span>
 </td>
 
 <!-- Individual Time Spent -->
-<td>
+<td class="time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded{% endif %}">
     <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.individual_time_spent|format_duration }}
     </span>
@@ -600,7 +674,7 @@ input:checked + .slider {
                         </div>
                     </div>
                 {% endfor %}
-            </div>
+
         {% endif %}
     {% else %}
         <p class="text-white">You need to be logged in to view tickets.</p>
@@ -742,23 +816,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<script>
-        // Function to mark notification as read
-        function closeNotification(notificationId) {
-            fetch("{% url 'mark_notification_as_read' %}?id=" + notificationId, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.status === 'success') {
-                      const notificationElement = document.getElementById('ticket-notification-' + notificationId);
-                      notificationElement.remove();
-                  }
-              });
-        }
-    </script>
+
 <!-- Script to handle dropdown activation -->
 <script>
     // Toggle the dropdown when the user clicks on it

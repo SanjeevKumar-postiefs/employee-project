@@ -2,6 +2,7 @@
 
 from django import template
 from datetime import timedelta
+from django.utils import timezone
 
 register = template.Library()
 
@@ -43,3 +44,9 @@ def format_duration(seconds):
         return f"{minutes}m {remaining_seconds}s"
     except (ValueError, TypeError):
         return '-'
+
+@register.filter(name='localize_datetime')
+def localize_datetime(value):
+    if value:
+        return timezone.localtime(value)
+    return value

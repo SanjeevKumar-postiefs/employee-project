@@ -1,9 +1,9 @@
-from .models import Notification
+from .models import TicketNotification
 
 
 def unread_notifications(request):
     if request.user.is_authenticated:
-        notifications = Notification.objects.filter(user=request.user, is_read=False)
+        notifications = TicketNotification.objects.filter(user=request.user, is_read=False)
     else:
         notifications = []
 
