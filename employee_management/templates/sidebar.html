@@ -36,6 +36,11 @@
         <h5>Users</h5> <!-- Text that appears on hover -->
     </a>
 
+    <a href="{% url 'ticket_list' %}">
+        <i class="fas fa-ticket-alt"></i>
+        <h5>Tickets</h5>
+    </a>
+
     {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
     <a href="{% url 'add_employee' %}">
         <i class="fas fa-user-plus"></i>

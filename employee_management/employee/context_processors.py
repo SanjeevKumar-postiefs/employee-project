@@ -1,12 +1,12 @@
-from .models import TicketNotification
+# employee/context_processors.py
 
+from .models import UnifiedNotification
 
 def unread_notifications(request):
     if request.user.is_authenticated:
-        notifications = TicketNotification.objects.filter(user=request.user, is_read=False)
-    else:
-        notifications = []
-
-    return {
-        'notifications': notifications
-    }
+        notification_count = UnifiedNotification.objects.filter(
+            user=request.user,
+            is_read=False
+        ).count()
+        return {'unread_notification_count': notification_count}
+    return {'unread_notification_count': 0}

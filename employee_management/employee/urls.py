@@ -54,11 +54,9 @@ urlpatterns=[
     path('end-new-call/', views.end_new_call, name='end_new_call'),
     path('save-new-call-query/', views.save_new_call_query, name='save_new_call_query'),
     path('get-call-queries/', views.get_call_queries, name='get_call_queries'),
-    path('check-exceeded-tickets/', views.check_exceeded_tickets, name='check_exceeded_tickets'),
-    path('check-pre-notifications/', views.check_pre_notifications, name='check_pre_notifications'),
     path('acknowledge-ticket/<int:ticket_id>/', views.acknowledge_ticket, name='acknowledge_ticket'),
-    path('check-pending-notifications/', views.check_pending_notifications, name='check_pending_notifications'),
     path('api/daily-stats/', views.get_daily_stats, name='daily_stats'),
-    path('check-ticket-alerts/', views.check_ticket_alerts, name='check_ticket_alerts'),
-    path('acknowledge-alert/<int:ticket_id>/', views.acknowledge_alert, name='acknowledge_alert'),
+    path('check-unified-notifications/', views.check_unified_notifications, name='check-unified-notifications'),
+    path('tickets/', views.ticket_list, name='ticket_list'),
+
 ]

@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Include DateRangePicker CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+</head>
+
+<!-- Main Content -->
+<div class="content-wrapper">
+    <!-- Sidebar -->
+        <div class="col-md-3">
+            {% include 'sidebar.html' %}
+        </div>
+    <!-- Search and Filters Section -->
+    <div class="filters-section mb-4">
+        <div class="card">
+            <div class="card-body">
+                <!-- Search Bar -->
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="input-group">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search by ticket ID or subject...">
+                            <button class="btn btn-primary" type="button">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="row">
+                    <!-- Group Filter -->
+                    <div class="col-md-2">
+                        <select class="form-select" id="groupFilter">
+                            <option value="">All Groups</option>
+                            <option value="Linux">Linux</option>
+                            <option value="Windows">Windows/Azure</option>
+                            <option value="AWS">Network/AWS</option>
+                            <option value="LEVELONE">Level One</option>
+                            <option value="OCI">OCI</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="col-md-2">
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="pending">Pending</option>
+                            <option value="resolved">Resolved</option>
+                            <option value="closed">Closed</option>
+                            <option value="waiting_on_customer">Waiting on Customer</option>
+                            <option value="initial_response">Initial Response</option>
+                        </select>
+                    </div>
+
+                    <!-- Priority Filter -->
+                    <div class="col-md-2">
+                        <select class="form-select" id="priorityFilter">
+                            <option value="">All Priority</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+
+                    <!-- Environment Filter -->
+                    <div class="col-md-2">
+                        <select class="form-select" id="environmentFilter">
+                            <option value="">All Environments</option>
+                            <option value="postiefs">Postiefs</option>
+                            <option value="aws">AWS</option>
+                            <option value="azure">Azure</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="google">Google</option>
+                        </select>
+                    </div>
+
+                    <!-- Date Range Filter -->
+                    <div class="col-md-3">
+                        <input type="text" class="form-control" id="dateRange" placeholder="Select Date Range">
+                    </div>
+
+                    <!-- Reset Filters Button -->
+                    <div class="col-md-1">
+                        <button class="btn btn-secondary" id="resetFilters">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="ticketsTable">
+                    <thead>
+                        <tr>
+                            <th>Ticket ID</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Group</th>
+                            <th>Priority</th>
+                            <th>Environment</th>
+                            <th>Assigned To</th>
+                            <th>Created At</th>
+                            <th>Time Spent</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr class="{% if ticket.priority == 'urgent' %}table-danger{% elif ticket.priority == 'high' %}table-warning{% endif %}">
+                            <td>{{ ticket.ticket_id }}</td>
+                            <td>{{ ticket.subject }}</td>
+                            <td>
+                                <span class="badge {% if ticket.status == 'open' %}bg-success{% elif ticket.status == 'pending' %}bg-warning{% elif ticket.status == 'closed' %}bg-secondary{% else %}bg-info{% endif %}">
+                                    {{ ticket.status|title }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.group }}</td>
+                            <td>
+                                <span class="badge {% if ticket.priority == 'urgent' %}bg-danger{% elif ticket.priority == 'high' %}bg-warning text-dark{% elif ticket.priority == 'medium' %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ ticket.priority|title }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.environment }}</td>
+                            <td>{{ ticket.assigned_to|default:"Unassigned" }}</td>
+                            <td>{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
+                            <td>{{ ticket.time_spent|format_duration }}</td>
+                            <td>
+                                <div class="btn-group">
+
+                                    {% if user.employeeprofile.is_admin %}
+                                    <a href="{% url 'edit_ticket' ticket.id %}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include necessary JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize DateRangePicker
+    $('#dateRange').daterangepicker({
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear'
+        }
+    });
+
+    $('#dateRange').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        filterTable();
+    });
+
+    $('#dateRange').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+        filterTable();
+    });
+
+    // Search functionality
+    $('#searchInput').on('keyup', function() {
+        filterTable();
+    });
+
+    // Filter changes
+    $('.form-select').on('change', function() {
+        filterTable();
+    });
+
+    // Reset filters
+    $('#resetFilters').on('click', function() {
+        $('#searchInput').val('');
+        $('.form-select').val('');
+        $('#dateRange').val('');
+        filterTable();
+    });
+
+    function filterTable() {
+        const searchText = $('#searchInput').val().toLowerCase();
+        const groupFilter = $('#groupFilter').val();
+        const statusFilter = $('#statusFilter').val();
+        const priorityFilter = $('#priorityFilter').val();
+        const environmentFilter = $('#environmentFilter').val();
+        const dateRange = $('#dateRange').val();
+
+        $('#ticketsTable tbody tr').each(function() {
+            const row = $(this);
+            const ticketId = row.find('td:eq(0)').text().toLowerCase();
+            const subject = row.find('td:eq(1)').text().toLowerCase();
+            const status = row.find('td:eq(2)').text().toLowerCase();
+            const group = row.find('td:eq(3)').text();
+            const priority = row.find('td:eq(4)').text().toLowerCase();
+            const environment = row.find('td:eq(5)').text();
+            const createdAt = row.find('td:eq(7)').text();
+
+            let showRow = true;
+
+            // Apply search filter
+            if (searchText && !ticketId.includes(searchText) && !subject.includes(searchText)) {
+                showRow = false;
+            }
+
+            // Apply dropdown filters
+            if (groupFilter && group !== groupFilter) showRow = false;
+            if (statusFilter && !status.includes(statusFilter.toLowerCase())) showRow = false;
+            if (priorityFilter && !priority.includes(priorityFilter.toLowerCase())) showRow = false;
+            if (environmentFilter && environment !== environmentFilter) showRow = false;
+
+            // Apply date range filter
+            if (dateRange) {
+                const dates = dateRange.split(' - ');
+                const startDate = moment(dates[0]);
+                const endDate = moment(dates[1]);
+                const ticketDate = moment(createdAt);
+                
+                if (!ticketDate.isBetween(startDate, endDate, 'day', '[]')) {
+                    showRow = false;
+                }
+            }
+
+            row.toggle(showRow);
+        });
+    }
+});
+</script>
+
+<style>
+/* Content wrapper styling */
+.content-wrapper {
+    margin-left: 100px; /* Adjusted for sidebar width + padding */
+    padding: 20px;
+    margin-top: 56px; /* Adjusted for navbar height */
+}
+
+/* Card styling */
+.card {
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    border: none;
+}
+
+/* Table styling */
+.table {
+    margin-bottom: 0;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+/* Filter section styling */
+.filters-section .form-select,
+.filters-section .form-control {
+    border-radius: 4px;
+}
+
+/* Badge styling */
+.badge {
+    padding: 8px 12px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+/* Button group styling */
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    margin: 0 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .content-wrapper {
+        margin-left: 0;
+        padding: 10px;
+    }
+    
+    .filters-section .col-md-2,
+    .filters-section .col-md-3 {
+        margin-bottom: 10px;
+    }
+}
+</style>
+{% endblock %}

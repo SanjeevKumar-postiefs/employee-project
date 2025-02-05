@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,TicketNotification,TicketAlert
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,UnifiedNotification
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -57,10 +57,6 @@ def home(request):
 
         # Handle the filter for skill
         skill_filter = request.GET.get('skill', None)
-
-        # Only fetch unread notifications for the current user
-        notifications = TicketNotification.objects.filter(user=request.user,
-                                                    is_read=False) if request.user.is_authenticated else []
 
         # Filter tickets based on skill if selected, otherwise show all tickets
         if skill_filter:
@@ -122,7 +118,6 @@ def home(request):
         'employee_profile': employee_profile,
         'skills': skills,
         'ticket_statuses': ticket_statuses,
-        'notifications': notifications,
         'current_time': current_time,
     })
 
@@ -176,14 +171,48 @@ def login(request):
             })
     return render(request, 'index.html')
 
+
 def logout(request):
     if request.user.is_authenticated:
+        # Check if it's an AJAX request
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        # Check for open tickets assigned to the user
+        open_tickets = Ticket.objects.filter(
+            assigned_to=request.user,
+            status='open'
+        ).values('ticket_id', 'subject')
+
+        if open_tickets.exists():
+            # If there are open tickets, return them in JSON response
+            tickets_list = list(open_tickets)
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Cannot logout with open tickets',
+                'tickets': tickets_list
+            })
+
+        # If no open tickets, proceed with logout
         user_profile = EmployeeProfile.objects.filter(user=request.user).first()
         if user_profile:
             user_profile.is_active = False
             user_profile.save()
         auth.logout(request)
-        messages.success(request, "You have successfully logged out.")
+
+        # Return appropriate response based on request type
+        if is_ajax:
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Successfully logged out'
+            })
+        return redirect('login')
+
+    # If user is not authenticated
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'status': 'success',
+            'message': 'User not authenticated'
+        })
     return redirect('login')
 
 
@@ -273,6 +302,17 @@ def create_ticket(request):
             ticket.created_at = current_time
             ticket.assigned_at = current_time
             ticket.save()
+
+            # Create notification for assigned user
+            if ticket.assigned_to and ticket.assigned_to != request.user:
+                UnifiedNotification.objects.create(
+                    ticket=ticket,
+                    user=ticket.assigned_to,
+                    notification_type='created',
+                    message=f'New ticket #{ticket.ticket_id} has been created and assigned to you by {request.user.username}',
+                    last_notification_time=current_time
+                )
+
             return redirect('/')
     else:
         form = TicketForm()
@@ -293,7 +333,7 @@ def create_ticket(request):
 def user_tickets(request, user_id):
     user = get_object_or_404(User, id=user_id)
     tickets = Ticket.objects.filter(assigned_to=user)
-    notifications = TicketNotification.objects.filter(user=request.user, is_read=False)
+    notifications = UnifiedNotification.objects.filter(user=request.user, is_read=False)
     # Convert created_at times to local timezone
     for ticket in tickets:
         ticket.created_at = timezone.localtime(ticket.created_at)
@@ -355,13 +395,14 @@ def assign_ticket(request, ticket_id):
     ticket = get_object_or_404(Ticket, id=ticket_id)
 
     if request.method == 'POST':
-        form = TicketForm(request.POST, instance=ticket, is_assign=True)  # Add is_assign=True
+        form = TicketForm(request.POST, instance=ticket, is_assign=True)
 
         if form.is_valid():
             ticket = form.save(commit=False)
 
             new_assigned_user_id = request.POST.get('assigned_user')
             new_assigned_user = get_object_or_404(User, id=new_assigned_user_id)
+            old_assigned_user = ticket.assigned_to
 
             # Reset acknowledgment
             ticket.reset_acknowledgment()
@@ -372,21 +413,31 @@ def assign_ticket(request, ticket_id):
             ticket.assigned_at = timezone.now()
             ticket.save()
 
-            # Create notification
+            # Create notification for the newly assigned user
             if str(new_assigned_user.id) != str(request.user.id):
-                TicketNotification.objects.create(
+                UnifiedNotification.objects.create(
                     ticket=ticket,
                     user=new_assigned_user,
-                    message=f"Ticket #{ticket.ticket_id} has been assigned to you by {request.user.username}. Please acknowledge.",
+                    notification_type='assigned',
+                    message=f"Ticket #{ticket.ticket_id} has been reassigned to you by {request.user.username}",
+                    last_notification_time=timezone.now()
+                )
+
+            # Optional: Notify the previously assigned user
+            if old_assigned_user and old_assigned_user != new_assigned_user:
+                UnifiedNotification.objects.create(
+                    ticket=ticket,
+                    user=old_assigned_user,
+                    notification_type='assigned',
+                    message=f"Ticket #{ticket.ticket_id} has been reassigned from you to {new_assigned_user.username}",
                     last_notification_time=timezone.now()
                 )
 
             return redirect('home')
 
     else:
-        form = TicketForm(instance=ticket, is_assign=True)  # Add is_assign=True
+        form = TicketForm(instance=ticket, is_assign=True)
 
-    # Get all active users excluding the current user
     logged_in_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
 
     return render(request, 'assign_ticket.html', {
@@ -1318,210 +1369,122 @@ def get_call_queries(request):
     })
 
 
+
 @login_required
-def check_exceeded_tickets(request):
-    try:
-        user = request.user
-        current_time = timezone.now()
-        last_check = request.session.get('last_notification_check')
+def check_unified_notifications(request):
+    user = request.user
+    current_time = timezone.now()
 
-        # If we have a last check time and it's been less than 5 minutes
-        if last_check:
-            try:
-                last_check_time = datetime.fromisoformat(last_check)
-                time_diff = (current_time - last_check_time).total_seconds()
+    # Get active tickets
+    active_tickets = Ticket.objects.filter(
+        assigned_to=user
+    ).exclude(
+        status__in=['closed', 'resolved']
+    )
 
-                # Return empty if it's been less than 5 minutes (except for initial page load)
-                if time_diff < 300 and request.headers.get('HTTP_REFERER'):
-                    return JsonResponse({'notifications': []})
-            except ValueError:
-                pass
+    notifications = []
 
-        # Get active tickets
-        tickets = Ticket.objects.filter(
-            assigned_to=user
-        ).exclude(
-            status__in=['closed', 'resolved']
-        )
-
-        notifications = []
-        for ticket in tickets:
-            if ticket.has_exceeded_time_limit():
-                time_elapsed = current_time - ticket.created_at
+    # Check for exceeded time notifications
+    for ticket in active_tickets:
+        if ticket.has_exceeded_time_limit():
+            notification, created = UnifiedNotification.objects.get_or_create(
+                ticket=ticket,
+                user=user,
+                notification_type='exceeded',
+                defaults={
+                    'message': f'Ticket #{ticket.ticket_id} has exceeded its time limit'
+                }
+            )
+            if notification.should_notify():
                 notifications.append({
-                    'id': ticket.id,
-                    'ticket_id': ticket.ticket_id,
+                    'type': 'exceeded',
+                    'ticket_id': ticket.id,
+                    'ticket_number': ticket.ticket_id,
                     'subject': ticket.subject,
                     'priority': ticket.priority,
-                    'time_elapsed': time_elapsed.total_seconds(),
-                    'type': 'exceeded',
+                    'message': notification.message,
                     'created_at': ticket.created_at.isoformat()
                 })
+                notification.notification_count += 1
+                notification.last_notification_time = current_time
+                notification.save()
 
-        # Update last check time only if notifications were found
-        if notifications:
-            request.session['last_notification_check'] = current_time.isoformat()
-            request.session.modified = True
+        # Check for pre-notifications
+        elif ticket.should_send_notification():
+            notification, created = UnifiedNotification.objects.get_or_create(
+                ticket=ticket,
+                user=user,
+                notification_type='pre_notification',
+                defaults={
+                    'message': f'The SLA of ticket #{ticket.ticket_id} is going to end in 5 minutes'
+                }
+            )
+            if notification.should_notify():
+                notifications.append({
+                    'type': 'pre_notification',
+                    'ticket_id': ticket.id,
+                    'ticket_number': ticket.ticket_id,
+                    'subject': ticket.subject,
+                    'priority': ticket.priority,
+                    'message': notification.message
+                })
+                notification.notification_count += 1
+                notification.last_notification_time = current_time
+                notification.save()
 
-        return JsonResponse({'notifications': notifications})
+    # Check pending notifications
+    pending_notifications = UnifiedNotification.objects.filter(
+        user=user,
+        notification_type='pending',
+        is_read=False
+    )
 
-    except Exception as e:
-        print(f"Error in check_exceeded_tickets: {str(e)}")
-        return JsonResponse({'notifications': []})
+    # Add checking for assigned and created notifications
+    assignment_notifications = UnifiedNotification.objects.filter(
+        user=user,
+        notification_type__in=['assigned', 'created'],
+        is_read=False
+    )
 
+    for notification in assignment_notifications:
+        if notification.should_notify():
+            notifications.append({
+                'type': notification.notification_type,
+                'ticket_id': notification.ticket.id,
+                'ticket_number': notification.ticket.ticket_id,
+                'subject': notification.ticket.subject,
+                'priority': notification.ticket.priority,
+                'message': notification.message,
+                'created_at': notification.created_at.isoformat()
+            })
 
-@login_required
-def check_pre_notifications(request):
-    try:
-        user = request.user
-        current_time = timezone.now()
-        last_check = request.session.get('last_pre_notification_check')
-
-        # If we have a last check time and it's been less than 1 minute
-        if last_check:
-            try:
-                last_check_time = datetime.fromisoformat(last_check)
-                time_diff = (current_time - last_check_time).total_seconds()
-
-                # Return empty if it's been less than 1 minute (except for initial page load)
-                if time_diff < 60 and request.headers.get('HTTP_REFERER'):
-                    return JsonResponse({'notifications': []})
-            except ValueError:
-                pass
-
-        tickets = Ticket.objects.filter(
-            assigned_to=user
-        ).exclude(
-            status__in=['closed', 'resolved']
-        )
-
-        notifications = []
-        for ticket in tickets:
-            if ticket.should_send_notification():
-                notification_key = f'pre_notify_{ticket.id}'
-                if not request.session.get(notification_key):
-                    notifications.append({
-                        'id': ticket.id,
-                        'ticket_id': ticket.ticket_id,
-                        'subject': ticket.subject,
-                        'priority': ticket.priority,
-                        'type': 'pre_notification',
-                        'message': f'The SLA of ticket #{ticket.ticket_id} is going to end in 5 minutes'
-                    })
-                    request.session[notification_key] = True
-                    request.session.modified = True
-
-        if notifications:
-            request.session['last_pre_notification_check'] = current_time.isoformat()
-            request.session.modified = True
-
-        return JsonResponse({'notifications': notifications})
-
-    except Exception as e:
-        print(f"Error in check_pre_notifications: {str(e)}")
-        return JsonResponse({'notifications': []})
+    return JsonResponse({'notifications': notifications})
 
 
 @login_required
 def acknowledge_ticket(request, ticket_id):
     if request.method == 'POST':
-        ticket = get_object_or_404(Ticket, id=ticket_id, assigned_to=request.user)
-        ticket.acknowledge(request.user)
-
-        # Mark all notifications for this ticket as read
-        TicketNotification.objects.filter(
-            ticket=ticket,
-            user=request.user,
-            is_read=False
-        ).update(is_read=True)
-
-        return JsonResponse({'success': True})
-    return JsonResponse({'success': False}, status=400)
-
-
-@login_required
-def check_pending_notifications(request):
-    notifications = TicketNotification.objects.filter(
-        user=request.user,
-        is_read=False
-    ).select_related('ticket')
-
-    current_time = timezone.now()
-    response_data = []
-
-    for notification in notifications:
-        # Include notification if it's unread and either:
-        # 1. The ticket is not acknowledged, or
-        # 2. It's time to resend the notification
-        if not notification.ticket.is_acknowledged or notification.should_resend():
-            notification.notification_counter += 1
-            notification.last_notification_time = current_time
-            notification.save()
-
-            response_data.append({
-                'ticket_id': notification.ticket.id,
-                'message': notification.message,
-                'ticket_number': notification.ticket.ticket_id  # Include ticket number for display
-            })
-
-    return JsonResponse({'notifications': response_data})
-
-
-# views.py
-@login_required
-def check_ticket_alerts(request):
-    current_time = timezone.now()
-    alerts = TicketAlert.objects.filter(
-        user=request.user,
-        acknowledged=False,
-        # Only get alerts that haven't been shown in the last minute
-        last_alert_time__lte=current_time - timezone.timedelta(seconds=60)
-    ).select_related('ticket')
-
-    response_data = []
-    for alert in alerts:
-        alert.last_alert_time = current_time
-        alert.alert_count += 1
-        alert.save()
-
-        response_data.append({
-            'ticket_id': alert.ticket.id,
-            'ticket_number': alert.ticket.ticket_id,
-            'subject': alert.ticket.subject,
-            'priority': alert.ticket.priority,
-            'created_at': alert.ticket.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            'alert_count': alert.alert_count
-        })
-
-    return JsonResponse({'alerts': response_data})
-
-
-@login_required
-def acknowledge_alert(request, ticket_id):
-    if request.method == 'POST':
         try:
-            # Get the ticket first
-            ticket = get_object_or_404(Ticket, id=ticket_id)
-
-            # Update all alerts for this ticket and user
-            alerts = TicketAlert.objects.filter(
-                ticket_id=ticket_id,
-                user=request.user,
-                acknowledged=False
-            )
-            alerts.update(acknowledged=True)
-
-            # Acknowledge the ticket itself
+            ticket = get_object_or_404(Ticket, id=ticket_id, assigned_to=request.user)
             ticket.acknowledge(request.user)
 
-            return JsonResponse({'success': True})
+            # Mark all notifications for this ticket as read
+            UnifiedNotification.objects.filter(
+                ticket=ticket,
+                user=request.user
+            ).update(is_read=True)
 
+            return JsonResponse({'success': True})
         except Exception as e:
             return JsonResponse({
                 'success': False,
                 'error': str(e)
             }, status=400)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
-    return JsonResponse({'success': False}, status=400)
-
-
+def ticket_list(request):
+    tickets = Ticket.objects.all().order_by('-created_at')
+    for ticket in tickets:
+        if not isinstance(ticket.time_spent, timedelta):
+            ticket.time_spent = timedelta(seconds=int(ticket.time_spent.total_seconds()))
+    return render(request, 'tickets.html', {'tickets': tickets})

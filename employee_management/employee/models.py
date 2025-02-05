@@ -332,20 +332,23 @@ class Ticket(models.Model):
 
     def acknowledge(self, user):
         """
-        Acknowledge the ticket and create a notification if needed
+        Acknowledge the ticket and update notifications
         """
-        if self.assigned_to == user:
-            # Only acknowledge if the current user is the assigned user
-            self.is_acknowledged = True
-            self.acknowledged_at = timezone.now()
-            self.save()
+        try:
+            if self.assigned_to == user:
+                self.is_acknowledged = True
+                self.acknowledged_at = timezone.now()
+                self.save()
 
-            # Clear any pending notifications for this ticket
-            TicketNotification.objects.filter(
-                ticket=self,
-                user=user,
-                is_read=False
-            ).update(is_read=True)
+                # Update unified notifications
+                UnifiedNotification.objects.filter(
+                    ticket=self,
+                    user=user
+                ).update(is_read=True)
+                return True
+        except Exception as e:
+            print(f"Error acknowledging ticket: {e}")
+            return False
 
     def reset_acknowledgment(self):
         """
@@ -354,6 +357,9 @@ class Ticket(models.Model):
         self.is_acknowledged = False
         self.acknowledged_at = None
         self.save()
+
+        # Clear any existing notifications
+        UnifiedNotification.objects.filter(ticket=self).delete()
 
 
 class CallNote(models.Model):
@@ -417,42 +423,41 @@ class NewCallQuery(models.Model):
     def __str__(self):
         return f"Call Query from {self.client_email} at {self.call_start_time}"
 
-class TicketNotification(models.Model):
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='notifications')
+
+
+class UnifiedNotification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('exceeded', 'Exceeded SLA'),
+        ('pre_notification', '5-min Warning'),
+        ('pending', 'Pending'),
+        ('assigned', 'Ticket Assigned'),
+        ('created', 'Ticket Created')
+    ]
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='unified_notifications')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
-    last_notified = models.DateTimeField(auto_now_add=True)
-    notification_counter = models.IntegerField(default=0)
     last_notification_time = models.DateTimeField(auto_now_add=True)
-
-    def should_resend(self):
-        if not self.is_read:
-            now = timezone.now()
-            time_diff = now - self.last_notification_time
-            return time_diff.total_seconds() >= 60  # Check if a minute has passed
+    notification_count = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']
+        unique_together = ['ticket', 'user', 'notification_type']
 
-class TicketAlert(models.Model):
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='alerts')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    acknowledged = models.BooleanField(default=False)
-    last_alert_time = models.DateTimeField(auto_now_add=True)
-    alert_count = models.IntegerField(default=0)
+    def should_notify(self):
+        """Determine if notification should be sent based on type"""
+        now = timezone.now()
+        time_diff = now - self.last_notification_time
 
-    class Meta:
-        ordering = ['-created_at']
-        unique_together = ['ticket', 'user']
-
-    @classmethod
-    def cleanup_old_alerts(cls):
-        # Remove alerts that are older than 24 hours and acknowledged
-        cleanup_date = timezone.now() - timezone.timedelta(hours=24)
-        cls.objects.filter(
-            acknowledged=True,
-            created_at__lt=cleanup_date
-        ).delete()
+        if self.notification_type == 'exceeded':
+            return time_diff.total_seconds() >= 300  # Every 5 minutes
+        elif self.notification_type == 'pre_notification':
+            return time_diff.total_seconds() >= 60   # Every minute
+        elif self.notification_type == 'pending':
+            return time_diff.total_seconds() >= 30   # Every 30 seconds
+        elif self.notification_type in ['assigned', 'created']:
+            return True  # Always notify for these types
+        return False

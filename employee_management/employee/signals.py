@@ -1,7 +1,7 @@
 # signals.py
 from django.contrib.auth.signals import user_logged_out,user_logged_in
 from django.dispatch import receiver
-from .models import EmployeeProfile,DailyActivity,SessionActivity,Ticket,TicketAlert
+from .models import EmployeeProfile,DailyActivity,SessionActivity,Ticket
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models.signals import post_save
@@ -112,17 +112,3 @@ def handle_break_status_change(sender, instance, **kwargs):
         except SessionActivity.DoesNotExist:
             pass
 
-@receiver(post_save, sender=Ticket)
-def create_ticket_alert(sender, instance, created, **kwargs):
-    # Handle both creation and assignment
-    if instance.assigned_to:
-        # Check if an alert already exists for this ticket and user
-        TicketAlert.objects.get_or_create(
-            ticket=instance,
-            user=instance.assigned_to,
-            defaults={
-                'acknowledged': False,
-                'last_alert_time': timezone.now(),
-                'alert_count': 0
-            }
-        )

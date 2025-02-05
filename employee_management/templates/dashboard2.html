@@ -1,4 +1,5 @@
 {% load static %}
+{% load custom_filters %}
 {% load timedelta_filters %}
 {% load duration_filters %}
 {% csrf_token %}
@@ -12,8 +13,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+{% block extra_head %}
 <style>
     /* Main content styling */
 .dashboard-content {
@@ -23,6 +25,39 @@
     padding: 20px;
     border-radius: 8px;
 }
+
+/* Today's Status Box Styling */
+.stat-box {
+    background-color: #fff;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-box:hover {
+    transform: translateY(-5px);
+}
+
+.stat-box i {
+    color: #0d6efd;
+}
+
+.stat-box h5 {
+    color: #6c757d;
+    font-size: 1rem;
+    margin: 10px 0;
+}
+
+.stat-box h3 {
+    color: #2c3e50;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Color variations for different stats */
+.stat-box:nth-child(1) i { color: #0d6efd; }
+.stat-box:nth-child(2) i { color: #ffc107; }
+.stat-box:nth-child(3) i { color: #198754; }
+.stat-box:nth-child(4) i { color: #0dcaf0; }
 
 /* Custom Navbar Styles */
 .custom-navbar {
@@ -540,9 +575,419 @@ input:checked + .slider {
     }
 }
 
+/* Priority-specific colors and animations */
+@keyframes pulse-urgent {
+    0% { background-color: rgba(255, 0, 0, 0.15); }
+    50% { background-color: rgba(255, 0, 0, 0.3); }
+    100% { background-color: rgba(255, 0, 0, 0.15); }
+}
+
+@keyframes pulse-high {
+    0% { background-color: rgba(255, 255, 0, 0.2); }
+    50% { background-color: rgba(255, 255, 0, 0.35); }
+    100% { background-color: rgba(255, 255, 0, 0.2); }
+}
+
+@keyframes pulse-medium {
+    0% { background-color: rgba(255, 165, 0, 0.2); }
+    50% { background-color: rgba(255, 165, 0, 0.35); }
+    100% { background-color: rgba(255, 165, 0, 0.2); }
+}
+
+@keyframes pulse-low {
+    0% { background-color: rgba(0, 255, 0, 0.15); }
+    50% { background-color: rgba(0, 255, 0, 0.3); }
+    100% { background-color: rgba(0, 255, 0, 0.15); }
+}
+
+/* Time columns base styles */
+.time-column {
+    transition: all 0.3s ease;
+}
+
+/* Add these specific animations for total time column */
+.time-column.total-time.priority-urgent {
+    animation: pulse-urgent 2s infinite !important;
+}
+
+.time-column.total-time.priority-high {
+    animation: pulse-high 2s infinite !important;
+}
+
+.time-column.total-time.priority-medium {
+    animation: pulse-medium 2s infinite !important;
+}
+
+.time-column.total-time.priority-low {
+    animation: pulse-low 2s infinite !important;
+}
+
+/* Individual time column styles */
+.priority-urgent.priority-alert .time-column.individual-time.exceeded {
+    animation: pulse-urgent 2s infinite;
+}
+
+.priority-high.priority-alert .time-column.individual-time.exceeded {
+    animation: pulse-high 2s infinite;
+}
+
+.priority-medium.priority-alert .time-column.individual-time.exceeded {
+    animation: pulse-medium 2s infinite;
+}
+
+.priority-low.priority-alert .time-column.individual-time.exceeded {
+    animation: pulse-low 2s infinite;
+}
+
+/* Notifications Styling */
+.notifications-popup {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    margin-top: 20px !important;
+}
+
+.notifications-container {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+.notifications-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.notifications-list {
+    padding: 10px;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-content {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.ticket-id {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.priority-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.priority-badge.urgent { background: #ff4444; color: white; }
+.priority-badge.high { background: #ffbb33; color: black; }
+.priority-badge.medium { background: #ff8800; color: white; }
+.priority-badge.low { background: #00C851; color: white; }
+
+.notification-body {
+    font-size: 0.9rem;
+}
+
+.subject {
+    color: #2c3e50;
+    margin-bottom: 3px;
+}
+
+.time-exceeded {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.dismiss-ticket, .dismiss-all {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dismiss-ticket:hover, .dismiss-all:hover {
+    opacity: 0.7;
+}
+
+.dismiss-all {
+    background: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+
+.ticket-notification {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-left: 4px solid #0d6efd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+    padding: 15px;
+    width: 350px;
+}
+
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ticket-notification .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ticket-notification .notification-body {
+    margin-bottom: 10px;
+}
+
+.ticket-notification .notification-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+
+/* Base timer styles */
+.time-since-created {
+    font-family: 'Arial', sans-serif;
+    text-align: center;
+    padding: 8px;
+    width: 120px;
+}
+
+.created-timer-span {
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    display: inline-block;
+    min-width: 100px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Priority-based colors */
+.created-timer-span.priority-urgent {
+    background-color: #fff5f5;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.created-timer-span.priority-high {
+    background-color: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
+}
+
+.created-timer-span.priority-medium {
+    background-color: #f0f9ff;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.created-timer-span.priority-low {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+/* Status-based styles */
+[data-status="closed"] .created-timer-span,
+[data-status="resolved"] .created-timer-span {
+    background-color: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    opacity: 0.8;
+}
+
+/* Active state */
+.created-timer-span.active {
+    border: 2px solid #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* Hover effects */
+.created-timer-span:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Custom tooltip */
+.created-timer-span::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background-color: #1f2937;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.created-timer-span::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: #1f2937;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+
+
+/* Urgent priority animation */
+@keyframes pulseUrgent {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
+
+.created-timer-span.priority-urgent {
+    animation: pulseUrgent 2s infinite;
+}
+
+/* Long-running ticket style */
+.created-timer-span.long-running {
+    border-style: dashed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .created-timer-span {
+        min-width: 80px;
+        padding: 4px 6px;
+        font-size: 0.9em;
+    }
+
+    .created-timer-span::after {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+}
+
+.ticket-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 350px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-left: 4px solid #0366d6;
+    animation: slideIn 0.5s ease-out;
+}
+
+.ticket-alert.priority-urgent {
+    border-left-color: #dc3545;
+}
+
+.ticket-alert.priority-high {
+    border-left-color: #fd7e14;
+}
+
+.alert-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alert-body {
+    padding: 15px;
+}
+
+.alert-actions {
+    padding: 10px 15px;
+    border-top: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
 </style>
+{% endblock %}
+<audio id="notificationSound" preload="auto">
+    <source src="{% static 'sounds/notification.wav' %}" type="audio/wav">
+</audio>
 </head>
 <body>
+
 
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg fixed-top custom-navbar">
@@ -559,6 +1004,7 @@ input:checked + .slider {
                     <li class="nav-item"><a class="nav-link" href="{% url 'view_profile' request.user.id %}">Profile</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'create_ticket' %}">Create tickets</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'user_tickets' user.id %}">View tickets</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
                     <li class="nav-item">
                         <div class="dropdown">
                             <button class="btn btn-secondary rounded-circle profile-button" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -615,16 +1061,6 @@ input:checked + .slider {
     {% endif %}
 </div>
 
-
-<!-- Notification Pop-up -->
-        {% if user.is_authenticated %}
-            {% for notification in notifications %}
-                <div id="ticket-notification-{{ notification.id }}" class="alert alert-info alert-dismissible fade show" role="alert" style="position:fixed; top:10px; right:10px; z-index: 1050;">
-                    <strong>{{ notification.message }}</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="closeNotification({{ notification.id }})"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
 
 
 <!-- Dashboard Page -->
@@ -698,6 +1134,53 @@ input:checked + .slider {
         </div>
     </div>
 
+    <!-- Today's Status Box -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Today's Status</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Today's Tickets -->
+                    <div class="col-md-3">
+                        <div class="stat-box text-center p-3 border rounded">
+                            <i class="fas fa-ticket-alt fa-2x mb-2 text-primary"></i>
+                            <h5>Today's Tickets</h5>
+                            <h3 id="todayTicketCount">{{ todays_tickets }}</h3>
+                        </div>
+                    </div>
+                    <!-- Open Tickets -->
+                    <div class="col-md-3">
+                        <div class="stat-box text-center p-3 border rounded">
+                            <i class="fas fa-folder-open fa-2x mb-2 text-warning"></i>
+                            <h5>Open Tickets</h5>
+                            <h3 id="openTicketCount">{{ open_tickets }}</h3>
+                        </div>
+                    </div>
+                    <!-- Closed Tickets -->
+                    <div class="col-md-3">
+                        <div class="stat-box text-center p-3 border rounded">
+                            <i class="fas fa-folder-minus fa-2x mb-2 text-success"></i>
+                            <h5>Closed Tickets</h5>
+                            <h3 id="closedTicketCount">{{ closed_tickets }}</h3>
+                        </div>
+                    </div>
+                    <!-- Total Call Time -->
+                    <div class="col-md-3">
+                        <div class="stat-box text-center p-3 border rounded">
+                            <i class="fas fa-phone fa-2x mb-2 text-info"></i>
+                            <h5>Total Call Time</h5>
+                            <h3 id="totalCallTime">{{ call_duration }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
     <!-- Ticket Table with Actions -->
     <div class="ticket-table-section mt-4">
 
@@ -708,16 +1191,21 @@ input:checked + .slider {
                     <th>Subject</th>
                     <th>Status</th>
                     <th>Priority</th>
-                    <th>Time Spent</th>
-                    <th>Individual Time Spent</th>
+                    <th>Time Since Created</th>
+                    <th>Total Spent</th>
+                    <th>Individual Spent</th>
                     <th>Actions</th>
                     <th>On call</th>
+                    <th>Acknowledgment</th>
                 </tr>
             </thead>
             <tbody>
                 {% for ticket in tickets %}
                     {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
-                    <tr class="{% if ticket.is_active %}table-active{% endif %}">
+                    <tr class="{{ ticket.get_priority_class }}" data-ticket-id="{{ ticket.id }}"
+                        data-priority="{{ ticket.priority|lower }}"
+                        data-created-at="{{ ticket.created_at|date:'Y-m-d H:i:s' }}">
+
                         <td class="align-middle">
                             <!-- Plus Button outside the table, placed next to Ticket ID -->
                             <div class="plus-button-container">
@@ -730,15 +1218,25 @@ input:checked + .slider {
                         <td>{{ ticket.subject }}</td>
                         <td>{{ ticket.status }}</td>
                         <td>{{ ticket.priority }}</td>
-                        <!-- Total Time Spent -->
-<td>
+                        <td class="time-since-created">
+    <span id="created-timer-{{ ticket.id }}"
+          class="created-timer-span priority-{{ ticket.priority|lower }}"
+          data-created-at="{{ ticket.created_at|localize_datetime|date:'c' }}"
+          data-status="{{ ticket.status }}"
+          data-priority="{{ ticket.priority|lower }}"
+          title="Created: {{ ticket.created_at|date:'F j, Y, g:i a' }}">
+        00:00:00
+    </span>
+</td>
+<!-- Time Spent Column -->
+<td class="time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
     <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.time_spent|format_duration }}
     </span>
 </td>
 
-<!-- Individual Time Spent -->
-<td>
+<!-- Individual Time Spent Column -->
+<td class="time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded{% endif %}">
     <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
         {{ ticket.individual_time_spent|format_duration }}
     </span>
@@ -771,6 +1269,21 @@ input:checked + .slider {
             <button type="submit" class="btn btn-warning">Start Call</button>
         {% endif %}
     </form>
+                        </td>
+                        <td>
+                            {% if ticket.assigned_to == request.user %}
+                                {% if not ticket.is_acknowledged %}
+                                    <button class="btn btn-primary btn-sm acknowledge-button"
+                                            data-ticket-id="{{ ticket.id }}"
+                                            onclick="acknowledgeTicket({{ ticket.id }})">
+                                        Accept
+                                    </button>
+                                {% else %}
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle"></i> Acknowledged
+                                    </span>
+                                {% endif %}
+                            {% endif %}
                         </td>
                     </tr>
 
@@ -1022,7 +1535,7 @@ input:checked + .slider {
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="path/to/timer.js"></script>
+
 
 
     <script>
@@ -1093,22 +1606,194 @@ input:checked + .slider {
 
 
 <script>
-        // Function to mark notification as read
-        function closeNotification(notificationId) {
-            fetch("{% url 'mark_notification_as_read' %}?id=" + notificationId, {
+document.addEventListener('DOMContentLoaded', function () {
+    // Get CSRF token from the page
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Function to initialize ticket statuses from localStorage
+    function initializeTicketStatuses() {
+        document.querySelectorAll('[data-ticket-id]').forEach(row => {
+            const ticketId = row.dataset.ticketId;
+            const statusChanged = localStorage.getItem(`ticket_${ticketId}_status_changed`);
+            if (statusChanged) {
+                const individualTimeCell = row.querySelector('.time-column.individual-time');
+                if (individualTimeCell) {
+                    individualTimeCell.classList.remove('exceeded');
+                }
+                row.dataset.statusChanged = statusChanged;
+            }
+        });
+    }
+
+    // Initialize ticket statuses when page loads
+    initializeTicketStatuses();
+
+    // Listen for clicks on all status change links in the dashboard
+    document.querySelectorAll('.change-status').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const ticketId = this.dataset.ticketId;
+            const newStatus = this.dataset.newStatus;
+            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+
+            // Perform AJAX request to update the status
+            fetch('/update_ticket_status/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    new_status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find and update the status cell in the current row
+                    const statusCell = ticketRow.querySelector('td:nth-child(3)');
+                    if (statusCell) {
+                        statusCell.textContent = data.new_status_label;
+                    }
+
+                    // Store the status change timestamp in localStorage and row dataset
+                    const statusChangeTime = data.status_changed || new Date().toISOString();
+                    localStorage.setItem(`ticket_${ticketId}_status_changed`, statusChangeTime);
+                    ticketRow.dataset.statusChanged = statusChangeTime;
+
+                    // Reset individual time column color
+                    const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
+                    if (individualTimeCell) {
+                        individualTimeCell.classList.remove('exceeded');
+                        individualTimeCell.style.animation = 'none';
+                        individualTimeCell.style.backgroundColor = '';
+                        void individualTimeCell.offsetWidth;
+                        individualTimeCell.style.animation = '';
+                    }
+
+                    // Update the individual timer display to show 0
+                    const individualTimerSpan = ticketRow.querySelector('#individual-timer-' + ticketId);
+                    if (individualTimerSpan) {
+                        individualTimerSpan.textContent = '0:00:00';
+                    }
+
+                    // If the status is 'closed' or 'resolved', hide the row
+                    if (newStatus === 'closed' || newStatus === 'resolved') {
+                        ticketRow.style.display = 'none';
+                        const optionsRow = document.querySelector(`#options-${ticketId}`).parentNode;
+                        if (optionsRow) {
+                            optionsRow.style.display = 'none';
+                        }
+                    }
+
+                    // Keep the total time column colored if time limit is exceeded
+                    if (ticketRow.classList.contains('priority-alert')) {
+                        const totalTimeCell = ticketRow.querySelector('.time-column.total-time');
+                        if (totalTimeCell) {
+                            const priorityClass = `priority-${ticketRow.dataset.priority}`;
+                            totalTimeCell.classList.add(priorityClass);
+                        }
+                    }
+
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Ticket status updated successfully',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    // Show error message
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to update status',
+                        icon: 'error'
+                    });
                 }
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.status === 'success') {
-                      const notificationElement = document.getElementById('ticket-notification-' + notificationId);
-                      notificationElement.remove();
-                  }
-              });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while updating the status',
+                    icon: 'error'
+                });
+            });
+        });
+    });
+
+    // Function to update time display and colors
+        function updateTicketDisplay(ticketId) {
+        const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+        if (!ticketRow) return;
+
+        const totalTimeCell = ticketRow.querySelector('.time-column.total-time');
+        const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
+        const statusChanged = localStorage.getItem(`ticket_${ticketId}_status_changed`);
+
+        if (ticketRow.classList.contains('priority-alert')) {
+            const priorityClass = `priority-${ticketRow.dataset.priority}`;
+
+            // Always keep total time column colored if time limit is exceeded
+            if (totalTimeCell) {
+                totalTimeCell.classList.add(priorityClass);
+            }
+
+            // Only add color to individual time if status hasn't been changed
+            if (individualTimeCell && !statusChanged) {
+                individualTimeCell.classList.add('exceeded');
+            }
         }
+    }
+
+    // Update displays initially
+    document.querySelectorAll('[data-ticket-id]').forEach(row => {
+        updateTicketDisplay(row.dataset.ticketId);
+    });
+
+    // Update displays periodically
+    setInterval(() => {
+        document.querySelectorAll('[data-ticket-id]').forEach(row => {
+            updateTicketDisplay(row.dataset.ticketId);
+        });
+    }, 30000); // Update every 30 seconds
+
+    // Clear old status changes from localStorage periodically
+    function cleanupOldStatusChanges() {
+        const keys = Object.keys(localStorage);
+        const now = new Date();
+        keys.forEach(key => {
+            if (key.startsWith('ticket_') && key.endsWith('_status_changed')) {
+                const timestamp = localStorage.getItem(key);
+                const changeTime = new Date(timestamp);
+                // Remove entries older than 24 hours
+                if (now - changeTime > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(key);
+                }
+            }
+        });
+    }
+
+    // Run cleanup every hour
+    setInterval(cleanupOldStatusChanges, 60 * 60 * 1000);
+    cleanupOldStatusChanges(); // Run cleanup on page load
+
+    // Close any dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('.dropdown-toggle')) {
+            document.querySelectorAll('.dropdown-menu').forEach(dropdown => {
+                if (dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+    });
+});
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const postCallForm = document.querySelector('form');
@@ -2065,5 +2750,556 @@ function updateNewQueriesTable(queries) {
     });
 }
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const CHECK_INTERVAL = 300000; // 5 minutes in milliseconds
+    const notificationSound = document.getElementById('notificationSound');
+    notificationSound.volume = 0.5;
+    let dismissedTickets = new Set();
+
+    function playSound() {
+        try {
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(error => {
+                console.error("Sound play failed:", error);
+            });
+        } catch(e) {
+            console.error("Sound play error:", e);
+        }
+    }
+
+    function showConsolidatedNotification(notifications) {
+        if (notifications.length === 0) return;
+
+        // Filter out dismissed tickets
+        const activeNotifications = notifications.filter(n => !dismissedTickets.has(n.ticket_id));
+        if (activeNotifications.length === 0) return;
+
+        playSound();
+
+        // Sort notifications by priority (urgent -> high -> medium -> low)
+        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+        activeNotifications.sort((a, b) => priorityOrder[a.priority.toLowerCase()] - priorityOrder[b.priority.toLowerCase()]);
+
+        const notificationsList = activeNotifications.map(notification => {
+            const hours = Math.floor(notification.time_elapsed / 3600);
+            const minutes = Math.floor((notification.time_elapsed % 3600) / 60);
+            const timeText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+            return `
+                <div class="notification-item priority-${notification.priority.toLowerCase()}" id="notification-${notification.ticket_id}">
+                    <div class="notification-content">
+                        <div class="notification-header">
+                            <span class="ticket-id">#${notification.ticket_id}</span>
+                            <span class="priority-badge ${notification.priority.toLowerCase()}">${notification.priority.toUpperCase()}</span>
+                        </div>
+                        <div class="notification-body">
+                            <div class="subject">${notification.subject}</div>
+                            <div class="time-exceeded">Exceeded by: ${timeText}</div>
+                        </div>
+                    </div>
+                    <button class="dismiss-ticket" onclick="dismissTicket('${notification.ticket_id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        const notificationContent = `
+            <div class="notifications-container">
+                <div class="notifications-header">
+                    <h4>🚨 Exceeded Time Limit Tickets (${activeNotifications.length})</h4>
+                    <button class="dismiss-all" onclick="dismissAllTickets()">
+                        Dismiss All
+                    </button>
+                </div>
+                <div class="notifications-list">
+                    ${notificationsList}
+                </div>
+            </div>
+        `;
+
+        Swal.fire({
+            html: notificationContent,
+            showConfirmButton: false,
+            showCloseButton: true,
+            position: 'top-end',
+            width: '400px',
+            padding: '0',
+            customClass: {
+                popup: 'notifications-popup'
+            }
+        });
+    }
+
+    // Add these functions to window to make them accessible from HTML
+    window.dismissTicket = function(ticketId) {
+        dismissedTickets.add(ticketId);
+        const element = document.getElementById(`notification-${ticketId}`);
+        if (element) {
+            element.style.animation = 'slideOut 0.3s forwards';
+            setTimeout(() => {
+                element.remove();
+                const container = document.querySelector('.notifications-list');
+                if (container && container.children.length === 0) {
+                    Swal.close();
+                }
+            }, 300);
+        }
+    };
+
+    window.dismissAllTickets = function() {
+        const notifications = document.querySelectorAll('.notification-item');
+        notifications.forEach(notification => {
+            const ticketId = notification.id.replace('notification-', '');
+            dismissedTickets.add(ticketId);
+        });
+        Swal.close();
+    };
+
+    function checkExceededTickets() {
+        fetch('/check-exceeded-tickets/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.notifications && data.notifications.length > 0) {
+                showConsolidatedNotification(data.notifications);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Initial check when page loads
+    checkExceededTickets();
+
+    // Check every 5 minutes
+    setInterval(checkExceededTickets, CHECK_INTERVAL);
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let preNotificationQueue = [];
+    let isShowingPreNotification = false;
+    const CHECK_INTERVAL = 60000; // Check every minute for pre-notifications
+    const notificationSound = document.getElementById('notificationSound');
+    notificationSound.volume = 0.5;
+
+    function playSound() {
+        try {
+            notificationSound.currentTime = 0;
+            notificationSound.play().catch(error => {
+                console.error("Sound play failed:", error);
+            });
+        } catch(e) {
+            console.error("Sound play error:", e);
+        }
+    }
+
+    function showPreNotification(notification) {
+        playSound();
+
+        const priorityColors = {
+            urgent: '#ff4444',
+            high: '#ffbb33',
+            medium: '#ff8800',
+            low: '#00C851'
+        };
+
+        const notificationContent = `
+            <div class="priority-notification ${notification.priority.toLowerCase()}"
+                 style="background: linear-gradient(45deg, ${priorityColors[notification.priority.toLowerCase()]}22, ${priorityColors[notification.priority.toLowerCase()]}44);
+                        border-left: 4px solid ${priorityColors[notification.priority.toLowerCase()]};
+                        padding: 15px;
+                        border-radius: 8px;">
+                <h4 style="margin-bottom: 10px; color: ${priorityColors[notification.priority.toLowerCase()]}">
+                    ⚠️ SLA Warning!
+                </h4>
+                <div style="text-align: left;">
+                    <strong>Ticket:</strong> #${notification.ticket_id}<br>
+                    <strong>Subject:</strong> ${notification.subject}<br>
+                    <strong>Priority:</strong>
+                    <span style="color: ${priorityColors[notification.priority.toLowerCase()]}">
+                        ${notification.priority.toUpperCase()}
+                    </span><br>
+                    <strong>Message:</strong> ${notification.message}
+                </div>
+            </div>
+        `;
+
+        Swal.fire({
+            html: notificationContent,
+            showConfirmButton: false,
+            timer: 5000,
+            timerProgressBar: true,
+            toast: true,
+            position: 'top-right',
+            showCloseButton: true,
+            customClass: {
+                popup: 'animated-notification'
+            }
+        }).then(() => {
+            isShowingPreNotification = false;
+            setTimeout(processPreNotificationQueue, 1000);
+        });
+    }
+
+    function checkPreNotifications() {
+        fetch('/check-pre-notifications/', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.notifications && data.notifications.length > 0) {
+                preNotificationQueue = preNotificationQueue.concat(data.notifications);
+                processPreNotificationQueue();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function processPreNotificationQueue() {
+        if (preNotificationQueue.length > 0 && !isShowingPreNotification) {
+            isShowingPreNotification = true;
+            const notification = preNotificationQueue.shift();
+            showPreNotification(notification);
+        }
+    }
+
+    // Initial check
+    checkPreNotifications();
+
+    // Check every minute
+    setInterval(checkPreNotifications, CHECK_INTERVAL);
+});
+</script>
+
+<script>
+// Notification handling with persistence
+function createNotification(message, ticketId, ticketNumber) {
+    removeTicketNotifications(ticketId);
+
+    const notificationDiv = document.createElement('div');
+    notificationDiv.className = 'alert alert-info alert-dismissible fade show ticket-notification';
+    notificationDiv.setAttribute('data-ticket-id', ticketId);
+    notificationDiv.setAttribute('role', 'alert');
+    notificationDiv.style.position = 'fixed';
+    notificationDiv.style.top = '10px';
+    notificationDiv.style.right = '10px';
+    notificationDiv.style.zIndex = '1050';
+    notificationDiv.style.minWidth = '300px';
+
+    notificationDiv.innerHTML = `
+        <div class="notification-header">
+            <strong>Ticket #${ticketNumber}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"
+                    onclick="dismissNotification(event, ${ticketId})"></button>
+        </div>
+        <div class="notification-body">
+            ${message}
+        </div>
+        <div class="notification-actions">
+            <button type="button" class="btn btn-primary btn-sm" onclick="acknowledgeTicket(${ticketId})">
+                Accept Ticket
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(notificationDiv);
+}
+
+function dismissNotification(event, ticketId) {
+    event.preventDefault();
+    const notification = event.target.closest('.ticket-notification');
+    if (notification) {
+        notification.style.display = 'none';
+        // Will reappear in the next check interval
+    }
+}
+
+function acknowledgeTicket(ticketId) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`/acknowledge-ticket/${ticketId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            const button = document.querySelector(`button[data-ticket-id="${ticketId}"].acknowledge-button`);
+            if (button) {
+                button.parentElement.innerHTML = '<span class="text-success"><i class="fas fa-check-circle"></i> Acknowledged</span>';
+            }
+
+            // Remove any existing notifications for this ticket
+            removeTicketNotifications(ticketId);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Don't show the alert if the UI was updated successfully
+        const acknowledgedSpan = document.querySelector(`td span.text-success i.fa-check-circle`);
+        if (!acknowledgedSpan) {
+            alert('Failed to acknowledge ticket. Please try again.');
+        }
+    });
+}
+
+// Check for pending notifications more frequently
+setInterval(() => {
+    fetch('/check-pending-notifications/')
+        .then(response => response.json())
+        .then(data => {
+            data.notifications.forEach(notification => {
+                createNotification(
+                    notification.message,
+                    notification.ticket_id,
+                    notification.ticket_number
+                );
+            });
+        });
+}, 30000);
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to format time
+    function formatTime(hours, minutes, seconds) {
+        // Handle negative values
+        if (hours < 0 || minutes < 0 || seconds < 0) {
+            return "00:00:00";
+        }
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    // Function to update a single timer
+    function updateCreatedTimer(timerElement) {
+        // Get the created_at time from the data attribute
+        let createdAtStr = timerElement.dataset.createdAt;
+
+        // Convert to local timezone
+        const createdAt = new Date(createdAtStr);
+        const status = timerElement.dataset.status;
+
+        // Don't update timer if ticket is closed or resolved
+        if (status === 'closed' || status === 'resolved') {
+            return;
+        }
+
+        const now = new Date();
+
+        // Ensure proper timezone handling
+        const diff = now - createdAt;
+
+        // Prevent negative values
+        if (diff < 0) {
+            timerElement.textContent = "00:00:00";
+            return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        timerElement.textContent = formatTime(hours, minutes, seconds);
+    }
+
+    // Update all timers
+    function updateAllCreatedTimers() {
+        const timerElements = document.querySelectorAll('.created-timer-span');
+        timerElements.forEach(updateCreatedTimer);
+    }
+
+    // Initial update
+    updateAllCreatedTimers();
+
+    // Update every second
+    setInterval(updateAllCreatedTimers, 1000);
+});
+
+
+
+// Format large time durations
+function formatLongDuration(hours) {
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remainingHours = hours % 24;
+        return `${days}d ${String(remainingHours).padStart(2, '0')}:`;
+    }
+    return String(hours).padStart(2, '0') + ':';
+}
+
+// Update the timer update function to handle long durations
+function updateCreatedTimer(timerElement) {
+    const createdAt = new Date(timerElement.dataset.createdAt + 'Z');
+    const status = timerElement.dataset.status;
+
+    if (status === 'closed' || status === 'resolved') {
+        return;
+    }
+
+    const now = new Date();
+    const diff = now - createdAt;
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const formattedTime = formatLongDuration(hours) +
+        String(minutes).padStart(2, '0') + ':' +
+        String(seconds).padStart(2, '0');
+
+    timerElement.textContent = formattedTime;
+
+    // Add warning class for long-running tickets
+    if (hours >= 24) {
+        timerElement.classList.add('long-running');
+    }
+}
+</script>
+
+<script>
+function updateDashboardStats() {
+    fetch('/api/daily-stats/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('todayTicketCount').textContent = data.todays_tickets;
+            document.getElementById('openTicketCount').textContent = data.open_tickets;
+            document.getElementById('closedTicketCount').textContent = data.closed_tickets;
+            document.getElementById('totalCallTime').textContent = data.call_duration;
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+// Update stats every minute
+setInterval(updateDashboardStats, 60000);
+
+// Update when page becomes visible
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        updateDashboardStats();
+    }
+});
+
+// Update after relevant actions
+document.addEventListener('ticketStatusChanged', updateDashboardStats);
+document.addEventListener('callEnded', updateDashboardStats);
+</script>
+
+{% block extra_js %}
+<script>
+const notificationSound = new Audio('/static/sounds/notification.mp3');
+
+function createTicketAlert(alert) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `ticket-alert priority-${alert.priority.toLowerCase()}`;
+    alertDiv.setAttribute('data-ticket-id', alert.ticket_id);
+
+    alertDiv.innerHTML = `
+        <div class="alert-header">
+            <strong>New Ticket #${alert.ticket_number}</strong>
+            <span class="badge bg-${getPriorityColor(alert.priority)}">${alert.priority}</span>
+        </div>
+        <div class="alert-body">
+            <p>${alert.subject}</p>
+            <small class="text-muted">Created: ${alert.created_at}</small>
+        </div>
+        <div class="alert-actions">
+            <button class="btn btn-secondary btn-sm" onclick="dismissAlert(${alert.ticket_id})">
+                Dismiss
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="acceptTicket(${alert.ticket_id})">
+                Accept
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(alertDiv);
+    notificationSound.play();
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        'urgent': 'danger',
+        'high': 'warning',
+        'medium': 'info',
+        'low': 'secondary'
+    };
+    return colors[priority.toLowerCase()] || 'primary';
+}
+
+function checkForAlerts() {
+    fetch('/check-ticket-alerts/')
+        .then(response => response.json())
+        .then(data => {
+            data.alerts.forEach(alert => {
+                if (!document.querySelector(`.ticket-alert[data-ticket-id="${alert.ticket_id}"]`)) {
+                    createTicketAlert(alert);
+                }
+            });
+        });
+}
+
+function acceptTicket(ticketId) {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`/acknowledge-alert/${ticketId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            removeAlert(ticketId);
+            location.reload(); // Refresh to update ticket list
+        }
+    });
+}
+
+function dismissAlert(ticketId) {
+    removeAlert(ticketId);
+}
+
+function removeAlert(ticketId) {
+    const alert = document.querySelector(`.ticket-alert[data-ticket-id="${ticketId}"]`);
+    if (alert) {
+        alert.style.animation = 'slideOut 0.5s ease-in forwards';
+        setTimeout(() => alert.remove(), 500);
+    }
+}
+
+// Check for new alerts every minute
+setInterval(checkForAlerts, 60000);
+
+// Initial check when page loads
+document.addEventListener('DOMContentLoaded', checkForAlerts);
+</script>
+{% endblock %}
+
 </body>
 </html>
