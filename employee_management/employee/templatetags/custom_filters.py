@@ -60,3 +60,10 @@ def format_duration(duration):
         seconds = total_seconds % 60
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     return "00:00:00"
+
+@register.filter
+def filter_status(status_counts, status):
+    """
+    Filter to get count of tickets by status
+    """
+    return status_counts.get(status, 0)

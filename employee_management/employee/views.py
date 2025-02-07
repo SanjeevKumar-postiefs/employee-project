@@ -18,6 +18,7 @@ import json
 from django.utils import timezone
 import pytz
 
+
 # Activate the Asia/Kolkata timezone
 timezone.activate(pytz.timezone('Asia/Kolkata'))
 
@@ -177,22 +178,28 @@ def logout(request):
         # Check if it's an AJAX request
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
-        # Check for open tickets assigned to the user
-        open_tickets = Ticket.objects.filter(
+        # Check for tickets that need attention (open, pending, or initial_response)
+        restricted_tickets = Ticket.objects.filter(
             assigned_to=request.user,
-            status='open'
-        ).values('ticket_id', 'subject')
+            status__in=['open', 'pending', 'initial_response']
+        ).values('ticket_id', 'subject', 'status')
 
-        if open_tickets.exists():
-            # If there are open tickets, return them in JSON response
-            tickets_list = list(open_tickets)
+        if restricted_tickets.exists():
+            # Group tickets by status for better display
+            tickets_by_status = {}
+            for ticket in restricted_tickets:
+                status = ticket['status'].replace('_', ' ').title()
+                if status not in tickets_by_status:
+                    tickets_by_status[status] = []
+                tickets_by_status[status].append(ticket)
+
             return JsonResponse({
                 'status': 'error',
-                'message': 'Cannot logout with open tickets',
-                'tickets': tickets_list
+                'message': 'Cannot logout with unresolved tickets',
+                'tickets': tickets_by_status
             })
 
-        # If no open tickets, proceed with logout
+        # If no restricted tickets, proceed with logout
         user_profile = EmployeeProfile.objects.filter(user=request.user).first()
         if user_profile:
             user_profile.is_active = False
@@ -520,12 +527,27 @@ def add_employee(request):
 @login_required
 def toggle_break_status(request):
     user_profile = request.user.employeeprofile
+
+    # If user is trying to go on break
+    if not user_profile.is_on_break:
+        can_break, message = EmployeeProfile.can_take_break(user_profile.skill)
+        if not can_break:
+            return JsonResponse({
+                'status': 'error',
+                'message': message
+            })
+
+    # If we get here, either user is returning from break or can take a break
     user_profile.is_on_break = not user_profile.is_on_break
     user_profile.save()
 
     today = timezone.now().date()
     try:
-        current_session = SessionActivity.objects.filter(user=request.user, date=today, logout_time=None).latest('login_time')
+        current_session = SessionActivity.objects.filter(
+            user=request.user,
+            date=today,
+            logout_time=None
+        ).latest('login_time')
 
         if user_profile.is_on_break:
             # Store currently active tickets in session before pausing them
@@ -566,7 +588,21 @@ def toggle_break_status(request):
     except SessionActivity.DoesNotExist:
         pass
 
-    return JsonResponse({'status': 'success'})  # Return JSON response
+    # Check if others can now take breaks
+    if not user_profile.is_on_break:  # User just returned from break
+        available_breaks = EmployeeProfile.get_active_users_in_skill(user_profile.skill) // 2 - \
+                           EmployeeProfile.get_users_on_break_in_skill(user_profile.skill)
+        if available_breaks > 0:
+            message = f"✨ Break slot now available! Team members can take a break. {available_breaks} break slot(s) open. 🎉"
+        else:
+            message = None
+    else:
+        message = None
+
+    return JsonResponse({
+        'status': 'success',
+        'message': message
+    })
 
 
 
@@ -803,6 +839,8 @@ def filter_users_by_group(request):
 from django.db import models  # <-- Add this import
 from datetime import datetime, time, timedelta
 from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q, Sum as models_Sum
 
 @login_required
 def dashboard(request):
@@ -811,33 +849,71 @@ def dashboard(request):
     local_today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
     local_today_end = timezone.make_aware(datetime.combine(now.date(), time.max))
 
+    # Get employee profile
     try:
         employee_profile = EmployeeProfile.objects.get(user=user)
     except EmployeeProfile.DoesNotExist:
         employee_profile = None
 
-    # 1. Today's Tickets
+    # Get search parameter and page number from request
+    search_query = request.GET.get('search', '')
+    try:
+        page_number = int(request.GET.get('page', '1'))
+        if page_number < 1:
+            page_number = 1
+    except ValueError:
+        page_number = 1
+
+    is_htmx = request.headers.get('HX-Request', False)
+
+    # Base queryset for tickets with pagination
+    tickets_queryset = Ticket.objects.filter(
+        assigned_to=user
+    ).exclude(
+        status__in=['closed', 'resolved']
+    ).order_by('-created_at')
+
+    # Apply search filter if search query exists
+    if search_query:
+        tickets_queryset = tickets_queryset.filter(
+            Q(ticket_id__icontains=search_query) |
+            Q(subject__icontains=search_query)
+        )
+
+    # Create paginator
+    paginator = Paginator(tickets_queryset, 10)  # Show 10 tickets per page
+    try:
+        page_obj = paginator.page(page_number)
+    except EmptyPage:
+        page_obj = paginator.page(1)  # Default to first page if page is empty
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)  # Default to first page for invalid numbers
+
+    # Get paginated tickets
+    tickets = page_obj.object_list
+
+    # Today's Tickets count
     todays_tickets = Ticket.objects.filter(
         assigned_to=user,
         assigned_at__range=(local_today_start, local_today_end)
     ).count()
 
-    # 2. Open Tickets
+    # Open Tickets count
     open_tickets = Ticket.objects.filter(
         assigned_to=user,
         assigned_at__range=(local_today_start, local_today_end),
         status='open',
-        status_changed__isnull=True  # This means the status hasn't been changed
+        status_changed__isnull=True
     ).count()
 
-    # 3. Closed Tickets
+    # Closed Tickets count
     closed_tickets = Ticket.objects.filter(
         assigned_to=user,
         status_changed__range=(local_today_start, local_today_end),
         status__in=['closed', 'resolved']
     ).count()
 
-    # 4. Total Call Time (from Call model and NewCallQuery)
+    # Calculate total call duration
     total_duration = timedelta(0)
 
     # Get duration from Call model
@@ -868,18 +944,27 @@ def dashboard(request):
 
     # Get overall ticket statistics
     total_tickets = Ticket.objects.filter(assigned_to=user).count()
-    ticket_status_counts = Ticket.objects.filter(assigned_to=user).values('status').annotate(count=models.Count('status'))
+
+    # Fix for ticket status counts
+    ticket_status_counts = Ticket.objects.filter(
+        assigned_to=user
+    ).values('status').annotate(
+        count=models.Count('id')  # Changed from models_Sum to Count
+    ).order_by('status')
+
+    # Convert to a dictionary for easier template access
+    status_count_dict = {
+        item['status']: item['count']
+        for item in ticket_status_counts
+    }
 
     # Calculate total time spent on tickets
-    total_time_spent = Ticket.objects.filter(assigned_to=user).aggregate(total_time=models.Sum('time_spent'))['total_time']
-    total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
-
-    # Get active tickets
-    tickets = Ticket.objects.filter(
+    total_time_spent = Ticket.objects.filter(
         assigned_to=user
-    ).exclude(
-        status__in=['closed', 'resolved']
-    ).order_by('-created_at')
+    ).aggregate(
+        total_time=models_Sum('time_spent')
+    )['total_time']
+    total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
 
     # Get ticket statuses for dropdown
     ticket_statuses = Ticket._meta.get_field('status').choices
@@ -897,10 +982,11 @@ def dashboard(request):
                 'created_at': ticket.created_at
             })
 
+    # Prepare context
     context = {
         'employee_profile': employee_profile,
         'total_tickets': total_tickets,
-        'ticket_status_counts': ticket_status_counts,
+        'ticket_status_counts': status_count_dict,
         'total_time_spent': total_time_spent_hours,
         'tickets': tickets,
         'ticket_statuses': ticket_statuses,
@@ -909,9 +995,16 @@ def dashboard(request):
         'todays_tickets': todays_tickets,
         'open_tickets': open_tickets,
         'closed_tickets': closed_tickets,
-        'call_duration': formatted_duration
+        'call_duration': formatted_duration,
+        'search_query': search_query,
+        'page_obj': page_obj,
     }
 
+    # Return appropriate template based on request type
+    if is_htmx:
+        if request.GET.get('pagination_only'):
+            return render(request, 'dashboard_pagination.html', context)
+        return render(request, 'dashboard_ticket_table.html', context)
     return render(request, 'dashboard.html', context)
 
 @login_required
@@ -1488,3 +1581,4 @@ def ticket_list(request):
         if not isinstance(ticket.time_spent, timedelta):
             ticket.time_spent = timedelta(seconds=int(ticket.time_spent.total_seconds()))
     return render(request, 'tickets.html', {'tickets': tickets})
+

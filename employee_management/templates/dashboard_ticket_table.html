@@ -1,0 +1,127 @@
+{% load static %}
+{% load custom_filters %}
+{% load timedelta_filters %}
+{% load duration_filters %}
+{% csrf_token %}
+
+
+{% for ticket in tickets %}
+    {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
+    <tr class="{{ ticket.get_priority_class }}" data-ticket-id="{{ ticket.id }}"
+        data-priority="{{ ticket.priority|lower }}"
+        data-created-at="{{ ticket.created_at|date:'Y-m-d H:i:s' }}">
+
+            <td class="align-middle">
+                <!-- Plus Button outside the table, placed next to Ticket ID -->
+                <div class="plus-button-container">
+                    <button class="btn plus-button" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#options-{{ ticket.id }}" aria-expanded="false"
+                            aria-controls="options-{{ ticket.id }}">
+                        +
+                    </button>
+                    <span>{{ ticket.ticket_id }}</span>
+                </div>
+            </td>
+            <td>{{ ticket.subject }}</td>
+            <td>{{ ticket.status }}</td>
+            <td>{{ ticket.priority }}</td>
+            <td class="time-since-created">
+                <span id="created-timer-{{ ticket.id }}"
+                    class="created-timer-span priority-{{ ticket.priority|lower }}"
+                    data-created-at="{{ ticket.created_at|localize_datetime|date:'c' }}"
+                    data-status="{{ ticket.status }}"
+                    data-priority="{{ ticket.priority|lower }}"
+                    title="Created: {{ ticket.created_at|date:'F j, Y, g:i a' }}">
+                    00:00:00
+                </span>
+            </td>
+            <td class="time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
+                <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+                    {{ ticket.time_spent|format_duration }}
+                </span>
+            </td>
+            <td class="time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded{% endif %}">
+                <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+                    {{ ticket.individual_time_spent|format_duration }}
+                </span>
+            </td>
+            <td>
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <button class="btn btn-success start-button" data-ticket-id="{{ ticket.id }}">
+                    {% if ticket.is_active %}
+                        Stop
+                    {% else %}
+                        Start
+                    {% endif %}
+                </button>
+            </td>
+            <td>
+                <!-- On Call Button -->
+                <form method="post" action="{% url 'start_end_call' ticket.id %}" class="call-action-form" data-ticket-id="{{ ticket.id }}">
+                    {% csrf_token %}
+                    {% if ticket.call_in_progress %}
+                        <input type="hidden" name="action" value="end_call">
+                        <button type="submit" class="btn btn-danger">End Call</button>
+                    {% else %}
+                        <input type="hidden" name="action" value="start_call">
+                        <button type="submit" class="btn btn-warning">Start Call</button>
+                    {% endif %}
+                </form>
+            </td>
+            <td>
+                {% if ticket.assigned_to == request.user %}
+                    {% if not ticket.is_acknowledged %}
+                        <button class="btn btn-primary btn-sm acknowledge-button"
+                                data-ticket-id="{{ ticket.id }}"
+                                data-acknowledge-button="true"
+                                onclick="notificationManager.acknowledgeTicket({{ ticket.id }}); return false;">
+                            Accept
+                        </button>
+                    {% else %}
+                        <span class="text-success">
+                            <i class="fas fa-check-circle"></i> Acknowledged
+                        </span>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+
+        <!-- Options for the Ticket (Assign and Status Change) -->
+        <tr class="collapse" id="options-{{ ticket.id }}">
+            <td colspan="7">
+                <div class="options-list">
+                    <!-- Assign Button -->
+                    <a class="btn btn-outline-primary me-2" href="{% url 'assign_ticket' ticket.id %}">Assign</a>
+
+                    <!-- Status Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-info dropdown-toggle" type="button"
+                                id="statusDropdown-{{ ticket.id }}" data-bs-toggle="dropdown"
+                                aria-expanded="false">
+                            Change Status
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="statusDropdown-{{ ticket.id }}">
+                            {% for status in ticket_statuses %}
+                                {% if status.0 != ticket.status %}
+                                    <li>
+                                        <a class="dropdown-item change-status" href="#"
+                                           data-ticket-id="{{ ticket.id }}"
+                                           data-new-status="{{ status.0 }}">
+                                            {{ status.1 }}
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- View Call Details Button -->
+                    <a href="{% url 'view_call_details' ticket.id %}" class="btn btn-outline-info">Call Details</a>
+
+                    <!-- View Notes Button -->
+                    <a href="{% url 'view_ticket_notes' ticket.id %}" class="btn btn-outline-warning">From existing query</a>
+                </div>
+            </td>
+        </tr>
+        {% endif %}
+    {% endfor %}

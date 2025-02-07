@@ -32,6 +32,43 @@ class EmployeeProfile(models.Model):
     is_on_call = models.BooleanField(default=False)
     call_start_time = models.DateTimeField(null=True, blank=True)
 
+    @classmethod
+    def get_active_users_in_skill(cls, skill):
+        """Get count of active users in a specific skill group"""
+        return cls.objects.filter(
+            skill=skill,
+            is_active=True
+        ).count()
+
+    @classmethod
+    def get_users_on_break_in_skill(cls, skill):
+        """Get count of users currently on break in a specific skill group"""
+        return cls.objects.filter(
+            skill=skill,
+            is_active=True,
+            is_on_break=True
+        ).count()
+
+    @classmethod
+    def can_take_break(cls, skill):
+        """
+        Check if another user can take a break based on active users count.
+        Returns (bool, str) tuple: (can_take_break, message)
+        """
+        active_users = cls.get_active_users_in_skill(skill)
+        users_on_break = cls.get_users_on_break_in_skill(skill)
+
+        if active_users <= 1:
+            return True, None  # Single user can always take break
+
+        max_users_on_break = active_users // 2  # Integer division
+
+        if users_on_break >= max_users_on_break:
+            remaining_users = active_users - users_on_break
+            return False, f"⚠️ Sorry, with {active_users} active team members, only {max_users_on_break} can be on break at a time. Please wait for others to return. {remaining_users} team members need to be available. 🙏"
+
+        return True, None
+
 
 class DailyActivity(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -91,6 +128,7 @@ class Ticket(models.Model):
         ('closed', 'Closed'),
         ('waiting_on_customer', 'Waiting on Customer'),
         ('initial_response', 'Initial Response'),
+        ('on_hold', 'On Hold'),
     ])
     group = models.CharField(max_length=100, choices=[
         ('Linux', 'Linux'),
