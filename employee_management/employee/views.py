@@ -839,9 +839,6 @@ def filter_users_by_group(request):
 from django.db import models  # <-- Add this import
 from datetime import datetime, time, timedelta
 from django.utils import timezone
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Sum as models_Sum
-
 @login_required
 def dashboard(request):
     user = request.user
@@ -849,71 +846,33 @@ def dashboard(request):
     local_today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
     local_today_end = timezone.make_aware(datetime.combine(now.date(), time.max))
 
-    # Get employee profile
     try:
         employee_profile = EmployeeProfile.objects.get(user=user)
     except EmployeeProfile.DoesNotExist:
         employee_profile = None
 
-    # Get search parameter and page number from request
-    search_query = request.GET.get('search', '')
-    try:
-        page_number = int(request.GET.get('page', '1'))
-        if page_number < 1:
-            page_number = 1
-    except ValueError:
-        page_number = 1
-
-    is_htmx = request.headers.get('HX-Request', False)
-
-    # Base queryset for tickets with pagination
-    tickets_queryset = Ticket.objects.filter(
-        assigned_to=user
-    ).exclude(
-        status__in=['closed', 'resolved']
-    ).order_by('-created_at')
-
-    # Apply search filter if search query exists
-    if search_query:
-        tickets_queryset = tickets_queryset.filter(
-            Q(ticket_id__icontains=search_query) |
-            Q(subject__icontains=search_query)
-        )
-
-    # Create paginator
-    paginator = Paginator(tickets_queryset, 10)  # Show 10 tickets per page
-    try:
-        page_obj = paginator.page(page_number)
-    except EmptyPage:
-        page_obj = paginator.page(1)  # Default to first page if page is empty
-    except PageNotAnInteger:
-        page_obj = paginator.page(1)  # Default to first page for invalid numbers
-
-    # Get paginated tickets
-    tickets = page_obj.object_list
-
-    # Today's Tickets count
+    # 1. Today's Tickets
     todays_tickets = Ticket.objects.filter(
         assigned_to=user,
         assigned_at__range=(local_today_start, local_today_end)
     ).count()
 
-    # Open Tickets count
+    # 2. Open Tickets
     open_tickets = Ticket.objects.filter(
         assigned_to=user,
         assigned_at__range=(local_today_start, local_today_end),
         status='open',
-        status_changed__isnull=True
+        status_changed__isnull=True  # This means the status hasn't been changed
     ).count()
 
-    # Closed Tickets count
+    # 3. Closed Tickets
     closed_tickets = Ticket.objects.filter(
         assigned_to=user,
         status_changed__range=(local_today_start, local_today_end),
         status__in=['closed', 'resolved']
     ).count()
 
-    # Calculate total call duration
+    # 4. Total Call Time (from Call model and NewCallQuery)
     total_duration = timedelta(0)
 
     # Get duration from Call model
@@ -944,27 +903,18 @@ def dashboard(request):
 
     # Get overall ticket statistics
     total_tickets = Ticket.objects.filter(assigned_to=user).count()
-
-    # Fix for ticket status counts
-    ticket_status_counts = Ticket.objects.filter(
-        assigned_to=user
-    ).values('status').annotate(
-        count=models.Count('id')  # Changed from models_Sum to Count
-    ).order_by('status')
-
-    # Convert to a dictionary for easier template access
-    status_count_dict = {
-        item['status']: item['count']
-        for item in ticket_status_counts
-    }
+    ticket_status_counts = Ticket.objects.filter(assigned_to=user).values('status').annotate(count=models.Count('status'))
 
     # Calculate total time spent on tickets
-    total_time_spent = Ticket.objects.filter(
-        assigned_to=user
-    ).aggregate(
-        total_time=models_Sum('time_spent')
-    )['total_time']
+    total_time_spent = Ticket.objects.filter(assigned_to=user).aggregate(total_time=models.Sum('time_spent'))['total_time']
     total_time_spent_hours = total_time_spent.total_seconds() / 3600 if total_time_spent else 0
+
+    # Get active tickets
+    tickets = Ticket.objects.filter(
+        assigned_to=user
+    ).exclude(
+        status__in=['closed', 'resolved']
+    ).order_by('-created_at')
 
     # Get ticket statuses for dropdown
     ticket_statuses = Ticket._meta.get_field('status').choices
@@ -982,11 +932,10 @@ def dashboard(request):
                 'created_at': ticket.created_at
             })
 
-    # Prepare context
     context = {
         'employee_profile': employee_profile,
         'total_tickets': total_tickets,
-        'ticket_status_counts': status_count_dict,
+        'ticket_status_counts': ticket_status_counts,
         'total_time_spent': total_time_spent_hours,
         'tickets': tickets,
         'ticket_statuses': ticket_statuses,
@@ -995,16 +944,9 @@ def dashboard(request):
         'todays_tickets': todays_tickets,
         'open_tickets': open_tickets,
         'closed_tickets': closed_tickets,
-        'call_duration': formatted_duration,
-        'search_query': search_query,
-        'page_obj': page_obj,
+        'call_duration': formatted_duration
     }
 
-    # Return appropriate template based on request type
-    if is_htmx:
-        if request.GET.get('pagination_only'):
-            return render(request, 'dashboard_pagination.html', context)
-        return render(request, 'dashboard_ticket_table.html', context)
     return render(request, 'dashboard.html', context)
 
 @login_required

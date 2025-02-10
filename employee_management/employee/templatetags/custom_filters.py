@@ -63,7 +63,7 @@ def format_duration(duration):
 
 @register.filter
 def filter_status(status_counts, status):
-    """
-    Filter to get count of tickets by status
-    """
-    return status_counts.get(status, 0)
+    for item in status_counts:
+        if item['status'] == status:
+            return item['count']
+    return 0
