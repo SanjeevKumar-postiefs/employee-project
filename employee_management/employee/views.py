@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import get_user_model
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,UnifiedNotification
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,UnifiedNotification,WorkReport
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -17,6 +17,7 @@ from datetime import timedelta,datetime
 import json
 from django.utils import timezone
 import pytz
+from django.db.models import Count, Sum
 
 
 # Activate the Asia/Kolkata timezone
@@ -167,10 +168,10 @@ def login(request):
             return redirect('dashboard')
         else:
             messages.error(request, 'Invalid username or password.')
-            return render(request, 'index.html', {
+            return render(request, 'index2.html', {
                 'form': {'non_field_errors': ['Invalid username or password.']}
             })
-    return render(request, 'index.html')
+    return render(request, 'index2.html')
 
 
 def logout(request):
@@ -223,14 +224,42 @@ def logout(request):
     return redirect('login')
 
 
-
 @login_required
 def view_profile(request, user_id):
     user = get_object_or_404(User, id=user_id)
     employee_profile = EmployeeProfile.objects.get(user=user)
+
+    # Calculate total stats
+    total_tickets = Ticket.objects.filter(assigned_to=user).count()
+    resolved_tickets = Ticket.objects.filter(
+        assigned_to=user,
+        status__in=['resolved', 'closed']
+    ).count()
+
+    # Calculate total work time from daily activities
+    total_work_time = DailyActivity.objects.filter(user=user).aggregate(
+        total=models.Sum('total_work_time')
+    )['total'] or timezone.timedelta()
+
+    # Convert to hours
+    total_hours = total_work_time.total_seconds() / 3600
+
+    if request.method == 'POST' and request.FILES.get('profile_picture'):
+        try:
+            employee_profile.profile_picture = request.FILES['profile_picture']
+            employee_profile.full_clean()
+            employee_profile.save()
+            messages.success(request, 'Profile picture updated successfully!')
+        except ValidationError as e:
+            messages.error(request, e.messages[0])
+        return redirect('view_profile', user_id=user_id)
+
     context = {
         'user': user,
-        'employee_profile': employee_profile,
+        'profile': employee_profile,
+        'total_tickets': total_tickets,
+        'resolved_tickets': resolved_tickets,
+        'total_time': total_hours,
         'is_on_break': employee_profile.is_on_break,
     }
     return render(request, 'view_profile.html', context)
@@ -1524,3 +1553,132 @@ def ticket_list(request):
             ticket.time_spent = timedelta(seconds=int(ticket.time_spent.total_seconds()))
     return render(request, 'tickets.html', {'tickets': tickets})
 
+
+@login_required
+def generate_work_report(request):
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+
+        start_datetime = timezone.make_aware(datetime.combine(datetime.strptime(start_date, '%Y-%m-%d'), time.min))
+        end_datetime = timezone.make_aware(datetime.combine(datetime.strptime(end_date, '%Y-%m-%d'), time.max))
+
+        # Get daily breakdown data
+        daily_data = []
+        current_date = start_datetime
+        while current_date <= end_datetime:
+            next_date = current_date + timedelta(days=1)
+
+            # 1. Total tickets - ONLY count new assignments or reassignments
+            day_tickets = Ticket.objects.filter(
+                assigned_at__range=(current_date, next_date),  # Only count initial assignments
+                assigned_to=request.user
+            ).distinct()
+
+            # 2. Resolved tickets - closed or resolved on this date
+            resolved_tickets = Ticket.objects.filter(
+                assigned_to=request.user,
+                status__in=['resolved', 'closed'],
+                status_changed__range=(current_date, next_date)
+            )
+
+            # 3. Unresolved tickets - Get all active tickets for this user at the end of this day
+            unresolved_tickets = Ticket.objects.filter(
+                assigned_to=request.user,  # Currently assigned to user
+                assigned_at__lte=next_date  # Assigned before or on this day
+            ).exclude(
+                models.Q(  # Exclude tickets that were resolved/closed by end of day
+                    status__in=['resolved', 'closed'],
+                    status_changed__lte=next_date
+                )
+            )
+
+            # Calculate call duration
+            call_duration = timedelta(0)
+
+            # Get calls from Call model
+            day_calls = Call.objects.filter(
+                agent=request.user,
+                call_start_time__range=(current_date, next_date),
+                call_end_time__isnull=False
+            )
+            for call in day_calls:
+                call_duration += call.call_end_time - call.call_start_time
+
+            # Get calls from NewCallQuery model
+            new_calls = NewCallQuery.objects.filter(
+                agent=request.user,
+                call_start_time__range=(current_date, next_date),
+                call_duration_seconds__isnull=False
+            )
+            for call in new_calls:
+                call_duration += timedelta(seconds=call.call_duration_seconds or 0)
+
+            # Format call duration as HH:MM:SS
+            total_seconds = int(call_duration.total_seconds())
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            seconds = total_seconds % 60
+            formatted_duration = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+            daily_data.append({
+                'date': current_date.date().strftime('%Y-%m-%d'),
+                'total_tickets': day_tickets.count(),
+                'resolved_tickets': resolved_tickets.count(),
+                'unresolved_tickets': unresolved_tickets.count(),
+                'call_duration': formatted_duration,
+                'call_duration_seconds': total_seconds
+            })
+
+            current_date = next_date
+
+        # Calculate overall statistics for the entire period
+        # Total tickets - only count new assignments in the period
+        total_tickets = Ticket.objects.filter(
+            assigned_at__range=(start_datetime, end_datetime),
+            assigned_to=request.user
+        ).distinct()
+
+        # Total resolved in the period
+        total_resolved = Ticket.objects.filter(
+            assigned_to=request.user,
+            status__in=['resolved', 'closed'],
+            status_changed__range=(start_datetime, end_datetime)
+        ).count()
+
+        # Current unresolved tickets at the end of the period
+        total_unresolved = Ticket.objects.filter(
+            assigned_to=request.user,
+            assigned_at__lte=end_datetime
+        ).exclude(
+            models.Q(
+                status__in=['resolved', 'closed'],
+                status_changed__lte=end_datetime
+            )
+        ).count()
+
+        status_distribution = {
+            'Total': total_tickets.count(),
+            'Resolved': total_resolved,
+            'Unresolved': total_unresolved
+        }
+
+        # Calculate total call duration for the period
+        total_call_duration = sum(
+            [entry['call_duration_seconds'] for entry in daily_data]
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'data': {
+                'daily_breakdown': daily_data,
+                'status_distribution': status_distribution,
+                'total_call_duration': total_call_duration,
+                'date_range': {
+                    'start': start_date,
+                    'end': end_date
+                }
+            }
+        })
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
+from django.core.exceptions import ValidationError
 
 LEVEL_CHOICES = (
     ('1', 'Level 1'),
@@ -14,6 +15,11 @@ SKILL_CHOICES = (
     ('LEVELONE', 'Level One'),
     ('OCI', 'OCI'),
 )
+
+def validate_image_size(value):
+    filesize = value.size
+    if filesize > 5 * 1024 * 1024:  # 5MB limit
+        raise ValidationError("Maximum file size is 5MB")
 
 class EmployeeProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -31,6 +37,13 @@ class EmployeeProfile(models.Model):
     ], default='offline')
     is_on_call = models.BooleanField(default=False)
     call_start_time = models.DateTimeField(null=True, blank=True)
+    profile_picture = models.ImageField(
+        upload_to='profile_pictures/',
+        null=True,
+        blank=True,
+        validators=[validate_image_size],
+        help_text="Upload a profile picture (max 5MB)"
+    )
 
     @classmethod
     def get_active_users_in_skill(cls, skill):
@@ -499,3 +512,19 @@ class UnifiedNotification(models.Model):
         elif self.notification_type in ['assigned', 'created']:
             return True  # Always notify for these types
         return False
+
+class WorkReport(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    total_tickets = models.IntegerField(default=0)
+    resolved_tickets = models.IntegerField(default=0)
+    pending_tickets = models.IntegerField(default=0)
+    total_call_duration = models.DurationField(default=timedelta(0))
+    generated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-generated_at']
+
+    def __str__(self):
+        return f"Work Report for {self.user.username} ({self.start_date} to {self.end_date})"

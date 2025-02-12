@@ -57,10 +57,36 @@ class EmployeeProfileForm(forms.ModelForm):
 
 
 class UserEditForm(forms.ModelForm):
-    skill = forms.ChoiceField(choices=SKILL_CHOICES, required=True, widget=forms.Select(attrs={'class': 'form-control'}))
+    skill = forms.ChoiceField(
+        choices=SKILL_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'data-bs-toggle': 'select2',
+        })
+    )
+
     class Meta:
         model = User
         fields = ('username', 'first_name', 'last_name', 'email')
+        widgets = {
+            'username': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter username'
+            }),
+            'first_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter first name'
+            }),
+            'last_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter last name'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter email address'
+            })
+        }
 
 
 class TicketForm(forms.ModelForm):
