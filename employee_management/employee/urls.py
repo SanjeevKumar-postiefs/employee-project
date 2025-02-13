@@ -58,6 +58,7 @@ urlpatterns=[
     path('api/daily-stats/', views.get_daily_stats, name='daily_stats'),
     path('check-unified-notifications/', views.check_unified_notifications, name='check-unified-notifications'),
     path('tickets/', views.ticket_list, name='ticket_list'),
+    path('work-report/', views.work_report_view, name='work_report'),
     path('generate-work-report/', views.generate_work_report, name='generate_work_report'),
 
 ]

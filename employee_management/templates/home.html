@@ -498,6 +498,11 @@ tr.priority-low .time-column.individual-time.exceeded,
         <h5>Tickets</h5>
     </a>
 
+    <a href="{% url 'work_report' %}">
+        <i class="fas fa-chart-line"></i>
+        <h5>Work Report</h5>
+    </a>
+
     {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
     <a href="{% url 'add_employee' %}">
         <i class="fas fa-user-plus"></i>

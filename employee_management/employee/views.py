@@ -229,6 +229,23 @@ def view_profile(request, user_id):
     user = get_object_or_404(User, id=user_id)
     employee_profile = EmployeeProfile.objects.get(user=user)
 
+    if request.method == 'POST':
+        if 'profile_picture' in request.FILES:
+            try:
+                employee_profile.profile_picture = request.FILES['profile_picture']
+                employee_profile.full_clean()
+                employee_profile.save()
+                messages.success(request, 'Profile picture updated successfully!')
+            except ValidationError as e:
+                messages.error(request, e.messages[0])
+        elif request.POST.get('remove_picture') == 'true':
+            if employee_profile.profile_picture:
+                employee_profile.profile_picture.delete()
+                employee_profile.profile_picture = None
+                employee_profile.save()
+                messages.success(request, 'Profile picture removed successfully!')
+        return redirect('view_profile', user_id=user_id)
+
     # Calculate total stats
     total_tickets = Ticket.objects.filter(assigned_to=user).count()
     resolved_tickets = Ticket.objects.filter(
@@ -236,13 +253,20 @@ def view_profile(request, user_id):
         status__in=['resolved', 'closed']
     ).count()
 
-    # Calculate total work time from daily activities
-    total_work_time = DailyActivity.objects.filter(user=user).aggregate(
-        total=models.Sum('total_work_time')
-    )['total'] or timezone.timedelta()
+    # Calculate total work time from both DailyActivity and SessionActivity
+    daily_activities = DailyActivity.objects.filter(user=user).aggregate(
+        total=Sum('total_work_time')
+    )['total'] or timedelta()
 
-    # Convert to hours
-    total_hours = total_work_time.total_seconds() / 3600
+    session_activities = SessionActivity.objects.filter(user=user).aggregate(
+        total=Sum('work_time')
+    )['total'] or timedelta()
+
+    # Combine both totals
+    total_work_time = daily_activities + session_activities
+
+    # Convert to hours with 1 decimal place
+    total_hours = round(total_work_time.total_seconds() / 3600, 1)
 
     if request.method == 'POST' and request.FILES.get('profile_picture'):
         try:
@@ -1554,40 +1578,45 @@ def ticket_list(request):
     return render(request, 'tickets.html', {'tickets': tickets})
 
 
+from django.views.decorators.http import require_http_methods
 @login_required
+@require_http_methods(["POST"])
 def generate_work_report(request):
-    if request.method == 'POST':
+    try:
         start_date = request.POST.get('start_date')
         end_date = request.POST.get('end_date')
+
+        if not start_date or not end_date:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Start date and end date are required'
+            })
 
         start_datetime = timezone.make_aware(datetime.combine(datetime.strptime(start_date, '%Y-%m-%d'), time.min))
         end_datetime = timezone.make_aware(datetime.combine(datetime.strptime(end_date, '%Y-%m-%d'), time.max))
 
-        # Get daily breakdown data
         daily_data = []
         current_date = start_datetime
         while current_date <= end_datetime:
             next_date = current_date + timedelta(days=1)
 
-            # 1. Total tickets - ONLY count new assignments or reassignments
+            # Get daily tickets data
             day_tickets = Ticket.objects.filter(
-                assigned_at__range=(current_date, next_date),  # Only count initial assignments
+                assigned_at__range=(current_date, next_date),
                 assigned_to=request.user
             ).distinct()
 
-            # 2. Resolved tickets - closed or resolved on this date
             resolved_tickets = Ticket.objects.filter(
                 assigned_to=request.user,
                 status__in=['resolved', 'closed'],
                 status_changed__range=(current_date, next_date)
             )
 
-            # 3. Unresolved tickets - Get all active tickets for this user at the end of this day
             unresolved_tickets = Ticket.objects.filter(
-                assigned_to=request.user,  # Currently assigned to user
-                assigned_at__lte=next_date  # Assigned before or on this day
+                assigned_to=request.user,
+                assigned_at__lte=next_date
             ).exclude(
-                models.Q(  # Exclude tickets that were resolved/closed by end of day
+                models.Q(
                     status__in=['resolved', 'closed'],
                     status_changed__lte=next_date
                 )
@@ -1614,7 +1643,7 @@ def generate_work_report(request):
             for call in new_calls:
                 call_duration += timedelta(seconds=call.call_duration_seconds or 0)
 
-            # Format call duration as HH:MM:SS
+            # Format call duration
             total_seconds = int(call_duration.total_seconds())
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
@@ -1632,21 +1661,18 @@ def generate_work_report(request):
 
             current_date = next_date
 
-        # Calculate overall statistics for the entire period
-        # Total tickets - only count new assignments in the period
+        # Calculate overall statistics
         total_tickets = Ticket.objects.filter(
             assigned_at__range=(start_datetime, end_datetime),
             assigned_to=request.user
         ).distinct()
 
-        # Total resolved in the period
         total_resolved = Ticket.objects.filter(
             assigned_to=request.user,
             status__in=['resolved', 'closed'],
             status_changed__range=(start_datetime, end_datetime)
         ).count()
 
-        # Current unresolved tickets at the end of the period
         total_unresolved = Ticket.objects.filter(
             assigned_to=request.user,
             assigned_at__lte=end_datetime
@@ -1663,7 +1689,6 @@ def generate_work_report(request):
             'Unresolved': total_unresolved
         }
 
-        # Calculate total call duration for the period
         total_call_duration = sum(
             [entry['call_duration_seconds'] for entry in daily_data]
         )
@@ -1681,4 +1706,12 @@ def generate_work_report(request):
             }
         })
 
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while generating the report'
+        })
+
+@login_required
+def work_report_view(request):
+    return render(request, 'work_report.html')
