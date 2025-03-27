@@ -2,7 +2,6 @@
 .venv/
 venv/
 ENV/
-.env/
 Lib/
 Scripts/
 pyvenv.cfg
@@ -47,3 +46,12 @@ desktop_agent/Deployment/
 # IDE
 .idea/
 .vscode/
+
+# Environment variables
+.env
+.env.*
+!.env.example"# Environment variables" 
+"" 
+"!.env.example" 
+".env.*" 
+".env" 
