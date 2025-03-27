@@ -1,0 +1,739 @@
+{% extends 'base.html' %}
+{% load duration_filters %}
+{% csrf_token %}
+{% block content %}
+
+<!-- Main Content -->
+<div class="ml-0 pt-20 px-5 bg-white text-black min-h-screen relative z-10">
+    {% if user.is_authenticated %}
+        <div class="flex justify-between items-center flex-wrap gap-4">
+            <h1 class="text-2xl font-bold text-gray-800 m-3">Tickets Overview</h1>
+
+            <!-- Filter by Skill -->
+            <div class="flex-grow sm:flex-grow-0">
+                <form action="{% url 'home' %}" method="get" class="flex items-center gap-2">
+                    <select name="skill" id="skillFilter" class="form-select px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" {% if not request.GET.skill %}selected{% endif %}>All Skills</option>
+                        {% for skill in skills %}
+                            <option value="{{ skill }}" {% if skill == request.GET.skill %}selected{% endif %}>{{ skill }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                        Filter
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- On Break Message -->
+        {% if employee_profile.is_on_break %}
+            <p class="text-gray-700 p-4 bg-yellow-50 rounded-md">You are on break. Tickets are hidden until the break ends.</p>
+        {% else %}
+            <!-- Tickets Container -->
+            <div id="ticket-container">
+                {% for user_tickets in tickets_by_user %}
+                    <div class="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
+                        <!-- User Header -->
+                        <h3 class="p-4 bg-gray-50 border-b flex items-center justify-between cursor-pointer hover:bg-gray-100 transition-colors"
+                            data-user-collapse="{{ user_tickets.user.id }}">
+                            <span class="font-semibold text-gray-800">{{ user_tickets.user.username }}'s Tickets</span>
+                            <div class="flex gap-2">
+                                {% if user_tickets.user.employeeprofile.is_idle %}
+                                    <span class="px-3 py-1 bg-gray-500 text-white rounded-full text-sm">On Idle</span>
+                                {% endif %}
+                                {% if user_tickets.user.employeeprofile.is_on_break %}
+                                    <span class="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm">On Break</span>
+                                {% endif %}
+                                {% if user_tickets.call_in_progress %}
+                                    <span class="px-3 py-1 bg-red-500 text-white rounded-full text-sm call-badge">On Call</span>
+                                {% endif %}
+                            </div>
+                        </h3>
+
+                        <!-- Ticket Table -->
+                        <div class="p-4">
+                            <div class="overflow-x-auto shadow-md sm:rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10"></th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Spent</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Individual Spent</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        {% if user_tickets.latest_ticket %}
+                                            <tr data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                                                class="hover:bg-gray-50 {% if user_tickets.latest_ticket.is_active %}bg-green-50{% endif %}">
+                                                <td class="px-4 py-3">
+                                                    <button class="w-6 h-6 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-100 transition-colors"
+                                                            data-collapse-toggle="options-{{ user_tickets.latest_ticket.id }}">
+                                                        +
+                                                    </button>
+                                                </td>
+                                                <td class="px-4 py-3">{{ user_tickets.latest_ticket.ticket_id }}</td>
+                                                <td class="px-4 py-3">{{ user_tickets.latest_ticket.subject }}</td>
+                                                <td class="px-4 py-3" id="ticket-status-{{ user_tickets.latest_ticket.id }}">
+                                                    {{ user_tickets.latest_ticket.status }}
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <span class="priority-badge priority-{{ user_tickets.latest_ticket.priority|lower }}">
+                                                        {{ user_tickets.latest_ticket.priority|title }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 time-column total-time {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }}{% endif %}">
+                                                    <span id="timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+                                                        {% if user_tickets.latest_ticket.time_spent %}
+                                                            {{ user_tickets.latest_ticket.time_spent|format_duration }}
+                                                        {% else %}
+                                                            00:00:00
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                                <td class="px-4 py-3 time-column individual-time {% if user_tickets.latest_ticket.has_exceeded_time_limit and not user_tickets.latest_ticket.status_changed %}exceeded{% endif %}">
+                                                    <span id="individual-timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+                                                        {% if user_tickets.latest_ticket.individual_time_spent %}
+                                                            {{ user_tickets.latest_ticket.individual_time_spent|format_duration }}
+                                                        {% else %}
+                                                            00:00:00
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Options Row -->
+                                            <tr class="hidden transition-all duration-300 ease-in-out options-row" id="options-{{ user_tickets.latest_ticket.id }}">
+                                                <td colspan="7" class="px-4 py-3 bg-gray-50">
+                                                    <div class="flex gap-2">
+                                                        <a href="{% url 'assign_ticket' user_tickets.latest_ticket.id %}"
+                                                           class="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition-colors">
+                                                            Assign
+                                                        </a>
+                                                        <div class="custom-dropdown relative">
+                                                            <button class="custom-dropdown-toggle px-4 py-2 border border-cyan-500 text-cyan-500 rounded-md hover:bg-cyan-50 transition-colors flex items-center gap-2"
+                                                                    type="button">
+                                                                Status
+                                                                <i class="ph ph-caret-down"></i>
+                                                            </button>
+                                                            <ul class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                                                                {% for status in ticket_statuses %}
+                                                                    {% if status.0 != user_tickets.latest_ticket.status %}
+                                                                        <li>
+                                                                            <a href="#"
+                                                                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 change-status"
+                                                                               data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                                                                               data-new-status="{{ status.0 }}">
+                                                                                {{ status.1 }}
+                                                                            </a>
+                                                                        </li>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Older Tickets -->
+                                            {% for ticket in user_tickets.older_tickets %}
+                                                <tr data-ticket-id="{{ ticket.id }}"
+                                                    class="hidden transition-all duration-300 ease-in-out collapse-{{ user_tickets.user.id }} {% if ticket.is_active %}bg-green-50{% endif %}">
+                                                    <td class="px-4 py-3">
+                                                        <button class="w-6 h-6 flex items-center justify-center rounded border border-gray-300 hover:bg-gray-100 transition-colors"
+                                                                data-collapse-toggle="options-{{ ticket.id }}">
+                                                            +
+                                                        </button>
+                                                    </td>
+                                                    <td class="px-4 py-3">{{ ticket.ticket_id }}</td>
+                                                    <td class="px-4 py-3">{{ ticket.subject }}</td>
+                                                    <td class="px-4 py-3" id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
+                                                    <td class="px-4 py-3">
+                                                        <span class="priority-badge priority-{{ ticket.priority|lower }}">
+                                                            {{ ticket.priority|title }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3 time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
+                                                        <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+                                                            {{ ticket.time_spent|format_duration }}
+                                                        </span>
+                                                    </td>
+                                                    <td class="px-4 py-3 time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded{% endif %}">
+                                                        <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+                                                            {{ ticket.individual_time_spent|format_duration }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Options for Older Tickets -->
+                                                <tr class="hidden transition-all duration-300 ease-in-out options-row collapse-options-{{ user_tickets.user.id }}"
+                                                    id="options-{{ ticket.id }}">
+                                                    <td colspan="7" class="px-4 py-3 bg-gray-50">
+                                                        <div class="flex gap-2">
+                                                            <a href="{% url 'assign_ticket' ticket.id %}"
+                                                               class="px-4 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition-colors">
+                                                                Assign
+                                                            </a>
+                                                            <div class="custom-dropdown relative">
+                                                                <button class="custom-dropdown-toggle px-4 py-2 border border-cyan-500 text-cyan-500 rounded-md hover:bg-cyan-50 transition-colors flex items-center gap-2"
+                                                                        type="button">
+                                                                    Status
+                                                                    <i class="ph ph-caret-down"></i>
+                                                                </button>
+                                                                <ul class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+                                                                    {% for status in ticket_statuses %}
+                                                                        {% if status.0 != ticket.status %}
+                                                                            <li>
+                                                                                <a href="#"
+                                                                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 change-status"
+                                                                                   data-ticket-id="{{ ticket.id }}"
+                                                                                   data-new-status="{{ status.0 }}">
+                                                                                    {{ status.1 }}
+                                                                                </a>
+                                                                            </li>
+                                                                        {% endif %}
+                                                                    {% endfor %}
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Tailwind CSS for Priority Animations -->
+<style>
+    @keyframes pulse-urgent {
+        0% { @apply bg-red-50; }
+        50% { @apply bg-red-100; }
+        100% { @apply bg-red-50; }
+    }
+
+    @keyframes pulse-high {
+        0% { @apply bg-orange-50; }
+        50% { @apply bg-orange-100; }
+        100% { @apply bg-orange-50; }
+    }
+
+    @keyframes pulse-medium {
+        0% { @apply bg-yellow-50; }
+        50% { @apply bg-yellow-100; }
+        100% { @apply bg-yellow-50; }
+    }
+
+    @keyframes pulse-low {
+        0% { @apply bg-green-50; }
+        50% { @apply bg-green-100; }
+        100% { @apply bg-green-50; }
+    }
+
+    .priority-urgent { animation: pulse-urgent 2s infinite; }
+    .priority-high { animation: pulse-high 2s infinite; }
+    .priority-medium { animation: pulse-medium 2s infinite; }
+    .priority-low { animation: pulse-low 2s infinite; }
+
+    /* SweetAlert2 Custom Styles */
+    .my-swal-popup {
+        @apply max-w-2xl !important;
+    }
+
+    .my-swal pre {
+        @apply bg-gray-50 p-4 rounded-md my-2.5 text-sm whitespace-pre-wrap overflow-y-auto max-h-[300px];
+    }
+
+    .my-swal .alert {
+        @apply text-left mb-0;
+    }
+
+    .options-row td {
+        background-color: rgb(249, 250, 251);
+        border-bottom: 1px solid rgb(229, 231, 235);
+    }
+
+    .custom-dropdown ul {
+        top: 100%;
+        right: 0;
+        min-width: 160px;
+        z-index: 50;
+    }
+
+    table {
+        border-collapse: collapse;
+    }
+
+    tr.hidden {
+        display: none;
+    }
+
+    tr:not(.hidden) {
+        display: table-row;
+    }
+</style>
+
+<!-- Keep all your original scripts unchanged -->
+{{ block.super }}
+
+{% if error %}
+<script>
+    Swal.fire({
+        title: 'Unauthorized Access',
+        text: "{{ error }}",
+        icon: 'error',
+        confirmButtonText: 'Okay'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "{% url 'home' %}";
+        }
+    });
+</script>
+{% endif %}
+
+<!-- All your original scripts remain unchanged -->
+<script>
+        document.querySelectorAll('.btn-close-ticket').forEach(button => {
+        button.addEventListener('click', function() {
+            const ticketId = this.dataset.ticketId;
+            if (confirm('Are you sure you want to close this ticket?')) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
+
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+
+
+
+        // Add click event for custom dropdown toggle
+        document.getElementById('activityDropdown').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+
+         document.addEventListener("DOMContentLoaded", function() {
+        // Get all buttons that toggle ticket options
+        const ticketToggles = document.querySelectorAll('.ticket-toggle');
+
+        ticketToggles.forEach(button => {
+            button.addEventListener('click', function() {
+                const currentTarget = this.getAttribute('data-bs-target');
+
+                // Collapse all other ticket options
+                ticketToggles.forEach(btn => {
+                    const target = btn.getAttribute('data-bs-target');
+                    if (target !== currentTarget) {
+                        const collapseElement = document.querySelector(target);
+                        if (collapseElement && collapseElement.classList.contains('show')) {
+                            // Collapse if it's not the current target
+                            collapseElement.classList.remove('show');
+                        }
+                    }
+                });
+            });
+        });
+    });
+
+
+    </script>
+
+{% if error %}
+    <script>
+        Swal.fire({
+            title: 'Unauthorized Access',
+            text: "{{ error }}",
+            icon: 'error',
+            confirmButtonText: 'Okay'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{% url 'home' %}";  // Redirect to the homepage
+            }
+        });
+    </script>
+    {% endif %}
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // =====================================
+    // Status Change Functionality
+    // =====================================
+    document.querySelectorAll('.change-status').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const ticketId = this.dataset.ticketId;
+            const newStatus = this.dataset.newStatus;
+
+            fetch('/update_ticket_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    new_status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const statusCell = document.querySelector(`#ticket-status-${ticketId}`);
+                    if (statusCell) {
+                        statusCell.textContent = data.new_status_label;
+
+                        // Tailwind toast notification instead of alert
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Status updated successfully!',
+                            icon: 'success',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'bg-white rounded-lg shadow-xl p-4',
+                                title: 'text-lg font-semibold text-gray-800',
+                                content: 'text-gray-600'
+                            }
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to update status.',
+                        icon: 'error',
+                        customClass: {
+                            popup: 'bg-white rounded-lg shadow-xl',
+                            title: 'text-lg font-semibold text-red-600',
+                            content: 'text-gray-600'
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while updating the status.',
+                    icon: 'error',
+                    customClass: {
+                        popup: 'bg-white rounded-lg shadow-xl'
+                    }
+                });
+            });
+        });
+    });
+
+    // =====================================
+    // Dropdown Functionality
+    // =====================================
+    const dropdownManager = {
+        init() {
+            this.setupDropdownToggles();
+            this.setupClickOutside();
+        },
+
+        setupDropdownToggles() {
+            document.querySelectorAll('.custom-dropdown-toggle').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const dropdown = toggle.parentElement;
+                    const menu = dropdown.querySelector('ul');
+
+                    // Close all other dropdowns
+                    document.querySelectorAll('.custom-dropdown ul').forEach(dropdownMenu => {
+                        if (dropdownMenu !== menu) {
+                            dropdownMenu.classList.add('hidden');
+                        }
+                    });
+
+                    // Toggle current dropdown
+                    if (menu) {
+                        menu.classList.toggle('hidden');
+                    }
+                });
+            });
+        },
+
+        setupClickOutside() {
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.custom-dropdown')) {
+                    document.querySelectorAll('.custom-dropdown ul').forEach(menu => {
+                        menu.classList.add('hidden');
+                    });
+                }
+            });
+        }
+    };
+
+    dropdownManager.init();
+
+    // =====================================
+    // Collapse Functionality
+    // =====================================
+    const collapseManager = {
+        init() {
+            this.setupToggleButtons();
+            this.setupNameBarCollapse();
+        },
+
+        setupToggleButtons() {
+            document.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetId = btn.getAttribute('data-collapse-toggle');
+                    const target = document.getElementById(targetId);
+                    const ticketRow = btn.closest('tr');
+                    const userId = ticketRow.classList.contains('collapse-') ?
+                        [...ticketRow.classList].find(cls => cls.startsWith('collapse-')).split('-')[1] : null;
+
+                    // Close all other option rows in the same table
+                    const table = btn.closest('table');
+                    table.querySelectorAll('tr[id^="options-"]').forEach(row => {
+                        if (row.id !== targetId) {
+                            row.classList.add('hidden');
+                            const relatedBtn = table.querySelector(`[data-collapse-toggle="${row.id}"]`);
+                            if (relatedBtn) relatedBtn.textContent = '+';
+                        }
+                    });
+
+                    if (target) {
+                        const isHidden = target.classList.contains('hidden');
+                        target.classList.toggle('hidden');
+                        btn.textContent = isHidden ? '-' : '+';
+                    }
+                });
+            });
+        },
+
+        setupNameBarCollapse() {
+            document.querySelectorAll('[data-user-collapse]').forEach(nameBar => {
+                nameBar.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-collapse');
+                    const table = this.closest('.bg-white')?.querySelector('table');
+                    if (!table) return;
+
+                    // Toggle all ticket rows for this user
+                    const userTickets = table.querySelectorAll(`.collapse-${userId}`);
+                    const isExpanding = userTickets.length > 0 &&
+                        [...userTickets].every(ticket => ticket.classList.contains('hidden'));
+
+                    // Toggle visibility of ticket rows
+                    userTickets.forEach(ticket => {
+                        ticket.classList.toggle('hidden');
+                    });
+
+                    // Close ALL option rows when collapsing
+                    const allOptionRows = table.querySelectorAll('tr[id^="options-"]');
+                    allOptionRows.forEach(row => {
+                        // If we're expanding tickets, only close options for this user's tickets
+                        if (!isExpanding || row.id.includes(userId)) {
+                            row.classList.add('hidden');
+                            // Reset all toggle buttons
+                            const toggleBtn = table.querySelector(`[data-collapse-toggle="${row.id}"]`);
+                            if (toggleBtn) toggleBtn.textContent = '+';
+                        }
+                    });
+
+                    // Also close all dropdowns
+                    table.querySelectorAll('.custom-dropdown ul').forEach(menu => {
+                        menu.classList.add('hidden');
+                    });
+                });
+            });
+        },
+
+        closeAllOptions(tableElement) {
+            if (!tableElement) return;
+
+            // Hide all option rows
+            tableElement.querySelectorAll('tr[id^="options-"]').forEach(row => {
+                row.classList.add('hidden');
+            });
+
+            // Reset all toggle buttons
+            tableElement.querySelectorAll('[data-collapse-toggle]').forEach(btn => {
+                btn.textContent = '+';
+            });
+
+            // Close all dropdowns
+            tableElement.querySelectorAll('.custom-dropdown ul').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+        }
+    };
+
+    collapseManager.init();
+
+    // =====================================
+    // Timer Functionality
+    // =====================================
+    const timerManager = {
+        formatTime(seconds) {
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        },
+
+        fetchActiveTimers() {
+            fetch('/get_active_timers/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.tickets) {
+                    data.tickets.forEach(ticket => {
+                        const totalTimer = document.getElementById(`timer-${ticket.ticket_id}`);
+                        const individualTimer = document.getElementById(`individual-timer-${ticket.ticket_id}`);
+
+                        if (totalTimer) {
+                            totalTimer.textContent = this.formatTime(ticket.time_spent_seconds);
+                        }
+                        if (individualTimer) {
+                            individualTimer.textContent = this.formatTime(ticket.individual_time_spent_seconds);
+                        }
+                    });
+                }
+            })
+            .catch(error => console.error('Error fetching timers:', error));
+        },
+
+        init() {
+            setInterval(() => this.fetchActiveTimers(), 5000);
+        }
+    };
+
+    timerManager.init();
+
+    // =====================================
+    // Call Status Functionality
+    // =====================================
+    const callStatusManager = {
+        updateCallStatuses() {
+            fetch('{% url "get_call_status" %}')
+                .then(response => response.json())
+                .then(data => {
+                    data.forEach(status => {
+                        const userHeader = document.querySelector(`[data-user-id="${status.user_id}"]`);
+                        if (userHeader) {
+                            const existingBadge = userHeader.querySelector('.call-badge');
+                            if (status.call_in_progress && !existingBadge) {
+                                const badge = document.createElement('span');
+                                badge.className = 'px-3 py-1 bg-red-500 text-white rounded-full text-sm call-badge';
+                                badge.textContent = 'On Call';
+                                userHeader.appendChild(badge);
+                            } else if (!status.call_in_progress && existingBadge) {
+                                existingBadge.remove();
+                            }
+                        }
+                    });
+                })
+                .catch(error => console.error('Error updating call status:', error));
+        },
+
+        init() {
+            this.updateCallStatuses();
+            setInterval(() => this.updateCallStatuses(), 30000);
+        }
+    };
+
+    callStatusManager.init();
+});
+</script>
+
+<script>
+function handleLogout(event) {
+    event.preventDefault();
+
+    // Make an AJAX call to the logout endpoint
+    fetch('/logout', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'error') {
+            // Create a formatted list of tickets grouped by status
+            let ticketList = Object.entries(data.tickets).map(([status, tickets]) => {
+                const ticketsInStatus = tickets.map(ticket =>
+                    `   • ${ticket.ticket_id}: ${ticket.subject}`
+                ).join('\n');
+                return `${status} Tickets:\n${ticketsInStatus}`;
+            }).join('\n\n');
+
+            // Show the alert with Sweetalert2
+            Swal.fire({
+                title: 'Cannot Logout',
+                html: `<div class="alert alert-warning">
+                    <p>You have the following unresolved tickets that need to be assigned to another agent:</p>
+                    <pre class="text-left">${ticketList}</pre>
+                    <p class="mt-3">Please assign these tickets to another agent before logging out.</p>
+                </div>`,
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                customClass: {
+                    container: 'my-swal',
+                    popup: 'my-swal-popup'
+                }
+            });
+        } else if (data.status === 'success') {
+            // Show a success message and redirect
+            Swal.fire({
+                title: 'Success',
+                text: 'You have been successfully logged out.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = '/login';
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // If there's an error, redirect to login page anyway
+        window.location.href = '/login';
+    });
+}
+
+// Add event listener to logout link/button
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutLink = document.querySelector('a[href="/logout"]');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', handleLogout);
+    }
+});
+</script>
+{% endblock %}

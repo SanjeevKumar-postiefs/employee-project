@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<!-- Main Content -->
+<div class="mt-16 w-full px-0.5">
+    <!-- Search and Filters Section -->
+    <div class="mb-4 bg-white rounded-lg shadow-lg">
+        <div class="p-4">
+            <!-- Search Bar -->
+            <div class="mb-4">
+                <input type="text"
+                       id="searchInput"
+                       class="w-full rounded-md border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                       placeholder="Search by ticket ID or subject...">
+            </div>
+
+            <!-- Filters Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <!-- Group Filter -->
+                <select class="rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none filter-select" id="groupFilter">
+                    <option value="">All Groups</option>
+                    <option value="Linux">Linux</option>
+                    <option value="Windows">Windows/Azure</option>
+                    <option value="AWS">Network/AWS</option>
+                    <option value="LEVELONE">Level One</option>
+                    <option value="OCI">OCI</option>
+                </select>
+
+                <!-- Status Filter -->
+                <select class="rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="open">Open</option>
+                    <option value="pending">Pending</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                    <option value="waiting_on_customer">Waiting on Customer</option>
+                    <option value="initial_response">Initial Response</option>
+                </select>
+
+                <!-- Priority Filter -->
+                <select class="rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none filter-select" id="priorityFilter">
+                    <option value="">All Priority</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+
+                <!-- Environment Filter -->
+                <select class="rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none filter-select" id="environmentFilter">
+                    <option value="">All Environments</option>
+                    <option value="postiefs">Postiefs</option>
+                    <option value="aws">AWS</option>
+                    <option value="azure">Azure</option>
+                    <option value="oracle">Oracle</option>
+                    <option value="google">Google</option>
+                </select>
+
+                <!-- Date Range Filter -->
+                <input type="text"
+                       class="rounded-md border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                       id="dateRange"
+                       placeholder="Select Date Range">
+
+                <!-- Reset Button -->
+                <button class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors flex items-center justify-center"
+                        id="resetFilters">
+                    <i class="fas fa-undo mr-2"></i> Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="bg-white rounded-lg shadow-lg">
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto" id="ticketsTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Ticket ID</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Subject</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Environment</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Assigned To</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Time Spent</th>
+                        <th class="p-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for ticket in tickets %}
+                    <tr class="{% if ticket.priority == 'urgent' %}bg-red-50{% elif ticket.priority == 'high' %}bg-yellow-50{% endif %} hover:bg-gray-50">
+                        <!-- Table cells remain the same but with adjusted padding -->
+                        <td class="p-3 text-sm">{{ ticket.ticket_id }}</td>
+                        <td class="p-3 text-sm">{{ ticket.subject }}</td>
+                        <td class="p-3 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium full relative group cursor-help
+                                {% if ticket.status == 'open' %}
+                                    bg-green-100 text-green-800
+                                {% elif ticket.status == 'pending' %}
+                                    bg-yellow-100 text-yellow-800
+                                {% elif ticket.status == 'closed' %}
+                                    bg-gray-100 text-gray-800
+                                {% else %}
+                                    bg-blue-100 text-blue-800
+                                {% endif %}"
+                                title="{{ ticket.status|status_full_name }}">
+                                {{ ticket.status|status_abbreviation }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{ ticket.group }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs font-medium full relative group cursor-help
+                                {% if ticket.priority == 'urgent' %}
+                                    bg-red-100 text-red-800
+                                {% elif ticket.priority == 'high' %}
+                                    bg-yellow-100 text-yellow-800
+                                {% elif ticket.priority == 'medium' %}
+                                    bg-blue-100 text-blue-800
+                                {% else %}
+                                    bg-gray-100 text-gray-800
+                                {% endif %}">
+                                {{ ticket.priority|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{ ticket.environment|title }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="relative group">
+                                {% if ticket.assigned_to and ticket.assigned_to.employeeprofile.profile_picture %}
+                                    <img src="{{ ticket.assigned_to.employeeprofile.profile_picture.url }}"
+                                         alt="{{ ticket.assigned_to }}"
+                                         class="w-10 h-10 rounded-full object-cover">
+                                {% elif ticket.assigned_to %}
+                                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                                        {{ ticket.assigned_to.username|slice:":2"|upper }}
+                                    </div>
+                                {% else %}
+                                    <div class="w-10 h-10 rounded-full bg-gray-400 flex items-center justify-center text-white font-medium">
+                                        UN
+                                    </div>
+                                {% endif %}
+                                <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap">
+                                    {{ ticket.assigned_to|default:'Unassigned' }}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{ ticket.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">{{ ticket.time_spent|format_duration }}</td>
+                        <td class="p-3 text-sm space-x-1">
+                            <a href="{% url 'view_ticket_notes_all' ticket.id %}"
+                               class="inline-flex items-center p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                               title="View Notes">
+                               <i class="ph ph-note-blank text-lg"></i>
+                            </a>
+
+                            {% if user.employeeprofile.is_admin %}
+                            <a href="{% url 'edit_ticket' ticket.id %}"
+                               class="inline-flex items-center p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                               title="Edit Ticket">
+                               <i class="ph ph-pencil-simple text-lg"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Include necessary JavaScript -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+
+<script>
+$(document).ready(function() {
+    // Initialize DateRangePicker with better configuration
+    $('#dateRange').daterangepicker({
+        opens: 'left',
+        autoUpdateInput: false,
+        locale: {
+            format: 'YYYY-MM-DD',
+            cancelLabel: 'Clear'
+        },
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    });
+
+    // Event handlers for date range picker
+    $('#dateRange').on('apply.daterangepicker', function(ev, picker) {
+        $(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));
+        filterTable();
+    });
+
+    $('#dateRange').on('cancel.daterangepicker', function(ev, picker) {
+        $(this).val('');
+        filterTable();
+    });
+
+    // Real-time filtering for all inputs
+    $('#searchInput, .filter-select, #dateRange').on('keyup change', filterTable);
+
+    // Reset filters
+    $('#resetFilters').on('click', function() {
+        $('#searchInput, .filter-select, #dateRange').val('');
+        filterTable();
+    });
+
+    function filterTable() {
+        const searchText = $('#searchInput').val().toLowerCase();
+        const groupFilter = $('#groupFilter').val();
+        const statusFilter = $('#statusFilter').val();
+        const priorityFilter = $('#priorityFilter').val();
+        const environmentFilter = $('#environmentFilter').val();
+        const dateRange = $('#dateRange').val();
+
+        $('#ticketsTable tbody tr').each(function() {
+            const row = $(this);
+            const ticketId = row.find('td:eq(0)').text().toLowerCase();
+            const subject = row.find('td:eq(1)').text().toLowerCase();
+            const status = row.find('td:eq(2)').text().toLowerCase();
+            const group = row.find('td:eq(3)').text();
+            const priority = row.find('td:eq(4)').text().toLowerCase();
+            const environment = row.find('td:eq(5)').text();
+            const createdAt = row.find('td:eq(7)').text();
+
+            let showRow = true;
+
+            // Apply search filter
+            if (searchText && !ticketId.includes(searchText) && !subject.includes(searchText)) {
+                showRow = false;
+            }
+
+            // Apply dropdown filters
+            if (groupFilter && group !== groupFilter) showRow = false;
+            if (statusFilter && !status.includes(statusFilter.toLowerCase())) showRow = false;
+            if (priorityFilter && !priority.includes(priorityFilter.toLowerCase())) showRow = false;
+            if (environmentFilter && environment !== environmentFilter) showRow = false;
+
+            // Apply date range filter
+            if (dateRange) {
+                const dates = dateRange.split(' - ');
+                const startDate = moment(dates[0]);
+                const endDate = moment(dates[1]);
+                const ticketDate = moment(createdAt);
+
+                if (!ticketDate.isBetween(startDate, endDate, 'day', '[]')) {
+                    showRow = false;
+                }
+            }
+
+            row.toggle(showRow);
+        });
+    }
+});
+</script>
+<script>
+    document.querySelector('.custom-dropdown-toggle').addEventListener('click', function() {
+        let dropdown = this.closest('.custom-dropdown');
+        dropdown.classList.toggle('active');
+    });
+</script>
+<style>
+/* Custom styles for daterangepicker */
+.daterangepicker {
+    @apply shadow-lg border border-gray-200 rounded-lg;
+}
+
+.daterangepicker .calendar-table {
+    @apply border-none;
+}
+
+.daterangepicker td.active, .daterangepicker td.active:hover {
+    @apply bg-blue-600;
+}
+
+.daterangepicker .ranges li.active {
+    @apply bg-blue-600;
+}
+
+/* Adjust table layout */
+#ticketsTable {
+    table-layout: fixed;
+}
+
+#ticketsTable th,
+#ticketsTable td {
+    @apply truncate;
+}
+
+/* Column widths */
+#ticketsTable th:nth-child(1) { width: 8%; }  /* Ticket ID */
+#ticketsTable th:nth-child(2) { width: 12%; } /* Subject */
+#ticketsTable th:nth-child(3) { width: 12%; }  /* Status */
+#ticketsTable th:nth-child(4) { width: 8%; }  /* Group */
+#ticketsTable th:nth-child(5) { width: 8%; }  /* Priority */
+#ticketsTable th:nth-child(6) { width: 10%; } /* Environment */
+#ticketsTable th:nth-child(7) { width: 10%; } /* Assigned To */
+#ticketsTable th:nth-child(8) { width: 12%; } /* Created At */
+#ticketsTable th:nth-child(9) { width: 8%; }  /* Time Spent */
+#ticketsTable th:nth-child(10) { width: 8%; } /* Actions */
+</style>
+{% endblock %}

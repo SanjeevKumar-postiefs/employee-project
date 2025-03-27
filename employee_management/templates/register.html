@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-register">
+    <h2 class="register-title">Create an Account</h2>
+    <form method="POST" class="register-form">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- This includes the admin checkbox, level, and skill fields -->
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+</div>
+
+{% block css %}
+<style>
+    body {
+        background-color: #ffffff;
+    }
+
+    .container-register {
+        max-width: 400px;
+        margin: auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f8f9fa;
+        margin-top: 50px;
+    }
+
+    .register-title {
+        text-align: center;
+        margin-bottom: 20px;
+        font-weight: bold;
+        color: #343a40;
+    }
+
+    .register-form .form-control, .form-check-input {
+        margin-bottom: 15px;
+    }
+
+    .btn-primary {
+        width: 100%;
+    }
+
+    .footer {
+        margin-top: auto;
+    }
+</style>
+{% endblock %}
+{% endblock %}

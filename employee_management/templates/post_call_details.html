@@ -1,0 +1,40 @@
+{% load timedelta_filters %}
+<!-- post_call_details.html -->
+<h2>Post-Call Details for Ticket {{ ticket.ticket_id }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <div>
+        <label>Ticket ID:</label>
+        <input type="text" value="{{ ticket.ticket_id }}" readonly>
+    </div>
+
+    <div>
+        <label>Subject:</label>
+        <input type="text" value="{{ ticket.subject }}" readonly>
+    </div>
+
+    <div>
+        <label>Status:</label>
+        <select name="status">
+            {% for status in ticket_statuses %}
+                <option value="{{ status.0 }}" {% if status.0 == ticket.status %}selected{% endif %}>
+                    {{ status.1 }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+    <label>Call Duration:</label>
+    <input type="text" value="{{ ticket.call_duration|format_timedelta }}" readonly>
+    </div>
+
+    <div>
+        <label>Note:</label>
+        <textarea name="note" rows="4" placeholder="Describe the call...">{{ ticket.call_note }}</textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>

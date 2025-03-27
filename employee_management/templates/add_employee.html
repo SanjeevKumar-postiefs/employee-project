@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="max-w-4xl mx-auto px-10 sm:px-10 lg:px-20 py-12">
+    <!-- Page Title -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-semibold text-gray-700">Add New Employee</h2>
+    </div>
+
+    <!-- Form Container -->
+    <div class="max-w-2xl bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- First Name -->
+            <div class="space-y-2">
+                <label for="id_first_name" class="block text-sm font-medium text-gray-700">
+                    First Name
+                </label>
+                <input type="text" name="first_name" maxlength="30" required id="id_first_name"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                {% if form.first_name.errors %}
+                    {% for error in form.first_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Last Name -->
+            <div class="space-y-2">
+                <label for="id_last_name" class="block text-sm font-medium text-gray-700">
+                    Last Name
+                </label>
+                <input type="text" name="last_name" maxlength="30" required id="id_last_name"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                {% if form.last_name.errors %}
+                    {% for error in form.last_name.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="space-y-2">
+                <label for="id_email" class="block text-sm font-medium text-gray-700">
+                    Email
+                </label>
+                <input type="email" name="email" required id="id_email"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                {% if form.email.errors %}
+                    {% for error in form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="space-y-2">
+                <label for="id_password" class="block text-sm font-medium text-gray-700">
+                    Password
+                </label>
+                <input type="password" name="password" required id="id_password"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                {% if form.password.errors %}
+                    {% for error in form.password.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Level -->
+            <div class="space-y-2">
+                <label for="id_level" class="block text-sm font-medium text-gray-700">
+                    Level
+                </label>
+                <select name="level" required id="id_level"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    {% for value, label in form.fields.level.choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.level.errors %}
+                    {% for error in form.level.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Skill -->
+            <div class="space-y-2">
+                <label for="id_skill" class="block text-sm font-medium text-gray-700">
+                    Skill
+                </label>
+                <select name="skill" required id="id_skill"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="">Select Skill</option>
+                    {% for value, label in form.fields.skill.choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                {% if form.skill.errors %}
+                    {% for error in form.skill.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Reporting Manager -->
+            <div class="space-y-2">
+                <label for="id_reporting_manager" class="block text-sm font-medium text-gray-700">
+                    Reporting Manager
+                </label>
+                <select name="reporting_manager" required id="id_reporting_manager"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="">Select Reporting Manager</option>
+                    {% for skill, employees in employees_by_skill.items %}
+                        <optgroup label="{{ skill }}" class="skill-group" data-skill="{{ skill }}" style="display: none;">
+                            {% for employee in employees %}
+                                <option value="{{ employee.id }}" data-skill="{{ skill }}">
+                                    {{ employee.user.get_full_name }}
+                                </option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endfor %}
+                </select>
+                {% if form.reporting_manager.errors %}
+                    {% for error in form.reporting_manager.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Is Admin -->
+            <div class="space-y-2">
+                <div class="flex items-center">
+                    <input type="checkbox" name="is_admin" id="id_is_admin"
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="id_is_admin" class="ml-2 block text-sm text-gray-700">
+                        Make this user an admin
+                    </label>
+                </div>
+                {% if form.is_admin.errors %}
+                    {% for error in form.is_admin.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-start pt-6">
+                <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                    Add Employee
+                </button>
+                <a href="{% url 'employee_list' %}"
+                    class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('id_skill').addEventListener('change', function() {
+    const skill = this.value;
+    const reportingManager = document.getElementById('id_reporting_manager');
+    const optgroups = reportingManager.getElementsByTagName('optgroup');
+
+    // Hide all optgroups first
+    for (let optgroup of optgroups) {
+        optgroup.style.display = 'none';
+    }
+
+    // Show only the optgroup for the selected skill
+    const selectedOptgroup = reportingManager.querySelector(`optgroup[data-skill="${skill}"]`);
+    if (selectedOptgroup) {
+        selectedOptgroup.style.display = '';
+    }
+
+    // Reset the reporting manager selection
+    reportingManager.value = '';
+});
+
+// Initially hide all optgroups
+document.addEventListener('DOMContentLoaded', function() {
+    const optgroups = document.getElementsByTagName('optgroup');
+    for (let optgroup of optgroups) {
+        optgroup.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

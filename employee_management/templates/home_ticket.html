@@ -1,0 +1,586 @@
+<!--activity_tracker.py-->
+
+
+import time
+import win32api
+import threading
+import subprocess
+import os
+from datetime import datetime
+from django.utils import timezone
+from .config import *
+from .api_client import APIClient
+from .storage import ActivityStorage
+
+
+class ActivityTracker:
+    def __init__(self):
+        self.running = True
+        self.user_info = self.get_windows_user_info()
+        self.api_client = APIClient()
+        self.storage = ActivityStorage()
+
+        # Idle tracking
+        self.idle_session_start = None
+        self.is_currently_idle = False
+        self.last_idle_report = None
+        self.activity_buffer = []
+
+        # Initialize sync thread
+        self.sync_thread = threading.Thread(target=self.sync_data_periodically, daemon=True)
+
+        # Print initialization info
+        print(f"\nCurrent Date and Time (UTC): {self.user_info['timestamp_utc']}")
+        print(f"User Login: {self.user_info['login']}")
+        print(f"Email: {self.user_info['email']}")
+
+    def get_windows_user_info(self):
+        try:
+            return {
+                'timestamp_utc': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                'login': os.getlogin(),
+                'email': self.get_user_email()
+            }
+        except Exception as e:
+            print(f"Error getting user info: {e}")
+            return {
+                'timestamp_utc': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                'login': 'Unknown',
+                'email': None
+            }
+
+    def get_user_email(self):
+        try:
+            # Try whoami command first
+            result = subprocess.run(['whoami', '/upn'], capture_output=True, text=True)
+            email = result.stdout.strip()
+            if email and '@' in email:
+                return email
+
+            # Try PowerShell command as backup
+            ps_command = """
+            $userEmail = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Office\\16.0\\Common\\Identity" -Name "EmailAddress" -ErrorAction SilentlyContinue).EmailAddress
+            if (-not $userEmail) {
+                $userEmail = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Office\\15.0\\Common\\Identity" -Name "EmailAddress" -ErrorAction SilentlyContinue).EmailAddress
+            }
+            Write-Output $userEmail
+            """
+            result = subprocess.run(['powershell', '-Command', ps_command],
+                                    capture_output=True, text=True, encoding='utf-8')
+            email = result.stdout.strip()
+            if email and '@' in email:
+                return email
+
+        except Exception as e:
+            print(f"Error getting email: {e}")
+        return None
+
+    def is_user_idle(self):
+        try:
+            last_input = win32api.GetLastInputInfo()
+            idle_time = (win32api.GetTickCount() - last_input) / 1000
+
+            if idle_time > IDLE_THRESHOLD:
+                if not self.is_currently_idle:
+                    self.idle_session_start = time.time() - idle_time
+                    self.is_currently_idle = True
+                    self.last_idle_report = None
+                    print(f"User became idle at: {datetime.fromtimestamp(self.idle_session_start)}")
+
+                return True, time.time() - self.idle_session_start
+            else:
+                if self.is_currently_idle:
+                    total_idle_time = time.time() - self.idle_session_start
+                    self.is_currently_idle = False
+                    self.idle_session_start = None
+                    print(f"User became active. Total idle time: {total_idle_time / 60:.2f} minutes")
+                    return False, total_idle_time
+                return False, 0
+
+        except Exception as e:
+            if DEBUG:
+                print(f"Error checking idle status: {e}")
+            return False, 0
+
+    def should_report_idle_update(self, idle_duration):
+        if not self.last_idle_report:
+            return True
+
+        time_since_last_report = time.time() - self.last_idle_report
+
+        # Report at 5min, 15min, 30min, 1hour intervals
+        for milestone in [300, 900, 1800, 3600]:
+            if (idle_duration >= milestone and
+                    (self.last_idle_report is None or
+                     time_since_last_report >= milestone)):
+                return True
+        return False
+
+    def sync_data_periodically(self):
+        while self.running:
+            try:
+                # Sync offline data
+                pending_activities = self.storage.get_pending_activities()
+                synced_timestamps = []
+
+                for timestamp, activity in pending_activities:
+                    try:
+                        response = self.api_client.send_activity_data(activity)
+                        if response and response.get('status') == 'success':
+                            synced_timestamps.append(timestamp)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Error syncing offline activity: {e}")
+
+                if synced_timestamps:
+                    self.storage.clear_activities(synced_timestamps)
+
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error in sync thread: {e}")
+
+            time.sleep(SYNC_INTERVAL)
+
+    def track_activity(self):
+        while self.running:
+            try:
+                is_idle, idle_duration = self.is_user_idle()
+                current_time = datetime.now(timezone.utc)
+
+                should_report = False
+                if is_idle:
+                    should_report = self.should_report_idle_update(idle_duration)
+                    if should_report:
+                        self.last_idle_report = time.time()
+                elif self.is_currently_idle:
+                    should_report = True
+
+                if should_report:
+                    current_activity = {
+                        'timestamp': current_time.isoformat(),
+                        'email': self.user_info['email'],
+                        'is_idle': is_idle,
+                        'idle_duration': idle_duration,
+                        'session_start': (datetime.fromtimestamp(self.idle_session_start, timezone.utc).isoformat()
+                                          if self.idle_session_start else None)
+                    }
+
+                    if DEBUG:
+                        print("\n" + "=" * 50)
+                        print(f"Activity Report - {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                        print(f"Email: {current_activity['email']}")
+                        print(f"Status: {'Idle' if is_idle else 'Active'}")
+                        if is_idle:
+                            print(f"Idle Duration: {idle_duration / 60:.2f} minutes")
+                        print("=" * 50)
+
+                    try:
+                        response = self.api_client.send_activity_data(current_activity)
+                        if not response or response.get('status') != 'success':
+                            self.storage.store(current_activity)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Error sending activity data: {e}")
+                        self.storage.store(current_activity)
+
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error in tracking loop: {e}")
+
+            time.sleep(UPDATE_INTERVAL)
+
+    def start(self):
+        print("Starting activity tracker...")
+        self.sync_thread.start()
+
+        tracking_thread = threading.Thread(target=self.track_activity)
+        tracking_thread.daemon = True
+        tracking_thread.start()
+
+    def stop(self):
+        print("Stopping activity tracker...")
+        self.running = False
+        self.storage.close()
+
+
+
+
+
+
+
+import time
+import win32api
+import threading
+import subprocess
+import os
+from datetime import datetime
+from django.utils import timezone
+from .config import *
+from .api_client import APIClient
+from .storage import ActivityStorage
+
+
+class ActivityTracker:
+    def __init__(self):
+        self.running = True
+        self.user_info = self.get_windows_user_info()
+        self.api_client = APIClient()
+        self.storage = ActivityStorage()
+
+        # Idle tracking
+        self.idle_session_start = None
+        self.is_currently_idle = False
+        self.last_idle_report = None
+        self.pending_idle_report = None
+        self.activity_buffer = []  # Add this if not present
+
+        # Initialize sync thread
+        self.sync_thread = threading.Thread(target=self.sync_data_periodically, daemon=True)
+
+        print(f"\nCurrent Date and Time (UTC): {self.user_info['timestamp_utc']}")
+        print(f"User Login: {self.user_info['login']}")
+        print(f"Email: {self.user_info['email']}")
+
+    def sync_data_periodically(self):
+        """Periodically sync data with the server"""
+        while self.running:
+            try:
+                # Try to sync pending offline data
+                pending_activities = self.storage.get_pending_activities()
+                synced_timestamps = []
+
+                for timestamp, activity in pending_activities:
+                    try:
+                        response = self.api_client.send_activity_data(activity)
+                        if response and response.get('status') == 'success':
+                            synced_timestamps.append(timestamp)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Error syncing offline activity: {e}")
+
+                # Clear synced activities
+                if synced_timestamps:
+                    self.storage.clear_activities(synced_timestamps)
+
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error in sync thread: {e}")
+
+            time.sleep(SYNC_INTERVAL)
+
+    def get_windows_user_info(self):
+        try:
+            return {
+                'timestamp_utc': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                'login': os.getlogin(),
+                'email': self.get_user_email()
+            }
+        except Exception as e:
+            print(f"Error getting user info: {e}")
+            return {
+                'timestamp_utc': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                'login': 'Unknown',
+                'email': None
+            }
+
+    def get_user_email(self):
+        try:
+            # Try whoami command first
+            result = subprocess.run(['whoami', '/upn'], capture_output=True, text=True)
+            email = result.stdout.strip()
+            if email and '@' in email:
+                return email
+
+            # Try PowerShell command as backup
+            ps_command = """
+            $userEmail = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Office\\16.0\\Common\\Identity" -Name "EmailAddress" -ErrorAction SilentlyContinue).EmailAddress
+            if (-not $userEmail) {
+                $userEmail = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Office\\15.0\\Common\\Identity" -Name "EmailAddress" -ErrorAction SilentlyContinue).EmailAddress
+            }
+            Write-Output $userEmail
+            """
+            result = subprocess.run(['powershell', '-Command', ps_command],
+                                    capture_output=True, text=True, encoding='utf-8')
+            email = result.stdout.strip()
+            if email and '@' in email:
+                return email
+
+        except Exception as e:
+            print(f"Error getting email: {e}")
+        return None
+
+    def is_user_idle(self):
+        try:
+            last_input = win32api.GetLastInputInfo()
+            idle_time = (win32api.GetTickCount() - last_input) / 1000
+
+            if idle_time > IDLE_THRESHOLD:
+                if not self.is_currently_idle:
+                    self.idle_session_start = time.time() - idle_time
+                    self.is_currently_idle = True
+                    self.last_idle_report = None
+                    print(f"User became idle at: {datetime.fromtimestamp(self.idle_session_start)}")
+
+                return True, time.time() - self.idle_session_start
+            else:
+                if self.is_currently_idle:
+                    total_idle_time = time.time() - self.idle_session_start
+                    self.is_currently_idle = False
+                    self.idle_session_start = None
+                    print(f"User became active. Total idle time: {total_idle_time / 60:.2f} minutes")
+                    return False, total_idle_time  # Return the final idle time
+                return False, 0
+
+        except Exception as e:
+            if DEBUG:
+                print(f"Error checking idle status: {e}")
+            return False, 0
+
+    def should_report_idle_update(self, idle_duration):
+        """Only report intermediate idle updates for long sessions"""
+        if not self.last_idle_report:
+            return True
+
+        time_since_last_report = time.time() - self.last_idle_report
+
+        # Only send intermediate updates for sessions longer than 15 minutes
+        for milestone in [900, 1800, 3600]:  # 15min, 30min, 1hour
+            if (idle_duration >= milestone and
+                    (self.last_idle_report is None or
+                     time_since_last_report >= milestone)):
+                self.last_idle_report = time.time()
+                return True
+
+        return False
+
+    def sync_data_periodically(self):
+        while self.running:
+            try:
+                # Sync offline data
+                pending_activities = self.storage.get_pending_activities()
+                synced_timestamps = []
+
+                for timestamp, activity in pending_activities:
+                    try:
+                        response = self.api_client.send_activity_data(activity)
+                        if response and response.get('status') == 'success':
+                            synced_timestamps.append(timestamp)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Error syncing offline activity: {e}")
+
+                if synced_timestamps:
+                    self.storage.clear_activities(synced_timestamps)
+
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error in sync thread: {e}")
+
+            time.sleep(SYNC_INTERVAL)
+
+    def track_activity(self):
+        while self.running:
+            try:
+                is_idle, idle_duration = self.is_user_idle()
+                current_time = datetime.now(timezone.utc)
+
+                should_report = False
+
+                if is_idle:
+                    # Store the current idle session but don't send it yet
+                    self.pending_idle_report = {
+                        'timestamp': current_time.isoformat(),
+                        'email': self.user_info['email'],
+                        'is_idle': True,
+                        'idle_duration': idle_duration
+                    }
+                    # Only report intermediate idle states for long sessions
+                    should_report = self.should_report_idle_update(idle_duration)
+                else:
+                    # If we have a pending idle report and user is now active
+                    if self.pending_idle_report is not None:
+                        # Update the pending report with final duration
+                        self.pending_idle_report['idle_duration'] = idle_duration
+                        # Send the final report
+                        current_activity = self.pending_idle_report
+                        self.pending_idle_report = None
+                        should_report = True
+                    elif self.is_currently_idle:
+                        # User just became active
+                        current_activity = {
+                            'timestamp': current_time.isoformat(),
+                            'email': self.user_info['email'],
+                            'is_idle': False,
+                            'idle_duration': idle_duration
+                        }
+                        should_report = True
+
+                if should_report:
+                    if DEBUG:
+                        print("\n" + "=" * 50)
+                        print(f"Activity Report - {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                        print(f"Email: {current_activity['email']}")
+                        print(f"Status: {'Idle' if current_activity['is_idle'] else 'Active'}")
+                        print(f"Idle Duration: {current_activity['idle_duration'] / 60:.2f} minutes")
+                        print("=" * 50)
+
+                    try:
+                        response = self.api_client.send_activity_data(current_activity)
+                        if not response or response.get('status') != 'success':
+                            self.storage.store(current_activity)
+                    except Exception as e:
+                        if DEBUG:
+                            print(f"Error sending activity data: {e}")
+                        self.storage.store(current_activity)
+
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error in tracking loop: {e}")
+
+            time.sleep(UPDATE_INTERVAL)
+
+    def start(self):
+        """Start the activity tracker"""
+        print("Starting activity tracker...")
+        self.sync_thread.start()
+
+        tracking_thread = threading.Thread(target=self.track_activity)
+        tracking_thread.daemon = True
+        tracking_thread.start()
+
+    def stop(self):
+        """Stop the activity tracker"""
+        print("Stopping activity tracker...")
+        self.running = False
+        self.storage.close()
+
+
+i need to display the total idle time in the user_activity.html in a session on daily basis
+Accumulate all the total idle time fetching by the agent there
+
+user_activity.html
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="ml-0 min-h-screen bg-gray-50 p-8 pt-24">
+    <!-- Page Title -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-semibold text-gray-700">Activity for {{ user.username }}</h2>
+    </div>
+
+    <!-- Date Picker Section -->
+    <div class="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <form method="GET" class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <label for="date-picker" class="text-sm font-medium text-gray-600">
+                    Select Date:
+                </label>
+                <input
+                    type="date"
+                    id="date-picker"
+                    name="date"
+                    value="{{ selected_date|date:'Y-m-d' }}"
+                    class="block w-48 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                >
+            </div>
+            <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+            >
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Activity Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <!-- Table Header -->
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Session
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Login Time
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Logout Time
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Total Break Time
+                        </th>
+                        <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Total Work Time
+                        </th>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if activities %}
+                        {% for activity in activities %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                Session {{ forloop.counter }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ activity.login_time }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if activity.logout_time %}
+                                    {{ activity.logout_time }}
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Ongoing Session
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ activity.break_duration_str }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ activity.work_time_str }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">
+                                No activity found for this date.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+views.py
+@login_required
+def user_activity_view(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    # Get the selected date from the request (if none, default to today)
+    selected_date = request.GET.get('date', None)
+    if selected_date:
+        selected_date = timezone.datetime.strptime(selected_date, "%Y-%m-%d").date()
+    else:
+        selected_date = timezone.now().date()
+
+    # Fetch all sessions for the user on the selected date from SessionActivity
+    activities = SessionActivity.objects.filter(user=user, date=selected_date).order_by('login_time')
+
+    # Format the work time and break duration for each session
+    for activity in activities:
+        activity.work_time_str = format_duration(activity.work_time)
+        activity.break_duration_str = format_duration(activity.break_duration)
+
+    return render(request, 'user_activity.html', {
+        'user': user,
+        'activities': activities,
+        'selected_date': selected_date
+    })

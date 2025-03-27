@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 mt-12 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-900">Submit On Duty Request</h2>
+            <p class="mt-1 text-sm text-gray-600">Please fill in the details for your on-duty request.</p>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <div class="p-8">
+                <form method="POST" class="space-y-6">
+                    {% csrf_token %}
+
+                    <!-- Date Range Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Start Date and Time -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="{{ form.start_date.id_for_label }}">
+                                    Start Date
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    {{ form.start_date }}
+                                </div>
+                                {% if form.start_date.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.start_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="{{ form.start_time.id_for_label }}">
+                                    Start Time
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    {{ form.start_time }}
+                                </div>
+                                {% if form.start_time.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.start_time.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- End Date and Time -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="{{ form.end_date.id_for_label }}">
+                                    End Date
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    {{ form.end_date }}
+                                </div>
+                                {% if form.end_date.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.end_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700" for="{{ form.end_time.id_for_label }}">
+                                    End Time
+                                </label>
+                                <div class="mt-1 relative rounded-md shadow-sm">
+                                    {{ form.end_time }}
+                                </div>
+                                {% if form.end_time.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.end_time.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reason -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700" for="{{ form.reason.id_for_label }}">
+                            Reason for On Duty Request
+                        </label>
+                        <div class="mt-1">
+                            {{ form.reason }}
+                        </div>
+                        {% if form.reason.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.reason.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-2 text-sm text-gray-500">
+                            Please provide a detailed reason for your on-duty request.
+                        </p>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="pt-5 flex justify-end space-x-3">
+                        <a href="{% url 'on_duty_list' %}"
+                           class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Cancel
+                        </a>
+                        <button type="submit"
+                                class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Submit Request
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

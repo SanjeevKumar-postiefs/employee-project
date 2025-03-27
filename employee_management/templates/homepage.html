@@ -1,0 +1,1073 @@
+{% load static %}
+{% load duration_filters %}
+{% csrf_token %}
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+<style>
+/* Reset for body */
+body {
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    height: 100%;
+    background-color: #f4f4f4; /* Light background for the body */
+}
+
+/* Custom Navbar Styles */
+    .custom-navbar {
+        background-color: #2c3e50; /* Matches sidebar color */
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adds slight shadow for depth */
+    }
+
+    .navbar-brand {
+        color: #ffffff;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .navbar-nav .nav-link {
+        color: #ffffff;
+        font-size: 16px;
+        padding: 8px 20px;
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .navbar-nav .nav-link:hover {
+        background-color: #1abc9c; /* Matches hover effect of sidebar */
+        border-radius: 4px;
+        color: #ffffff;
+    }
+
+    /* Navbar toggler for small screens */
+    .custom-toggler {
+        border-color: #ffffff;
+    }
+
+    .custom-toggler .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-width='2' linecap='round' linejoin='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+    }
+
+    /* Navbar title */
+    .navbar-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #ffffff;
+    }
+
+    /* Centering and spacing for larger screens */
+    .navbar-nav {
+        margin-left: auto; /* Aligns the items to the right */
+    }
+
+    .navbar-collapse {
+        justify-content: flex-end;
+    }
+
+    /* Additional responsiveness for mobile view */
+    @media (max-width: 991px) {
+        .navbar-nav .nav-link {
+            padding: 12px;
+            text-align: center;
+        }
+    }
+
+    .dropdown-menu {
+        right: 0;
+        left: auto; /* Align dropdown to the right */
+        min-width: 160px; /* Set a minimum width for better appearance */
+        border-radius: 5px; /* Rounded corners for the dropdown */
+        border: 1px solid rgba(0, 0, 0, 0.2); /* Light border */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    }
+
+    .dropdown-item {
+        color: #333; /* Dark text for contrast */
+        padding: 10px 15px; /* Better padding */
+    }
+
+    .dropdown-item:hover {
+        background-color: #1abc9c; /* Change background on hover */
+        color: #ffffff; /* White text on hover */
+    }
+
+/* Additional responsiveness for mobile view */
+@media (max-width: 991px) {
+    .navbar-nav .nav-link {
+        padding: 12px;
+        text-align: center;
+    }
+}
+
+
+
+/* Sidebar styling */
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    height: 100vh;
+    width: 80px; /* Sidebar width */
+    background-color: #2c3e50;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1050;
+}
+
+/* Sidebar anchor (icon container) */
+.sidebar a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    color: white;
+    padding: 20px 0;
+    text-decoration: none;
+}
+
+/* Icon inside sidebar */
+.sidebar i {
+    font-size: 24px;
+}
+
+/* Hover text (dashboard, users, etc.) */
+.sidebar a:hover h5 {
+    opacity: 1;
+    left: 100%; /* Show text right next to sidebar */
+    background-color: rgba(44, 62, 80, 0.9);
+    padding: 5px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    z-index: 1060; /* Ensure text is above other elements */
+    top: 50%; /* Align vertically */
+    transform: translateY(-50%); /* Center text vertically */
+}
+
+/* Initial hidden text for the label */
+.sidebar h5 {
+    position: absolute;
+    left: 80px; /* Adjusted to match sidebar width */
+    top: 50%; /* Center vertically relative to the icon */
+    transform: translateY(-50%);
+    background-color: transparent;
+    opacity: 0;
+    font-size: 16px;
+    color: white;
+    transition: opacity 0.3s ease, left 0.3s ease;
+    pointer-events: none; /* Make text unclickable */
+}
+
+
+/* Active Users dropdown */
+.custom-dropdown {
+    position: relative;
+}
+
+.custom-dropdown-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 20px 0;
+    color: white;
+}
+
+.custom-dropdown-menu {
+    display: none;
+    position: absolute;
+    left: 100%; /* Right of the sidebar */
+    top: 0;
+    background-color: #34495e;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 1060; /* Make sure it's above other elements */
+    width: 180px; /* Adjust as necessary */
+}
+
+.custom-dropdown:hover .custom-dropdown-menu {
+    display: block;
+}
+
+.custom-dropdown-item {
+    color: white;
+    padding: 8px 12px;
+    text-decoration: none;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #1abc9c;
+}
+
+
+
+
+/* Main Content Styling */
+.main-content {
+    margin-left: 80px; /* Sidebar width */
+    padding: 70px 20px 20px 20px;
+    background-color: #ffffff; /* White background */
+    color: black; /* Black text */
+    min-height: 100vh;
+    box-sizing: border-box;
+    z-index: 100; /* Lower than sidebar */
+}
+
+
+/* Ticket Header */
+.ticket-header {
+    background-color: #f4f4f4; /* Light gray background for the header */
+    padding: 15px;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+    color: #333; /* Dark text */
+}
+
+/* Additional card styles */
+.card {
+    background-color: white; /* White background for cards */
+    border: 1px solid #ddd; /* Light border for cards */
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ticket-body {
+    padding: 20px;
+}
+
+.ticket-card table th,
+.ticket-card table td {
+    color: #333 !important; /* Ensure table text is black */
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 60px; /* Adjust for smaller screens */
+        width: calc(100% - 60px); /* Adjust width for smaller screens */
+    }
+
+    .sidebar {
+        width: 60px; /* Smaller sidebar on mobile */
+    }
+
+    .sidebar h5 {
+        left: 60px; /* Adjust hover text for smaller screens */
+    }
+
+    /* For mobile, navbar should take the full width */
+    .navbar {
+        width: 100%;
+    }
+}
+
+/* Switch Toggle */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+}
+
+input:checked + .slider {
+    background-color: #28a745;
+}
+
+.ticket-active {
+        background-color: #34eb4f; /* Light purple background */
+    }
+
+.activity-badge {
+        padding: 4px 12px;
+        border-radius: 12px;
+        color: white;
+    }
+    .badge-warning {
+        background-color: #ffc107;
+    }
+    .badge-danger {  /* Add this new style for "On Call" status */
+        background-color: #dc3545;
+    }
+
+
+
+/* Priority-based coloring and animations */
+/* Urgent priority */
+tr.priority-urgent .time-column.total-time,
+.time-column.total-time.priority-urgent,
+tr.priority-urgent .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-urgent {
+    background-color: rgba(255, 68, 68, 0.1);
+    animation: pulse-urgent 2s infinite;
+}
+
+/* High priority */
+tr.priority-high .time-column.total-time,
+.time-column.total-time.priority-high,
+tr.priority-high .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-high {
+    background-color: rgba(255, 187, 51, 0.1);
+    animation: pulse-high 2s infinite;
+}
+
+/* Medium priority */
+tr.priority-medium .time-column.total-time,
+.time-column.total-time.priority-medium,
+tr.priority-medium .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-medium {
+    background-color: rgba(255, 136, 0, 0.1);
+    animation: pulse-medium 2s infinite;
+}
+
+/* Low priority */
+tr.priority-low .time-column.total-time,
+.time-column.total-time.priority-low,
+tr.priority-low .time-column.individual-time.exceeded,
+.time-column.individual-time.exceeded.priority-low {
+    background-color: rgba(0, 200, 81, 0.1);
+    animation: pulse-low 2s infinite;
+}
+
+/* Single set of pulse animations */
+@keyframes pulse-urgent {
+    0% { background-color: rgba(255, 68, 68, 0.1); }
+    50% { background-color: rgba(255, 68, 68, 0.3); }
+    100% { background-color: rgba(255, 68, 68, 0.1); }
+}
+
+@keyframes pulse-high {
+    0% { background-color: rgba(255, 187, 51, 0.1); }
+    50% { background-color: rgba(255, 187, 51, 0.3); }
+    100% { background-color: rgba(255, 187, 51, 0.1); }
+}
+
+@keyframes pulse-medium {
+    0% { background-color: rgba(255, 136, 0, 0.1); }
+    50% { background-color: rgba(255, 136, 0, 0.3); }
+    100% { background-color: rgba(255, 136, 0, 0.1); }
+}
+
+@keyframes pulse-low {
+    0% { background-color: rgba(0, 200, 81, 0.1); }
+    50% { background-color: rgba(0, 200, 81, 0.3); }
+    100% { background-color: rgba(0, 200, 81, 0.1); }
+}
+
+/* Reset styles for non-exceeded tickets */
+.time-column.individual-time:not(.exceeded),
+.time-column.total-time:not(.priority-urgent):not(.priority-high):not(.priority-medium):not(.priority-low) {
+    background-color: transparent;
+    animation: none;
+}
+
+/* Status changed color reset */
+.time-column.individual-time:not(.exceeded) {
+    background-color: transparent !important;
+    animation: none !important;
+}
+
+
+.my-swal-popup {
+    width: auto !important;
+    max-width: 600px;
+}
+
+.my-swal pre {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.my-swal .alert {
+    text-align: left;
+    margin-bottom: 0;
+}
+</style>
+
+
+
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top custom-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Postiefs</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+
+                    <li class="nav-item"><a class="nav-link" href="{% url 'daily_activity' %}">Activity</a></li>
+                    {% if request.user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'view_profile' request.user.id %}">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'create_ticket' %}">Create tickets</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'user_tickets' user.id %}">View tickets</a></li>
+                    <li class="nav-item">
+                        <div class="dropdown">
+                            <button class="btn btn-secondary rounded-circle" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px;">
+                                {{ user.username|slice:":2"|upper }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+<div class="sidebar">
+    <a href="{% url 'dashboard' %}">
+        <i class="fas fa-tachometer-alt"></i>
+        <h5>Dashboard</h5> <!-- Text that appears on hover -->
+    </a>
+
+    <a href="{% url 'home' %}">
+    <i class="fas fa-home"></i>
+    <h5>Home</h5> <!-- Text that appears on hover -->
+    </a>
+
+
+    <div class="custom-dropdown">
+        <div class="custom-dropdown-toggle">
+            <i class="fas fa-user"></i>
+            <h5>Active Users</h5> <!-- Text that appears on hover -->
+        </div>
+        <div class="custom-dropdown-menu">
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Linux' %}">Linux</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Windows' %}">Windows/Azure</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'AWS' %}">Network/AWS</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'LEVELONE' %}">LEVELONE</a>
+            <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'OCI' %}">OCI</a>
+        </div>
+    </div>
+
+    <a href="{% url 'employee_list' %}">
+        <i class="fas fa-users"></i>
+        <h5>Users</h5> <!-- Text that appears on hover -->
+    </a>
+
+    <a href="{% url 'ticket_list' %}">
+        <i class="fas fa-ticket-alt"></i>
+        <h5>Tickets</h5>
+    </a>
+
+    <a href="{% url 'work_report' %}">
+        <i class="fas fa-chart-line"></i>
+        <h5>Work Report</h5>
+    </a>
+
+    <a href="{% url 'text_improver:generator' %}">
+        <i class="fas fa-edit"></i>
+        <h5>Text Improver</h5>
+    </a>
+
+    {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
+    <a href="{% url 'add_employee' %}">
+        <i class="fas fa-user-plus"></i>
+        <h5>Add User</h5> <!-- Text that appears on hover -->
+    </a>
+
+    <a href="{% url 'tracking:activity_dashboard' %}">
+        <i class="fas fa-chart-bar"></i>
+        <h5>Activity Tracker</h5>
+    </a>
+    {% endif %}
+</div>
+
+
+
+
+
+<!-- main content -->
+<div class="main-content">
+    {% if user.is_authenticated %}
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="text-dark m-3">Tickets Overview</h1>
+
+            <!-- Filter by Skill (placed to the left) -->
+            <div class="me-auto"><br>
+                <form action="{% url 'home' %}" method="get" class="d-flex align-items-center me-4">
+                    <select name="skill" id="skillFilter" class="form-select me-1">
+                        <option value="" {% if not request.GET.skill %}selected{% endif %}>All Skills</option>
+                        {% for skill in skills %}
+                            <option value="{{ skill }}" {% if skill == request.GET.skill %}selected{% endif %}>{{ skill }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Show a message if the user is on break -->
+        {% if employee_profile.is_on_break %}
+            <p class="text-dark">You are on break. Tickets are hidden until the break ends.</p>
+        {% else %}
+            <!-- Show tickets only if not on break -->
+            <div id="ticket-container">
+                {% for user_tickets in tickets_by_user %}
+                    <div class="card mb-3 ticket-card">
+                        <!-- Name Bar section -->
+<h3 class="m-0" style="cursor: pointer;" data-user-id="{{ user_tickets.user.id }}" data-bs-toggle="collapse" data-bs-target=".collapse-{{ user_tickets.user.id }}" aria-expanded="false" aria-controls="collapse-{{ user_tickets.user.id }}">
+    {{ user_tickets.user.username }}'s Tickets
+
+    <!-- Show "On Break" badge -->
+    {% if user_tickets.user.employeeprofile.is_on_break %}
+        <span class="badge badge-warning activity-badge">On Break</span>
+    {% endif %}
+
+    <!-- Show "On Call" badge if the user is on a call -->
+    {% if user_tickets.call_in_progress %}
+        <span class="badge badge-danger activity-badge call-badge">On Call</span>
+    {% endif %}
+</h3>
+
+
+                        <!-- Latest Ticket is always shown -->
+                        <div class="card-body ticket-body">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Ticket ID</th>
+                                        <th>Subject</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Total Spent</th>
+                                        <th>Individual Spent</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if user_tickets.latest_ticket %}
+                                        <tr data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                                            class="{% if user_tickets.latest_ticket.is_active %}ticket-active{% endif %} {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }} priority-alert{% endif %}">
+                                            <td>
+                                                <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ user_tickets.latest_ticket.id }}" aria-expanded="false" aria-controls="options-{{ user_tickets.latest_ticket.id }}">
+                                                    +
+                                                </button>
+                                            </td>
+                                            <td>{{ user_tickets.latest_ticket.ticket_id }}</td>
+                                            <td>{{ user_tickets.latest_ticket.subject }}</td>
+                                            <td id="ticket-status-{{ user_tickets.latest_ticket.id }}">{{ user_tickets.latest_ticket.status }}</td>
+                                            <td>{{ user_tickets.latest_ticket.priority|title }}</td>
+                                                <!-- Time Spent Column -->
+<td class="time-column total-time {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }}{% endif %}">
+    <span id="timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+        {% if user_tickets.latest_ticket.time_spent %}
+            {{ user_tickets.latest_ticket.time_spent|format_duration }}
+        {% else %}
+            00:00:00
+        {% endif %}
+    </span>
+</td>
+
+<!-- Individual Time Spent Column -->
+<td class="time-column individual-time {% if user_tickets.latest_ticket.has_exceeded_time_limit and not user_tickets.latest_ticket.status_changed %}exceeded{% endif %}">
+    <span id="individual-timer-{{ user_tickets.latest_ticket.id }}" class="timer-span" data-ticket-id="{{ user_tickets.latest_ticket.id }}">
+        {% if user_tickets.latest_ticket.individual_time_spent %}
+            {{ user_tickets.latest_ticket.individual_time_spent|format_duration }}
+        {% else %}
+            00:00:00
+        {% endif %}
+    </span>
+</td>
+                                        </tr>
+
+                                        <!-- Options for Latest Ticket -->
+                                        <tr class="collapse" id="options-{{ user_tickets.latest_ticket.id }}">
+                                            <td colspan="7">
+                                                <div class="options-list d-flex justify-content-start">
+                                                    <a class="btn btn-outline-primary me-2" href="{% url 'assign_ticket' user_tickets.latest_ticket.id %}">Assign</a>
+
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-outline-info dropdown-toggle" type="button" id="statusDropdown-{{ user_tickets.latest_ticket.id }}"
+                                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                                            Status
+                                                        </button>
+                                                        <ul class="dropdown-menu" aria-labelledby="statusDropdown-{{ user_tickets.latest_ticket.id }}">
+                                                            {% for status in ticket_statuses %}
+                                                                {% if status.0 != user_tickets.latest_ticket.status %}
+                                                                    <li>
+                                                                        <a class="dropdown-item change-status"
+                                                                           href="#"
+                                                                           data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                                                                           data-new-status="{{ status.0 }}">
+                                                                           {{ status.1 }}
+                                                                        </a>
+                                                                    </li>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+
+
+                            <!-- Collapsible section for older tickets -->
+
+                                        {% for ticket in user_tickets.older_tickets %}
+                                            <tr data-ticket-id="{{ ticket.id }}"
+                                                class="collapse collapse-{{ user_tickets.user.id }} {% if ticket.is_active %}ticket-active{% endif %} {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }} priority-alert{% endif %}">
+                                                <td>
+                                                    <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ ticket.id }}" aria-expanded="false" aria-controls="options-{{ ticket.id }}">
+                                                        +
+                                                    </button>
+                                                </td>
+                                                <td>{{ ticket.ticket_id }}</td>
+                                                <td>{{ ticket.subject }}</td>
+                                                <td id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
+                                                <td>{{ ticket.priority }}</td>
+
+                                                        <!-- Total Time Spent -->
+<td class="time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
+    <span id="timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.time_spent|format_duration }}
+    </span>
+</td>
+
+<!-- Individual Time Spent -->
+<td class="time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded{% endif %}">
+    <span id="individual-timer-{{ ticket.id }}" class="timer-span" data-ticket-id="{{ ticket.id }}">
+        {{ ticket.individual_time_spent|format_duration }}
+    </span>
+</td>
+
+                                            </tr>
+
+                                            <!-- Options for Older Ticket -->
+                                            <tr class="collapse" id="options-{{ ticket.id }}">
+                                                <td colspan="7">
+                                                    <div class="options-list d-flex justify-content-start">
+                                                        <a class="btn btn-outline-primary me-2" href="{% url 'assign_ticket' ticket.id %}">Assign</a>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-outline-info dropdown-toggle" type="button" id="statusDropdown-{{ ticket.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                Status
+                                                            </button>
+                                                            <ul class="dropdown-menu" aria-labelledby="statusDropdown-{{ ticket.id }}">
+                                                                {% for status in ticket_statuses %}
+                                                                    {% if status.0 != ticket.status %}
+                                                                        <li>
+                                                                            <a class="dropdown-item change-status"
+                                                                               href="#"
+                                                                               data-ticket-id="{{ ticket.id }}"
+                                                                               data-new-status="{{ status.0 }}">
+                                                                               {{ status.1 }}
+                                                                            </a>
+                                                                        </li>
+                                                                    {% endif %}
+                                                                {% endfor %}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+        {% endif %}
+    {% endif %}
+</div>
+
+
+
+
+
+
+
+    <!-- Bootstrap JS (including Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+
+
+    <script>
+
+        document.querySelectorAll('.btn-close-ticket').forEach(button => {
+        button.addEventListener('click', function() {
+            const ticketId = this.dataset.ticketId;
+            if (confirm('Are you sure you want to close this ticket?')) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
+
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+
+
+
+        // Add click event for custom dropdown toggle
+        document.getElementById('activityDropdown').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+
+         document.addEventListener("DOMContentLoaded", function() {
+        // Get all buttons that toggle ticket options
+        const ticketToggles = document.querySelectorAll('.ticket-toggle');
+
+        ticketToggles.forEach(button => {
+            button.addEventListener('click', function() {
+                const currentTarget = this.getAttribute('data-bs-target');
+
+                // Collapse all other ticket options
+                ticketToggles.forEach(btn => {
+                    const target = btn.getAttribute('data-bs-target');
+                    if (target !== currentTarget) {
+                        const collapseElement = document.querySelector(target);
+                        if (collapseElement && collapseElement.classList.contains('show')) {
+                            // Collapse if it's not the current target
+                            collapseElement.classList.remove('show');
+                        }
+                    }
+                });
+            });
+        });
+    });
+
+
+    </script>
+
+{% if error %}
+    <script>
+        Swal.fire({
+            title: 'Unauthorized Access',
+            text: "{{ error }}",
+            icon: 'error',
+            confirmButtonText: 'Okay'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{% url 'home' %}";  // Redirect to the homepage
+            }
+        });
+    </script>
+    {% endif %}
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Listen for clicks on all status change links
+    document.querySelectorAll('.change-status').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const ticketId = this.dataset.ticketId; // Get ticket ID from data attribute
+            const newStatus = this.dataset.newStatus; // Get new status from data attribute
+
+            // Perform AJAX request to update the status
+            fetch('/update_ticket_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'  // CSRF token for security
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    new_status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the status in the corresponding table row
+                    const statusCell = document.querySelector(`#ticket-status-${ticketId}`);
+                    if (statusCell) {
+                        statusCell.textContent = data.new_status_label;  // Update the status text
+                    }
+
+                    // Show a success message, then force a full page reload
+                    alert('Status updated successfully!');
+                    window.location.reload();
+                } else {
+                    // Show an alert if the user is not authorized or any other error occurred
+                    alert(data.message || 'Failed to update status.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the status.');
+            });
+        });
+    });
+});
+</script>
+
+
+<!-- Script to handle dropdown activation -->
+<script>
+    // Toggle the dropdown when the user clicks on it
+    document.querySelectorAll('.custom-dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent the click from bubbling up
+            this.parentElement.classList.toggle('active'); // Toggle the dropdown visibility
+        });
+    });
+
+    // Close the dropdown if the user clicks anywhere else on the page
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.custom-dropdown')) {
+            document.querySelectorAll('.custom-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('active'); // Remove active class (close dropdown)
+            });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Select all buttons that toggle collapse (expand/collapse ticket options)
+        document.querySelectorAll('.btn-secondary').forEach(function(btn) {
+            // Get the target collapse element (the one controlled by this button)
+            const collapseTarget = document.querySelector(btn.getAttribute('data-bs-target'));
+
+            // Ensure collapse target exists before proceeding
+            if (collapseTarget) {
+                // Immediate button text change on click (when expanding)
+                btn.addEventListener('click', function() {
+                    // If the collapse is not shown (about to expand), change the button text to "-"
+                    if (!collapseTarget.classList.contains('show')) {
+                        btn.textContent = "-"; // Change immediately on expand
+                    }
+                });
+
+                // Listen for when the collapse animation finishes collapsing
+                collapseTarget.addEventListener('hidden.bs.collapse', function() {
+                    // Set the button text back to "+" after collapse completes
+                    btn.textContent = "+";
+                });
+            }
+        });
+
+        // Ensure collapsing the name bar collapses all ticket options
+        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(nameBar) {
+            nameBar.addEventListener('click', function() {
+                // Get the target collapse group (based on user ID)
+                const userId = this.getAttribute('data-bs-target').split('-').pop();
+
+                // Collapse all older ticket options when name bar is clicked
+                document.querySelectorAll('.collapse-' + userId).forEach(function(collapseRow) {
+                    const optionId = collapseRow.querySelector('button').getAttribute('data-bs-target');
+                    const optionElement = document.querySelector(optionId);
+
+                    // Check if the option is expanded and collapse it if necessary
+                    if (optionElement && optionElement.classList.contains('show')) {
+                        new bootstrap.Collapse(optionElement, { toggle: true });
+                        const toggleButton = collapseRow.querySelector('.btn-secondary');
+                        toggleButton.textContent = "+"; // Reset the button to "+"
+                    }
+                });
+            });
+        });
+    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    let timers = {}; // Store active timers
+
+    // Helper function to format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // Fetch active timers from the backend and update the frontend
+    function fetchActiveTimers() {
+        fetch('/get_active_timers/', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.tickets) {
+                data.tickets.forEach(ticket => {
+                    const totalTimerElement = document.getElementById('timer-' + ticket.ticket_id); // For total time spent
+                    const individualTimerElement = document.getElementById('individual-timer-' + ticket.ticket_id); // For individual time spent
+
+                    // Update total time spent on the frontend
+                    if (totalTimerElement) {
+                        totalTimerElement.textContent = formatTime(ticket.time_spent_seconds);
+                    }
+
+                    // Update individual time spent on the frontend
+                    if (individualTimerElement) {
+                        individualTimerElement.textContent = formatTime(ticket.individual_time_spent_seconds);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching active timers:', error);
+        });
+    }
+
+    // Poll the backend every second to update active timers
+    setInterval(fetchActiveTimers, 5000);  // Poll every 5 second
+});
+</script>
+<script>
+// Add this after your existing JavaScript
+function updateCallStatuses() {
+    fetch('{% url "get_call_status" %}')
+        .then(response => response.json())
+        .then(data => {
+            // Update the call status badges for each user
+            data.forEach(status => {
+                const userHeader = document.querySelector(`[data-user-id="${status.user_id}"]`);
+                if (userHeader) {
+                    const callBadge = userHeader.querySelector('.call-badge');
+                    if (status.call_in_progress) {
+                        if (!callBadge) {
+                            const badge = document.createElement('span');
+                            badge.className = 'badge badge-danger activity-badge call-badge';
+                            badge.textContent = 'On Call';
+                            userHeader.appendChild(badge);
+                        }
+                    } else if (callBadge) {
+                        callBadge.remove();
+                    }
+                }
+            });
+        });
+}
+
+// Update call statuses every 30 seconds
+setInterval(updateCallStatuses, 30000);
+
+// Initial call status update
+updateCallStatuses();
+</script>
+
+<script>
+function handleLogout(event) {
+    event.preventDefault();
+
+    // Make an AJAX call to the logout endpoint
+    fetch('/logout', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'error') {
+            // Create a formatted list of tickets grouped by status
+            let ticketList = Object.entries(data.tickets).map(([status, tickets]) => {
+                const ticketsInStatus = tickets.map(ticket =>
+                    `   • ${ticket.ticket_id}: ${ticket.subject}`
+                ).join('\n');
+                return `${status} Tickets:\n${ticketsInStatus}`;
+            }).join('\n\n');
+
+            // Show the alert with Sweetalert2
+            Swal.fire({
+                title: 'Cannot Logout',
+                html: `<div class="alert alert-warning">
+                    <p>You have the following unresolved tickets that need to be assigned to another agent:</p>
+                    <pre class="text-left">${ticketList}</pre>
+                    <p class="mt-3">Please assign these tickets to another agent before logging out.</p>
+                </div>`,
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                customClass: {
+                    container: 'my-swal',
+                    popup: 'my-swal-popup'
+                }
+            });
+        } else if (data.status === 'success') {
+            // Show a success message and redirect
+            Swal.fire({
+                title: 'Success',
+                text: 'You have been successfully logged out.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = '/login';
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // If there's an error, redirect to login page anyway
+        window.location.href = '/login';
+    });
+}
+
+// Add event listener to logout link/button
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutLink = document.querySelector('a[href="/logout"]');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', handleLogout);
+    }
+});
+</script>
+</body>
+</html>

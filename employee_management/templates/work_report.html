@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+
+{% block title %}Work Report{% endblock %}
+
+{% block content %}
+<div class="flex min-h-screen bg-gray-100 pt-10 ">
+    <div class="flex-1 ml-0">
+        <div class="container px-0 py-2">
+            <div class="bg-white rounded-lg shadow-lg">
+                <div class="bg-blue-600 text-white  p-6 flex justify-between items-center flex-wrap gap-1">
+                    <h4 class="text-lg font-semibold">Work Report</h4>
+                    <div class="flex-grow md:flex-grow-0">
+                        <form id="workReportForm" class="flex flex-col md:flex-row items-center gap-2">
+                            {% csrf_token %}
+                            <div class="flex items-center space-x-3">
+                                <!-- Start Date -->
+                                <div class="flex flex-col">
+                                    <label for="start_date" class="text-white text-xs mb-1">From</label>
+                                    <input type="date"
+                                           class="rounded-md border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white text-gray-900"
+                                           id="start_date"
+                                           name="start_date"
+                                           required>
+                                </div>
+
+                                <span class="text-white px-1 mt-4">to</span>
+
+                                <!-- End Date -->
+                                <div class="flex flex-col">
+                                    <label for="end_date" class="text-white text-xs mb-1">To</label>
+                                    <input type="date"
+                                           class="rounded-md border border-gray-300 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm bg-white text-gray-900"
+                                           id="end_date"
+                                           name="end_date"
+                                           required>
+                                </div>
+                            </div>
+                            <!-- Buttons -->
+                            <div class="flex items-center space-x-2 mt-4 md:mt-5 md:ml-3">
+                                <button type="submit"
+                                        class="bg-white text-blue-600 px-4 py-1.5 rounded-md hover:bg-gray-100 transition-colors text-sm font-medium">
+                                    Generate Report
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Report Content -->
+                <div class="p-3">
+                    <div id="workReportResults" class="hidden">
+                        <!-- Charts Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Circular Progress Section -->
+                            <div class="space-y-3">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-40 h-40">
+                                            <canvas id="ticketStatusChart"></canvas>
+                                        </div>
+                                        <h6 class="mt-2 text-center text-gray-700 text-sm">Ticket Status Distribution</h6>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-40 h-40">
+                                            <canvas id="callDurationChart"></canvas>
+                                        </div>
+                                        <h6 class="mt-2 text-center text-gray-700 text-sm">Call Duration Analysis</h6>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Line Graph Section -->
+                            <div class="h-[300px]">
+                                <canvas id="ticketProgressChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Daily Breakdown Table -->
+                        <div class="mt-4 overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="dailyBreakdownTable">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Total Tickets</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Resolved</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unresolved</th>
+                                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Call Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white text-center divide-y divide-gray-200">
+                                    <!-- Table content will be dynamically populated -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-80 hidden items-center justify-center z-50">
+    <div class="text-center">
+        <div class="w-12 h-12 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div class="mt-2 text-blue-600 font-medium text-sm">Generating Report...</div>
+    </div>
+</div>
+
+<!-- Dependencies -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Your existing scripts remain unchanged -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const workReportForm = document.getElementById('workReportForm');
+        const workReportResults = document.getElementById('workReportResults');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        let ticketStatusChart, callDurationChart, ticketProgressChart;
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        // Initialize Charts function
+        function initializeCharts() {
+            // Ticket Status Distribution Chart
+            const ticketStatusCtx = document.getElementById('ticketStatusChart').getContext('2d');
+            ticketStatusChart = new Chart(ticketStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Total', 'Resolved', 'Unresolved'],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [
+                            '#007bff', // Total
+                            '#28a745', // Resolved
+                            '#ffc107', // Unresolved
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            // Call Duration Chart
+            const callDurationCtx = document.getElementById('callDurationChart').getContext('2d');
+            callDurationChart = new Chart(callDurationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Call Duration'],
+                    datasets: [{
+                        data: [0],
+                        backgroundColor: ['#17a2b8']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const seconds = context.raw;
+                                    return formatDuration(seconds);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Ticket Progress Chart
+            const ticketProgressCtx = document.getElementById('ticketProgressChart').getContext('2d');
+            ticketProgressChart = new Chart(ticketProgressCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Total Tickets',
+                        borderColor: '#007bff',
+                        data: []
+                    }, {
+                        label: 'Resolved Tickets',
+                        borderColor: '#28a745',
+                        data: []
+                    }, {
+                        label: 'Unresolved Tickets',
+                        borderColor: '#ffc107',
+                        data: []
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Format duration function
+        function formatDuration(totalSeconds) {
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Update Charts function
+        function updateCharts(data) {
+            // Update Status Distribution Chart
+            const statusValues = [
+                data.status_distribution.Total,
+                data.status_distribution.Resolved,
+                data.status_distribution.Unresolved
+            ];
+            ticketStatusChart.data.datasets[0].data = statusValues;
+            ticketStatusChart.update();
+
+            // Update Call Duration Chart
+            callDurationChart.data.datasets[0].data = [data.total_call_duration];
+            callDurationChart.update();
+
+            // Update Progress Chart
+            const dates = data.daily_breakdown.map(day => day.date);
+            const totalTickets = data.daily_breakdown.map(day => day.total_tickets);
+            const resolvedTickets = data.daily_breakdown.map(day => day.resolved_tickets);
+            const unresolvedTickets = data.daily_breakdown.map(day => day.unresolved_tickets);
+
+            ticketProgressChart.data.labels = dates;
+            ticketProgressChart.data.datasets[0].data = totalTickets;
+            ticketProgressChart.data.datasets[1].data = resolvedTickets;
+            ticketProgressChart.data.datasets[2].data = unresolvedTickets;
+            ticketProgressChart.update();
+
+            // Update Daily Breakdown Table
+            const tableBody = document.querySelector('#dailyBreakdownTable tbody');
+            tableBody.innerHTML = '';
+
+            data.daily_breakdown.forEach(day => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${day.date}</td>
+                    <td>${day.total_tickets}</td>
+                    <td>${day.resolved_tickets}</td>
+                    <td>${day.unresolved_tickets}</td>
+                    <td>${day.call_duration}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Form submit event listener
+        if (workReportForm) {
+            workReportForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                console.log('Form submitted');
+
+                const formData = new FormData(workReportForm);
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+                if (!formData.get('start_date') || !formData.get('end_date')) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+
+                showLoading();
+
+                fetch('/generate-work-report/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Network response was not ok');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    hideLoading();
+                    console.log('Response data:', data);
+                    if (data.status === 'success') {
+                        workReportResults.style.display = 'block';
+                        if (!ticketStatusChart) {
+                            initializeCharts();
+                        }
+                        updateCharts(data.data);
+                    } else {
+                        throw new Error(data.message || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error:', error);
+                    alert('An error occurred while generating the report: ' + error.message);
+                });
+            });
+        } else {
+            console.error('Work report form not found!');
+        }
+    });
+
+    // Add this function after the existing DOMContentLoaded listener
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set default date range from 1st of current month to today
+        function setCurrentMonthToTodayDateRange() {
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+            // Format dates to YYYY-MM-DD
+            const formatDate = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            // Set the input values
+            const startDateInput = document.getElementById('start_date');
+            const endDateInput = document.getElementById('end_date');
+
+            if (startDateInput && endDateInput) {
+                startDateInput.value = formatDate(firstDayOfMonth);
+                endDateInput.value = formatDate(today);
+
+                // Trigger form submission
+                const form = document.getElementById('workReportForm');
+                if (form) {
+                    form.dispatchEvent(new Event('submit'));
+                }
+            }
+        }
+
+        // Call the function to set default date range and trigger report generation
+        setCurrentMonthToTodayDateRange();
+    });
+</script>
+{% endblock %}

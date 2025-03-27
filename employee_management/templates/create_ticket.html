@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load tz %}
+{% load form_tags %}
+{% block content %}
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<div class="content ml-[100px] mt-[40px] p-5">
+    <div class="row">
+
+
+        <div class="col-md-9">
+            <div class="bg-white p-4 rounded-md shadow-2xl w-full max-w-4xl border border-gray-300">
+                <h2 class="text-lg font-bold mb-6 text-left text-blue-600">Create a Ticket</h2>
+                <form method="post" class="space-y-3">
+                    {% csrf_token %}
+
+                    <!-- Ticket ID Field -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-gray-700" for="{{ form.ticket_id.id_for_label }}">
+                            Ticket ID {% if form.ticket_id.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ form.ticket_id|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                        {% if form.ticket_id.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.ticket_id.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Subject Field -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-gray-700" for="{{ form.subject.id_for_label }}">
+                            Subject {% if form.subject.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ form.subject|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                        {% if form.subject.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.subject.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Note Field -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-gray-700" for="{{ form.note.id_for_label }}">
+                            Note {% if form.note.field.required %}<span class="text-red-500">*</span>{% endif %}
+                        </label>
+                        {{ form.note|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                        {% if form.note.errors %}
+                        <div class="text-red-500 text-xs mt-1">{{ form.note.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex justify-start gap-3">
+                        <!-- Status Field -->
+                        <div class="space-y-2">
+                            {{ form.status|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                            {% if form.status.errors %}
+                            <div class="text-red-500 text-xs mt-1">{{ form.status.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Group Field -->
+                        <div class="space-y-2">
+                            {{ form.group|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                            {% if form.group.errors %}
+                            <div class="text-red-500 text-xs mt-1">{{ form.group.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Environment Field -->
+                        <div class="space-y-2">
+                            {{ form.environment|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                            {% if form.environment.errors %}
+                            <div class="text-red-500 text-xs mt-1">{{ form.environment.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Assigned To Field -->
+                        <div class="space-y-2">
+                            {{ form.assigned_to|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                            {% if form.assigned_to.errors %}
+                            <div class="text-red-500 text-xs mt-1">{{ form.assigned_to.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Priority Field -->
+                        <div class="space-y-2">
+                            {{ form.priority|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+                            {% if form.priority.errors %}
+                            <div class="text-red-500 text-xs mt-1">{{ form.priority.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="submit" class="mt-2 bg-blue-500 text-white text-xs px-3 py-2 rounded-md hover:bg-blue-800 transition duration-300 shadow-lg">
+                            Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var employees = {{ employees|safe }};
+    var groupSelect = document.getElementById('id_group');
+    var assignedToSelect = document.getElementById('id_assigned_to');
+
+    function clearAssignedToOptions() {
+        assignedToSelect.innerHTML = '<option value="">Assign to</option>';
+    }
+
+    function populateUsersByGroup(group) {
+        clearAssignedToOptions();
+        employees.forEach(function(employee) {
+            var skill = employee.employeeprofile__skill;
+            if (skill === group) {
+                var option = document.createElement('option');
+                option.value = employee.id;
+                option.textContent = employee.username;
+                assignedToSelect.appendChild(option);
+            }
+        });
+    }
+
+    groupSelect.addEventListener('change', function() {
+        var selectedGroup = groupSelect.value;
+        if (selectedGroup) {
+            populateUsersByGroup(selectedGroup);
+        } else {
+            clearAssignedToOptions();
+        }
+    });
+});
+</script>
+
+{% endblock %}

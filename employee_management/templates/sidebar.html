@@ -1,0 +1,181 @@
+{% load static %}
+<style>
+    .sidebar {
+      width: 64px;
+      transition: width 0.3s ease;
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      z-index: 9999;
+    }
+
+    .sidebar:hover {
+      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+    }
+
+    .side-menu-has-tooltip {
+      position: relative;
+    }
+
+    .side-menu-has-tooltip:hover .side-menu-tooltip {
+      visibility: visible;
+      z-index: 9999;
+      left: 25px;
+    }
+
+    .side-menu-tooltip {
+      visibility: hidden;
+      position: absolute;
+      padding: 0 8px;
+      border-radius: 5px;
+    }
+
+    .company-logo {
+      display: none;
+    }
+
+    .sidebar h2 {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .sidebar i {
+      min-width: 24px;
+    }
+</style>
+
+<aside class="sidebar bg-white flex flex-col p-4 space-y-6 group shadow-lg">
+    <h2 class="text-xl font-bold flex items-center space-x-1">
+      <img style="width: 32px; height: 31px;" class="company-favicon"
+        src="{% static 'img/favicon.ico' %}" alt="favicon">
+      <span class="">
+        <img style="height: 31px;" class="company-logo" src="{% static 'img/favicon.ico' %}" alt="">
+      </span>
+    </h2>
+
+    <nav class="flex flex-col space-y-2">
+        <!-- Dashboard -->
+        <a href="{% url 'dashboard' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-chart-line"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Dashboard</div>
+            </div>
+        </a>
+
+        <!-- Home -->
+        <a href="{% url 'home' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-house"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Home</div>
+            </div>
+        </a>
+
+        <!-- Active Users Dropdown -->
+        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-user"></i>
+            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'Linux' %}" class="block">Linux</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'Windows' %}" class="block">Windows/Azure</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'AWS' %}" class="block">Network/AWS</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'LEVELONE' %}" class="block">LevelONE</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'OCI' %}" class="block">OCI</a>
+                    </li>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users -->
+        <a href="{% url 'employee_list' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-users"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Employees</div>
+            </div>
+        </a>
+
+        <!-- Tickets -->
+        <a href="{% url 'ticket_list' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-ticket"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">All Tickets</div>
+            </div>
+        </a>
+
+        <!-- Daily Activity -->
+        <a href="{% url 'daily_activity' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-activity"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Daily Activity</div>
+            </div>
+        </a>
+
+        <!-- Work Report -->
+        <a href="{% url 'work_report' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-chart-bar"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Report</div>
+            </div>
+        </a>
+
+        <!-- Text Improver -->
+        <a href="{% url 'text_improver:generator' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-text-t"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Generate</div>
+            </div>
+        </a>
+
+        <!-- On Duty Management -->
+        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-calendar"></i>
+            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'on_duty_request' %}" class="block">Request</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'on_duty_list' %}" class="block">Status</a>
+                    </li>
+                </div>
+            </div>
+        </div>
+
+        {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
+        <!-- Activity Tracker -->
+        <a href="{% url 'tracking:activity_dashboard' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-activity"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Activity</div>
+            </div>
+        </a>
+
+        <!-- Add Employee -->
+        <a href="{% url 'add_employee' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-plus"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Add&nbsp;employee</div>
+            </div>
+        </a>
+        {% endif %}
+    </nav>
+</aside>

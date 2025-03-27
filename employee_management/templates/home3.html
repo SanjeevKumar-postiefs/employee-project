@@ -1,0 +1,953 @@
+{% load static %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+    <style>
+        /* ... Your existing styles ... */
+         body {
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+        .sidebar {
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 56px; /* Adjust according to the height of the navbar */
+            width: 250px;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            padding: 10px 15px;
+            display: block;
+            color: #333;
+            text-decoration: none;
+        }
+        .sidebar a:hover {
+            background-color: #ddd;
+        }
+        .main-content {
+            margin-left: 250px; /* Space for sidebar */
+            padding: 20px;
+        }
+        .ticket-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .ticket-row p {
+            margin-bottom: 0;
+            padding-right: 15px;
+        }
+        .collapse {
+            margin-top: 10px;
+        }
+        /* Sidebar styling */
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    padding: 15px;
+    color: white;
+}
+
+.sidebar a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    padding: 10px;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.sidebar a:hover {
+    background-color: #34495e;
+    border-radius: 4px;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown {
+    position: relative;
+}
+
+.custom-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 10px;
+    color: white;
+    background-color: #2c3e50;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.custom-dropdown-toggle:hover {
+    background-color: #34495e;
+}
+
+.custom-dropdown-toggle h5 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.custom-dropdown-toggle i {
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+}
+
+.custom-dropdown-menu {
+    display: none;
+    background-color: #34495e;
+    border-radius: 4px;
+    margin-top: 5px;
+    padding: 10px;
+}
+
+.custom-dropdown-item {
+    display: block;
+    padding: 8px 12px;
+    color: white;
+    background-color: transparent;
+    transition: background-color 0.3s ease;
+}
+
+.custom-dropdown-item:hover {
+    background-color: #1abc9c;
+    border-radius: 4px;
+}
+
+/* Show dropdown on toggle */
+.custom-dropdown.active .custom-dropdown-menu {
+    display: block;
+}
+
+/* Rotate icon when dropdown is active */
+.custom-dropdown.active .custom-dropdown-toggle i {
+    transform: rotate(180deg);
+}
+
+
+/* Custom Navbar Styles */
+.custom-navbar {
+    background-color: #2c3e50; /* Matches sidebar color */
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Adds slight shadow for depth */
+}
+
+.navbar-brand {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.navbar-nav .nav-link {
+    color: #ffffff;
+    font-size: 16px;
+    padding: 8px 20px;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    background-color: #1abc9c; /* Matches hover effect of sidebar */
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+/* Navbar toggler for small screens */
+.custom-toggler {
+    border-color: #ffffff;
+}
+
+.custom-toggler .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba%28255, 255, 255, 0.5%29' stroke-width='2' linecap='round' linejoin='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+/* Navbar title */
+.navbar-title {
+    font-size: 24px;
+    font-weight: bold;
+    color: #ffffff;
+}
+
+/* Centering and spacing for larger screens */
+.navbar-nav {
+    margin-left: auto; /* Aligns the items to the right */
+}
+
+.navbar-collapse {
+    justify-content: flex-end;
+}
+
+/* Additional responsiveness for mobile view */
+@media (max-width: 991px) {
+    .navbar-nav .nav-link {
+        padding: 12px;
+        text-align: center;
+    }
+}
+
+
+
+/* General Styles for Main Content */
+.main-content {
+    margin-top: 80px; /* Adjust for the fixed navbar */
+    color: #ecf0f1;
+    background-color: #2c3e50;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+
+
+.ticket-info {
+    margin-left: 10px; /* Adds some space between the dropdown and ticket info */
+}
+
+.dropdown-toggle::after {
+    display: none; /* Optional: Hides the default caret for the button */
+}
+
+.card {
+    transition: transform 0.2s; /* Optional: Smooth transition effect */
+}
+
+.card:hover {
+    transform: scale(1.02); /* Optional: Slightly scale up on hover */
+}
+
+
+
+
+
+
+
+
+
+
+
+/* Ticket Card Styling */
+.ticket-card {
+    background-color: #34495e;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Adds a soft shadow */
+    border-radius: 8px;
+}
+
+.ticket-header {
+    background-color: #1abc9c; /* Matches sidebar and navbar hover */
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.2rem;
+    padding: 15px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.ticket-body {
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    padding: 15px;
+}
+
+/* Latest Ticket Row */
+.ticket-row {
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Light divider */
+}
+
+.ticket-row p {
+    margin: 0;
+    padding-right: 20px;
+}
+
+/* Collapse Button Styling */
+.toggle-button {
+    background-color: #1abc9c;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    transition: background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+    background-color: #16a085;
+    color: #ffffff;
+}
+
+/* Styling for Older Tickets */
+.old-ticket {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.old-ticket p {
+    margin: 0;
+}
+
+/* Headings */
+h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ecf0f1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .ticket-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .toggle-button {
+        width: 100%;
+        text-align: center;
+    }
+
+}
+
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+        }
+
+        .dropdown-menu {
+            right: 0;
+            left: auto; /* Align dropdown to the right */
+        }
+
+        /* Ensure table content (td and th) is white */
+    .ticket-card table th,
+    .ticket-card table td {
+        color: white !important;  /* !important to force white color */
+    }
+
+</style>
+
+    <style>
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+    }
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .slider {
+        background-color: #007bff;
+    }
+    input:checked + .slider:before {
+        transform: translateX(26px);
+    }
+
+    .ticket-active {
+        background-color: #e2d3f9; /* Light purple background */
+    }
+
+    .activity-badge {
+        padding: 2px 6px;
+        border-radius: 10px;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107; /* Bootstrap warning color (yellow) */
+    }
+</style>
+
+
+
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top custom-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><h4 class="navbar-title">Postiefs</h4></a>
+            <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'daily_activity' %}">Activity</a></li>
+                    {% if request.user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'view_profile' request.user.id %}">Profile</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'create_ticket' %}">Create tickets</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'user_tickets' user.id %}">View tickets</a></li>
+                    <li class="nav-item">
+                        <div class="dropdown">
+                            <button class="btn btn-secondary rounded-circle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 40px; height: 40px; border-radius: 50%;">
+                                {{ user.username|slice:":2"|upper }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="/"><h5>Dashboard</h5></a>
+
+        <!-- Custom Activity Dropdown -->
+        <div class="custom-dropdown">
+            <a class="custom-dropdown-toggle" href="#" id="activityDropdown" role="button" data-bs-toggle="collapse" data-bs-target="#activityMenu" aria-expanded="false">
+                <h5>Active User <i class="fas fa-chevron-down"></i></h5>
+            </a>
+            <div class="collapse" id="activityMenu">
+                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Linux' %}">Linux</a>
+                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'Windows' %}">Windows/Azure</a>
+                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'AWS' %}">Network/AWS</a>
+                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'LEVELONE' %}">LEVELONE</a>
+                <a class="custom-dropdown-item" href="{% url 'employees_by_skill' 'OCI' %}">OCI</a>
+            </div>
+        </div>
+        <a href="{% url 'employee_list' %}"><h5>Users</h5></a>
+        {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
+        <a href="{% url 'add_employee' %}"><h5>Add User</h5></a>
+        {% endif %}
+    </div>
+
+
+<!-- main content -->
+<div class="main-content container mt-5">
+    {% if user.is_authenticated %}
+        <div class="d-flex justify-content-between align-items-center mb-6">
+            <h1 class="text-white m-3">Tickets Overview</h1>
+
+            <!-- Break Toggle -->
+            <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center me-3">
+                {% csrf_token %}
+                <label for="breakToggle" class="switch">
+                    <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+                <span id="breakStatus" class="text-white mb-0">
+                    {% if employee_profile.is_on_break %}
+                    You are currently on break.
+                    {% else %}
+                    You are active.
+                    {% endif %}
+                </span>
+            </form>
+        </div>
+
+
+    {% if not employee_profile.is_on_break %}
+        <!-- Show tickets only if not on break -->
+        <div id="ticket-container">
+        {% for user_tickets in tickets_by_user %}
+            <div class="card mb-3 ticket-card">
+                <!-- Name Bar (click to expand older tickets) -->
+                <div class="card-header ticket-header">
+                    <h3 class="m-0" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#collapse-{{ user_tickets.user.id }}" aria-expanded="false" aria-controls="collapse-{{ user_tickets.user.id }}">
+                        {{ user_tickets.user.username }}'s Tickets
+                        {% if user_tickets.user.employeeprofile.is_on_break %}
+                            <span class="badge badge-warning activity-badge">On Break</span>
+                        {% endif %}
+                    </h3>
+                </div>
+
+                <!-- Latest Ticket is always shown -->
+                <div class="card-body ticket-body">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Ticket ID</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th>Assigned By</th>
+                                <th>Agent</th>
+                                <th>Assign Time</th>
+                                <th>Action</th>
+                                <th>Time Spent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            {% if user_tickets.latest_ticket %}
+                                <!-- Latest Ticket Row -->
+                                <!-- Latest Ticket Row -->
+<tr class="{% if user_tickets.latest_ticket.is_active %}ticket-active{% endif %}">
+    <td>
+        <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ user_tickets.latest_ticket.id }}" aria-expanded="false" aria-controls="options-{{ user_tickets.latest_ticket.id }}">
+            +
+        </button>
+    </td>
+    <td>{{ user_tickets.latest_ticket.ticket_id }}</td>
+    <td>{{ user_tickets.latest_ticket.subject }}</td>
+    <td>{{ user_tickets.latest_ticket.status }}</td>
+    <td>{{ user_tickets.latest_ticket.assigned_by.username }}</td>
+    <td>{{ user_tickets.latest_ticket.assigned_to.username|default:"Unassigned" }}</td>
+    <td>
+        {% if user_tickets.latest_ticket.assigned_at %}
+            {{ user_tickets.latest_ticket.assigned_at|date:"Y-m-d H:i:s" }}
+        {% else %}
+            {{ user_tickets.latest_ticket.created_at|date:"Y-m-d H:i:s" }}
+        {% endif %}
+    </td>
+    <td>
+        <button class="btn btn-success start-button"
+                data-ticket-id="{{ user_tickets.latest_ticket.id }}"
+                data-owner-id="{{ user_tickets.latest_ticket.assigned_to.id }}">
+            {% if user_tickets.latest_ticket.is_active %}
+                Stop
+            {% else %}
+                Start
+            {% endif %}
+        </button>
+    </td>
+    <td>
+        <span id="timer-{{ user_tickets.latest_ticket.id }}">
+            {% if user_tickets.latest_ticket.time_spent %}
+                {{ user_tickets.latest_ticket.time_spent|floatformat:2 }} seconds
+            {% else %}
+                0 seconds
+            {% endif %}
+        </span>
+    </td>
+</tr>
+
+
+
+                                <!-- Options for Latest Ticket -->
+                                <tr class="collapse" id="options-{{ user_tickets.latest_ticket.id }}">
+                                    <td colspan="7">
+                                        <div class="options-list d-flex justify-content-start">
+                                            <a class="btn btn-outline-primary me-2" href="{% url 'assign_ticket' user_tickets.latest_ticket.id %}">Assign</a>
+                                            <a class="btn btn-outline-danger btn-close-ticket" data-ticket-id="{{ user_tickets.latest_ticket.id }}">Close Ticket</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+
+                    <!-- Collapsible section for older tickets -->
+                    <div class="collapse" id="collapse-{{ user_tickets.user.id }}">
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Ticket ID</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Assigned By</th>
+                                    <th>Agent</th>
+                                    <th>Assign Time</th>
+                                    <th>Action</th>
+                                    <th>Time Spent</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+    {% for ticket in user_tickets.older_tickets %}
+        <tr class="{% if ticket.is_active %}ticket-active{% endif %}">
+            <td>
+                <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#options-{{ ticket.id }}" aria-expanded="false" aria-controls="options-{{ ticket.id }}">
+                    +
+                </button>
+            </td>
+            <td>{{ ticket.ticket_id }}</td>
+            <td>{{ ticket.subject }}</td>
+            <td>{{ ticket.status }}</td>
+            <td>{{ ticket.assigned_by.username }}</td>
+            <td>{{ ticket.assigned_to.username|default:"Unassigned" }}</td>
+            <td>
+                {% if ticket.assigned_at %}
+                    {{ ticket.assigned_at|date:"Y-m-d H:i:s" }}
+                {% else %}
+                    {{ ticket.created_at|date:"Y-m-d H:i:s" }}
+                {% endif %}
+            </td>
+            <td>
+                <!-- Start Button -->
+                <button class="btn btn-success start-button"
+                        data-ticket-id="{{ ticket.id }}"
+                        data-owner-id="{{ ticket.assigned_to.id }}">
+                    {% if ticket.is_active %}
+                        Stop
+                    {% else %}
+                        Start
+                    {% endif %}
+                </button>
+            </td>
+            <td>
+                <span id="timer-{{ ticket.id }}">
+                    {% if ticket.time_spent %}
+                        {{ ticket.time_spent|floatformat:2 }} seconds
+                    {% else %}
+                        0 seconds
+                    {% endif %}
+                </span>
+            </td>
+        </tr>
+
+        <!-- Options for Older Ticket -->
+        <tr class="collapse" id="options-{{ ticket.id }}">
+            <td colspan="7">
+                <div class="options-list d-flex justify-content-start">
+                    <a class="btn btn-outline-primary me-2" href="{% url 'assign_ticket' ticket.id %}">Assign</a>
+                    <a class="btn btn-outline-danger btn-close-ticket" data-ticket-id="{{ ticket.id }}">Close Ticket</a>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+        <!-- Show a message if the user is on break -->
+        {% if employee_profile.is_on_break %}
+        <p class="text-white">You are on break. Tickets are hidden until the break ends.</p>
+        {% endif %}
+    {% else %}
+        <p class="text-white">You need to be logged in to view tickets.</p>
+    {% endif %}
+</div>
+
+
+
+
+
+    <!-- Bootstrap JS (including Popper.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+
+
+
+    <script>
+
+        document.querySelectorAll('.btn-close-ticket').forEach(button => {
+        button.addEventListener('click', function() {
+            const ticketId = this.dataset.ticketId;
+            if (confirm('Are you sure you want to close this ticket?')) {
+                // Create a form to submit the POST request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
+
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+
+
+
+        // Add click event for custom dropdown toggle
+        document.getElementById('activityDropdown').addEventListener('click', function() {
+            this.classList.toggle('active');
+        });
+
+
+         document.addEventListener("DOMContentLoaded", function() {
+        // Get all buttons that toggle ticket options
+        const ticketToggles = document.querySelectorAll('.ticket-toggle');
+
+        ticketToggles.forEach(button => {
+            button.addEventListener('click', function() {
+                const currentTarget = this.getAttribute('data-bs-target');
+
+                // Collapse all other ticket options
+                ticketToggles.forEach(btn => {
+                    const target = btn.getAttribute('data-bs-target');
+                    if (target !== currentTarget) {
+                        const collapseElement = document.querySelector(target);
+                        if (collapseElement && collapseElement.classList.contains('show')) {
+                            // Collapse if it's not the current target
+                            collapseElement.classList.remove('show');
+                        }
+                    }
+                });
+            });
+        });
+    });
+
+
+    </script>
+
+{% if error %}
+    <script>
+        Swal.fire({
+            title: 'Unauthorized Access',
+            text: "{{ error }}",
+            icon: 'error',
+            confirmButtonText: 'Okay'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{% url 'home' %}";  // Redirect to the homepage
+            }
+        });
+    </script>
+    {% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const breakToggle = document.getElementById('breakToggle');
+    const csrfToken = "{{ csrf_token }}";  // Get CSRF token for request
+
+    // Timer management
+    let timers = {}; // Store active timers
+
+    function stopAllTimers() {
+        // Stop all running timers and update the backend with the accumulated time
+        Object.keys(timers).forEach(ticketId => {
+            clearInterval(timers[ticketId].interval); // Stop the timer interval
+            const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+
+            // Update the time on the server
+            fetch('/update_time_spent/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    time_spent: timeSpent
+                })
+            }).then(response => response.json()).then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to update time spent:', data.message);
+                }
+            });
+
+            timers[ticketId] = { accumulatedTime: timeSpent, running: false }; // Update local storage or state
+        });
+
+        // Clear all timer intervals
+        timers = {};
+    }
+
+    function startAllTimers() {
+        // Resumes all active tickets' timers on the backend
+        Object.keys(timers).forEach(ticketId => {
+            timers[ticketId].startTime = Date.now();
+            timers[ticketId].interval = setInterval(() => {
+                const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                document.getElementById('timer-' + ticketId).textContent = formatTime(updatedTime);
+            }, 1000);
+        });
+    }
+
+    // Listen for changes to the break toggle and update the status via AJAX
+    breakToggle.addEventListener('change', function() {
+        if (this.checked) {
+            stopAllTimers();  // If break is toggled on, stop all active timers
+        } else {
+            startAllTimers();  // If break is toggled off, resume the timers
+        }
+
+        // Toggle the break status via an AJAX request
+        fetch("{% url 'toggle_break_status' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}),
+        })
+        .then(() => {
+            // Optionally reload the page after toggling the break to update ticket visibility
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+});
+
+
+</script>
+
+<script>
+let timers = {}; // Store active timers
+
+// Helper function to format time in hh:mm:ss
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+// Restore timer states from local storage on page load
+document.addEventListener('DOMContentLoaded', () => {
+    let timers = {};  // Store active timers
+    const savedTimers = JSON.parse(localStorage.getItem('timers')) || {};
+
+    // Helper function to format time in hh:mm:ss
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    // Restore timer states from local storage on page load
+    for (const ticketId in savedTimers) {
+        const timerData = savedTimers[ticketId];
+        const timerElement = document.getElementById('timer-' + ticketId);
+        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+
+        if (timerElement && startButton) {
+            if (timerData.running) {
+                // If the timer was running, set button text to "Stop" and continue the timer
+                startButton.textContent = 'Stop';
+                const elapsedTime = (Date.now() - timerData.startTime) / 1000 + timerData.accumulatedTime;
+                timerElement.textContent = formatTime(elapsedTime);
+
+                // Continue the timer
+                timers[ticketId] = {
+                    startTime: timerData.startTime,
+                    accumulatedTime: timerData.accumulatedTime,
+                    interval: setInterval(() => {
+                        const updatedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                        timerElement.textContent = formatTime(updatedTime);
+                    }, 1000)
+                };
+            } else {
+                // If timer was stopped, reset display to 00:00:00
+                timerElement.textContent = formatTime(0);
+            }
+        }
+    }
+
+    // Start/Stop Timer functionality
+    document.querySelectorAll('.start-button').forEach(button => {
+        button.addEventListener('click', function () {
+            const ticketId = this.dataset.ticketId;
+            const ownerId = this.dataset.ownerId;
+            const currentUserId = "{{ user.id }}";  // Assuming you're passing current user's ID
+
+            if (ownerId !== currentUserId) {
+                alert('You are not authorized to start/stop this timer.');
+                return;
+            }
+
+            const timerElement = document.getElementById('timer-' + ticketId);
+            const ticketRow = timerElement.closest('tr');  // Get the ticket row element
+            const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
+
+            // Toggle button text
+            this.textContent = action === 'start' ? 'Stop' : 'Start';
+
+            // Toggle the active class on the ticket row
+            ticketRow.classList.toggle('ticket-active', action === 'start');
+
+            // Send the action (start or stop) to the server
+            fetch('/update_ticket_activity/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    action: action
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                }
+            }).then(response => response.json()).then(data => {
+                if (data.status !== 'success') {
+                    alert('Failed to update ticket activity');
+                }
+            });
+
+            if (action === 'start') {
+                // Reset timer to 00:00:00 on start
+                timerElement.textContent = formatTime(0);
+                const startTime = Date.now();
+                let accumulatedTime = 0;
+
+                // Start the timer
+                timers[ticketId] = {
+                    startTime: startTime,
+                    accumulatedTime: accumulatedTime,
+                    interval: setInterval(() => {
+                        const elapsedTime = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+                        timerElement.textContent = formatTime(elapsedTime);
+                    }, 1000)
+                };
+
+                // Save timer state to local storage
+                savedTimers[ticketId] = { startTime: startTime, accumulatedTime: accumulatedTime, running: true };
+                localStorage.setItem('timers', JSON.stringify(savedTimers));
+
+            } else {
+                clearInterval(timers[ticketId].interval);
+                const timeSpent = (Date.now() - timers[ticketId].startTime) / 1000 + timers[ticketId].accumulatedTime;
+
+                // Reset the timer to 00:00:00 after stopping
+                timerElement.textContent = formatTime(0);
+
+                // Save stopped timer state to local storage (accumulated time is saved)
+                savedTimers[ticketId] = { accumulatedTime: timeSpent, running: false };
+                localStorage.setItem('timers', JSON.stringify(savedTimers));
+            }
+        });
+    });
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<h2>Are you sure you want to delete the ticket: "{{ ticket.subject }}"?</h2>
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">Yes, delete</button>
+    <a href="{% url 'user_tickets' user.id %}" class="btn btn-secondary">Cancel</a>
+</form>

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% load timedelta_filters %}
+{% block content %}
+
+<div class="ml-0 min-h-screen bg-gray-50 p-8 pt-24">
+
+    <!-- Ticket Details Card -->
+    <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-blue-600 px-6 py-4">
+            <h2 class="text-xl font-semibold text-white">
+                Ticket Details for {{ ticket.ticket_id }}
+            </h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            <div class="px-6 py-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="space-y-1">
+                    <span class="text-sm font-medium text-gray-500">Ticket ID</span>
+                    <p class="text-sm text-gray-900">{{ ticket.ticket_id }}</p>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-sm font-medium text-gray-500">Subject</span>
+                    <p class="text-sm text-gray-900">{{ ticket.subject }}</p>
+                </div>
+                <div class="space-y-1">
+                    <span class="text-sm font-medium text-gray-500">Status</span>
+                    <p class="text-sm text-gray-900">{{ ticket.status|title }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call History Section -->
+    {% if calls %}
+        <div class="mb-6">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">
+                Call History for Ticket {{ ticket.ticket_id }}
+            </h3>
+
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr class="bg-blue-600">
+                                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    Call Start Time
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    Call End Time
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    Call Duration
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                    Call Note
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for call in calls %}
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ call.call_start_time|date:"Y-m-d H:i:s" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ call.call_end_time|date:"Y-m-d H:i:s" }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ call.call_duration|format_timedelta }}
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    {{ call.call_note|default:"No notes available" }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No Call History</h3>
+            <p class="mt-1 text-sm text-gray-500">No calls have been made for this ticket yet.</p>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %}

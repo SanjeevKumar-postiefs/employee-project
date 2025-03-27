@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alpine.js Table Toggle</title>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+<style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+</style>
+</head>
+<body>
+<div x-data="{ showAll: false }" class="container">
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Name</th>
+<th>Age</th>
+<th>Occupation</th>
+</tr>
+</thead>
+<tbody>
+<!-- First row is always visible -->
+<tr>
+<td>1</td>
+<td>John Doe</td>
+<td>28</td>
+<td>Engineer</td>
+</tr>
+<!-- Other rows are conditionally visible -->
+<template x-if="showAll">
+<tr>
+<td>2</td>
+<td>Jane Smith</td>
+<td>34</td>
+<td>Designer</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Emily Johnson</td>
+<td>41</td>
+<td>Manager</td>
+</tr>
+</template>
+</tbody>
+</table>
+<!-- Toggle Button -->
+<button @click="showAll = !showAll" class="toggle-button" style="margin-top: 10px;">
+<span x-text="showAll ? 'Hide Rows' : 'Show More Rows'"></span>
+</button>
+</div>
+</body>
+</html>

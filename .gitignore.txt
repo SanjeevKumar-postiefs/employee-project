@@ -1,0 +1,6 @@
+# .gitignore
+staticfiles/
+*.pyc
+__pycache__/
+.env
+*.env

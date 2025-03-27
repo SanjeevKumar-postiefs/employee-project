@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="min-h-screen bg-gray-50 mt-12 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-900">On Duty Requests</h2>
+                </div>
+                <a href="{% url 'on_duty_request' %}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    New Request
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-6">
+            <div class="sm:hidden">
+                <label for="tabs" class="sr-only">Select a tab</label>
+                <select id="tabs" name="tabs" class="block w-full rounded-md border-gray-300" onchange="showTab(this.value)">
+                    <option value="my-requests" {% if request.GET.tab == 'my-requests' %}selected{% endif %}>My Requests</option>
+                    {% if has_team %}
+                    <option value="team-requests" {% if request.GET.tab == 'team-requests' %}selected{% endif %}>Team Requests</option>
+                    {% endif %}
+                </select>
+            </div>
+            <div class="hidden sm:block">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button onclick="showTab('my-requests')"
+                                class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600"
+                                id="my-requests-tab">
+                            My Requests
+                        </button>
+                        {% if has_team %}
+                        <button onclick="showTab('team-requests')"
+                                class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                id="team-requests-tab">
+                            Team Requests
+                        </button>
+                        {% endif %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Requests Table -->
+        <div id="my-requests-content" class="tab-content">
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                {% include "on_duty_table.html" with requests=my_requests is_manager=False %}
+            </div>
+        </div>
+
+        <!-- Team Requests Table -->
+        {% if has_team %}
+        <div id="team-requests-content" class="tab-content hidden">
+            <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+                {% include "on_duty_table.html" with requests=team_requests is_manager=True %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+    <script>
+    // Function to get URL parameter
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    };
+
+    function showTab(tabId) {
+        // Hide all content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.add('hidden');
+        });
+
+        // Deactivate all tabs
+        document.querySelectorAll('.tab-button').forEach(tab => {
+            tab.classList.remove('border-blue-500', 'text-blue-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+
+        // Show selected content
+        document.getElementById(`${tabId}-content`).classList.remove('hidden');
+
+        // Activate selected tab
+        document.getElementById(`${tabId}-tab`).classList.remove('border-transparent', 'text-gray-500');
+        document.getElementById(`${tabId}-tab`).classList.add('border-blue-500', 'text-blue-600');
+
+        // Update dropdown if it exists
+        const tabSelect = document.getElementById('tabs');
+        if (tabSelect) {
+            tabSelect.value = tabId;
+        }
+
+        // Update URL without refreshing the page
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.pushState({}, '', url);
+    }
+
+    // Initialize correct tab on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const tab = getUrlParameter('tab') || 'my-requests';
+        showTab(tab);
+
+        // Update select element if it exists
+        const tabSelect = document.getElementById('tabs');
+        if (tabSelect) {
+            tabSelect.value = tab;
+        }
+    });
+    </script>
+{% endblock %}

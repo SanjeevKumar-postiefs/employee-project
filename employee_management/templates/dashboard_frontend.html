@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/phosphor-icons@1.4.2/src/css/icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <title>Dashboard</title>
+  <style>
+    .sidebar {
+      width: 64px;
+      transition: width 0.3s ease;
+      position: fixed;
+      /* Keep it fixed on scroll */
+      height: 100vh;
+      /* Full height */
+      /* overflow-y: auto; */
+      z-index: 9999;
+
+      /* Enable scrolling if needed */
+    }
+
+    .sidebar:hover {
+      /* width: 170px; */
+      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+    }
+
+    .side-menu-has-tooltip {
+      position: relative;
+      /* width: 100%; */
+    }
+
+    .side-menu-has-tooltip:hover .side-menu-tooltip {
+      /* position: absolute; */
+      visibility: visible;
+      z-index: 9999;
+      left: 25px;
+      /* margin: 10px; */
+      /* top: 0; */
+      /* width: 80px; */
+      /* display: flex;
+      align-items: center; */
+      /* right: 0; */
+      /* background-color: orange; */
+    }
+
+    .side-menu-tooltip {
+      /* width: 100%; */
+      visibility: hidden;
+      position: absolute;
+      padding: 0 8px;
+      border-radius: 5px;
+      /* right: 0; */
+      /* margin: 10px; */
+      /* background-color: rgba(83, 85, 84, 0.74); */
+      /* left: 20px; */
+    }
+
+    /* .sidebar:hover .company-favicon {
+      display: none;
+    } */
+
+    .company-logo {
+      display: none;
+    }
+
+    /* .sidebar:hover .company-logo {
+      display: block;
+    } */
+
+
+    .sidebar h2 {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .sidebar i {
+      min-width: 24px;
+      /* Ensures icons always take space */
+    }
+
+    .main-content {
+      margin-left: 64px;
+      /* Default sidebar width */
+      transition: margin-left 0.3s ease;
+    }
+
+    /* .sidebar:hover+.main-content {
+      Adjust when sidebar expands
+      margin-left: 200px;
+    } */
+
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 64px;
+      width: calc(100% - 64px);
+      z-index: 1000;
+      transition: left 0.3s ease, width 0.3s ease;
+    }
+
+    /* .sidebar:hover+.main-content .navbar {
+      left: 200px;
+      width: calc(100% - 200px);
+    } */
+
+    .content-area {
+      margin-top: 64px;
+      /* Adjust for fixed navbar */
+      overflow: auto;
+      height: calc(100vh - 64px);
+    }
+
+    /* #hover-to-show-data:hover #table-hover-div {
+      visibility: visible !important;
+      display: block;
+    } */
+
+    .tooltip {
+      visibility: hidden;
+      position: absolute;
+    }
+
+    .has-tooltip:hover .tooltip {
+      z-index: 50;
+      visibility: visible;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-100">
+
+  <div class="flex">
+    <!-- Sidebar -->
+    <aside class="sidebar bg-white flex flex-col p-4 space-y-6 group shadow-lg">
+      <h2 class="text-xl font-bold flex items-center space-x-1">
+        <img style="width: 32px; height: 31px;" class="company-favicon"
+          src="/frontend-code/images/company-logo-favicon.png" alt="favicon">
+        <span class="">
+          <img style="height: 31px;" class="company-logo" src="/frontend-code/images/company-logo.png" alt="">
+        </span>
+      </h2>
+      <nav class="flex flex-col space-y-2">
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-house"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Home</div>
+          </div>
+        </a>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-briefcase"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Employee</div>
+          </div>
+        </a>
+
+        <div href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-user"></i>
+          <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between ">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded  ">
+              <li class="hover:bg-blue-200 list-none p-2 rounded"><a href="#">Linux</a></li>
+              <li class="hover:bg-blue-200 list-none p-2 rounded"><a href="#">Windows/Azure</a></li>
+              <li class="hover:bg-blue-200 list-none p-2 rounded"><a href="#">Network/AWS</a></li>
+              <li class="hover:bg-blue-200 list-none p-2 rounded"><a href="#">LEVELONE</a></li>
+              <li class="hover:bg-blue-200 list-none p-2 rounded"><a href="#">OCI</a></li>
+            </div>
+          </div>
+        </div>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-users"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Users</div>
+          </div>
+        </a>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-activity"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Activity</div>
+          </div>
+        </a>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-ticket"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Tickets</div>
+          </div>
+        </a>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-user-plus"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Add&nbsp;user</div>
+          </div>
+        </a>
+
+        <a href="#"
+          class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+          <i class="ph ph-plus"></i>
+          <div class="side-menu-tooltip bg-transparent">
+            <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Add&nbsp;employee</div>
+          </div>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Right Sidebar -->
+    <div
+      class="fixed top-20 right-0 overflow-auto h-3/4 bg-white text-gray-700 transform translate-x-full hover:translate-x-0 transition-transform duration-300 z-40"
+      id="rightSidebar">
+      <div class="p-1">
+        <div class="max-w-4xl mx-auto overflow-auto h-full rounded shadow-lg">
+
+          <!-- Dashboard Card -->
+          <div class="bg-white shadow-xl rounded-lg h-full">
+
+            <!-- Header Section -->
+            <!-- <div class="bg-blue-600 p-2 text-center text-white"> -->
+            <!-- <h2 class="text-2xl font-semibold">Tickets Dashboard</h2> -->
+            <!-- <p class="text-sm">Team: Customer Support</p> -->
+            <!-- </div> -->
+
+            <!-- Chart and Stats Section -->
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-4 p-2">
+
+
+
+              <!-- Bar Chart Section -->
+              <div class="bg-gray-50 p-2 rounded-lg shadow-lg">
+                <h3 class="text-lg font-semibold mb-4">Today's Status</h3>
+                <canvas id="barChart"></canvas>
+              </div>
+
+              <!-- Summary Section -->
+              <div class="bg-gray-100 p-6">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <span class="font-semibold text-gray-600">Total Tickets Today</span>
+                    <p class="text-xl font-bold text-green-600">10</p>
+                  </div>
+                  <div>
+                    <span class="font-semibold text-gray-600">Total Call Time</span>
+                    <p class="text-xl font-bold text-blue-600">5h 30m</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- <div>
+                <h3 class="text-lg font-semibold mb-4">Overall tickets</h3>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-4 rounded-lg shadow-lg p-3 justify-between">
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Total Tickets</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Open</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Waiting On Customer</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Pending</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Resolved</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Closed</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">On Hold</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                  <div class="shadow p-1">
+                    <div class="text-red-500">Initial Response</div>
+                    <div class="font-bold">20</div>
+                  </div>
+                </div>
+              </div> -->
+
+              <!-- Pie Chart Section -->
+              <div class="bg-gray-50 p-2 rounded-lg shadow-lg">
+                <!-- <h3 class="text-lg font-semibold mb-4">Today's Status</h3> -->
+                <h3 class="text-lg font-semibold mb-4">Overall Tickets</h3>
+                <canvas id="pieChart"></canvas>
+              </div>
+
+              <table class="w-full border-collapse border border-gray-300 text-left">
+                <tbody id="dataTable" class="bg-white"></tbody>
+              </table>
+            </div>
+
+
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- Right Sidebar -->
+
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col main-content">
+      <!-- Navbar -->
+      <nav class="navbar bg-white shadow-lg p-2 flex justify-end gap-4 items-center">
+        <div class="flex space-x-4">
+
+          <!-- <a href="#" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-activity"></i> <span class="ml-2">Activity</span>
+          </a> -->
+
+          <!-- <a href="#" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-user"></i> <span class="ml-2">Profile</span>
+          </a> -->
+          <a href="#" onclick="openModal('newCallModal')" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
+          </a>
+          <a href="#" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-plus-circle"></i> <span class="ml-2">Create Ticket</span>
+          </a>
+          <!-- <a href="#" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-eye"></i> <span class="ml-2">View Tickets</span>
+          </a> -->
+        </div>
+        <div class="flex items-center space-x-4 cursor-pointer">
+          <div class="relative">
+            <!-- Button to toggle dropdown -->
+            <img src="https://picsum.photos/seed/picsum/200/300" alt="Profile" class="w-10 h-10 rounded-full"
+              id="dropdownButton">
+
+            <!-- Dropdown Menu -->
+            <div class="absolute right-0 hidden bg-white shadow-md rounded-md mt-2 w-48" id="dropdownMenu">
+              <ul class="py-1">
+                <li>
+                  <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="ph ph-user"></i>
+                    <span>Profile</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="ph ph-eye"></i>
+                    <span>My Tickets</span>
+                  </a>
+                </li>
+                <!-- <li>
+                  <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="ph ph-activity"></i>
+                    <span>Activity</span>
+                  </a>
+                </li> -->
+                <li>
+                  <a href="#" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="ph ph-sign-out"></i>
+                    <span>Logout</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Content Area -->
+      <main class="p-4 content-area">
+
+        <div class="max-w-full mx-auto bg-white p-6 shadow-lg rounded-lg overflow-x-auto">
+          <div class="flex justify-between items-center mb-7">
+            <h1 class="text-4xl font-medium">Ajil's Dashboard</h1>
+
+            <div>
+
+              <!-- <button class="bg-rose-500 text-white px-4 py-1 hover:bg-rose-700 transition"
+                onclick="openModal('newCallModal')">
+                New Call
+              </button> -->
+
+              <div id="newCallModal"
+                class="fixed z-[9999] hidden inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full px-4 ">
+                <div class="relative my-4 mx-auto shadow-xl rounded-md bg-white max-w-2xl">
+
+                  <div class="flex w-full justify-between items-center p-2">
+                    <h2 class="text-xl font-bold p-2">Client Call</h2>
+                    <button onclick="closeModal('newCallModal')" type="button"
+                      class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-xl px-2 py-1 inline-flex items-center">
+                      &times;
+                    </button>
+                  </div>
+
+                  <div class="p-3 pt-0 text-center">
+
+                    <div>
+                      <h4 class="text-center text-lg">New or Existing Query?</h4>
+                      <div class="flex justify-evenly my-2">
+                        <button type="button" onclick="clientCallNewQuery()"
+                          class="text-white bg-blue-700 hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-300 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-2.5 py-1.5  focus:outline-none dark:focus:ring-blue-800 rounded">New
+                          Query</button>
+
+                        <button onclick="clientCallExistingQuery()"
+                          class="text-white bg-blue-700 hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-300 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-2.5 py-1.5  focus:outline-none dark:focus:ring-blue-800 rounded">Existing
+                          Query</button>
+                      </div>
+                    </div>
+
+                    <div id="newQueryForm" class="text-left hidden">
+
+                      <div>
+                        <label class="inline-flex items-center cursor-pointer">
+                          <span class=" mr-2 text-sm font-medium text-gray-900">
+                            Need to create ticket?
+                          </span>
+                          <input type="checkbox" value="" onchange="createTicketToggle(event)" class="sr-only peer">
+                          <div
+                            class="relative w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600">
+                          </div>
+
+                        </label>
+                      </div>
+
+                      <form class=" my-2 mx-auto">
+
+                        <div class="grid grid-cols-2 gap-x-4">
+                          <div class="mb-5">
+                            <label for="email" class="block mb-2 text-sm font-medium text-gray-900">Primary Email
+                              (L1)</label>
+                            <input type="email" id="email"
+                              class="bg-gray-50 border disabled:bg-gray-100 border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full p-2"
+                              placeholder="l1@gmail.com" disabled />
+                          </div>
+
+                          <div class="mb-5">
+                            <label for="client-name" class="block mb-2 text-sm font-medium text-gray-900">Client
+                              Name</label>
+                            <input type="email" id="client-name"
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                              placeholder="Enter client name" />
+                          </div>
+                        </div>
+
+
+                        <div id="clientEmail" class="hidden grid grid-cols-2 gap-x-4">
+                          <div class="mb-5">
+                            <label for="client-email" class="block mb-2 text-sm font-medium text-gray-900">Client
+                              Email</label>
+                            <input type="email"
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                              placeholder="Enter client email" />
+                          </div>
+
+                          <div class="mb-5">
+                            <label for="cc" class="block mb-2 text-sm font-medium text-gray-900">CC</label>
+                            <input type="email" id="cc"
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                              placeholder="Enter CC (Optional)" />
+                          </div>
+                        </div>
+
+                        <div class="my-2">
+                          <label for="note" class="block mb-2 text-sm font-medium text-gray-900">Note</label>
+                          <textarea id="note" rows="3"
+                            class="block p-2 w-full text-sm text-gray-900 bg-gray-50 rounded-md border border-gray-300 focus:outline-none"
+                            placeholder="Enter note about the query"></textarea>
+                        </div>
+
+                        <div class="text-center">
+                          <button id="newQuerySubmitBtn" type="submit"
+                            class="text-white bg-blue-700 rounded hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-300 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium text-sm w-full sm:w-auto px-2 py-1 text-center">Save</button>
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                    <div id="existingQueryForm" class="text-left hidden">
+                      <h2 class="text-xl">Existing Query</h2>
+                      <form class="max-w-2xl my-2 mx-auto">
+
+                        <div class="mb-5">
+                          <label for="ticket-id" class="block mb-1 text-sm font-medium text-gray-900">Ticket ID</label>
+                          <input type="text" id="ticket-id"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                            placeholder="Enter Ticket ID" />
+                        </div>
+
+                        <div class="text-center">
+                          <button onclick="existingQuerySubmitBtn()" type="button"
+                            class="text-white bg-blue-700 hover:bg-blue-900 hover:shadow-lg hover:shadow-blue-300 focus:ring-1 focus:outline-none focus:ring-blue-300 font-medium text-sm w-full sm:w-auto px-2 py-1 rounded">Search</button>
+                        </div>
+
+                      </form>
+
+                    </div>
+
+                    <div id="existingQueryTicketDetailsForm" class="text-left hidden">
+                      <h2 class="text-xl">Ticket Details</h2>
+                      <form class="max-w-2xl my-1 mx-auto">
+
+                        <div class="mb-2">
+                          <label for="ticket-details-subject"
+                            class="block mb-2 text-sm font-medium text-gray-900">Subject</label>
+                          <input type="text" id="ticket-details-subject"
+                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                            placeholder="Subject" />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-x-4 mb-2">
+                          <div class="">
+                            <label for="assigned-to" class="block mb-2 text-sm font-medium text-gray-900">Assigned
+                              To</label>
+
+                            <select
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                              id="assigned-to" name="assigned_to">
+                              <option value="admin">admin</option>
+                              <option value="sanjeev">sanjeev</option>
+                              <option value="Ajil">Ajil</option>
+                              <option value="Jayamohan">Jayamohan</option>
+                              <option value="Georgy">Georgy</option>
+                              <option value="jobin">jobin</option>
+                              <option value="didith">didith</option>
+                              <option value="manuel">manuel</option>
+                              <option value="Manoj">Manoj</option>
+                            </select>
+                          </div>
+
+                          <div class="">
+                            <label for="priority" class="block mb-2 text-sm font-medium text-gray-900">Priority</label>
+
+                            <select
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:outline-none focus:border-blue-500 block w-full p-2"
+                              id="priority" name="priority">
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                              <option value="urgent">Urgent</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div class="text-center">
+                          <button id="existingQueryTicketDetailsSubmitBtn" type="button"
+                            class="text-white bg-blue-700 hover:bg-blue-900 hover:shadow-lg hover:shadow-blue-300 focus:ring-1 focus:outline-none focus:ring-blue-300 font-medium text-sm w-full sm:w-auto px-2 py-1 rounded">Update
+                            Ticket</button>
+                        </div>
+
+                      </form>
+
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            <label class="inline-flex items-center cursor-pointer">
+              <input type="checkbox" onchange="openModal('breakToggle')" value="" class="sr-only peer">
+              <div
+                class="relative w-11 h-6 bg-green-700 peer-focus:outline-none peer-focus:ring-1 peer:ring-green-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-green-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 peer-checked:ring-red-800">
+              </div>
+              <span class="ms-3 text-md font-medium text-gray-900 dark:text-green-500">
+                Active
+                <!-- <span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-ping"></span> -->
+              </span>
+            </label>
+
+            <div id="breakToggle"
+              class="fixed z-[9999] hidden inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full px-4 ">
+              <div class="relative my-20 mx-auto shadow-xl rounded-md bg-white max-w-md">
+
+                <div class="flex w-full justify-between items-center p-2">
+                  <h2 class="text-xl font-bold p-2"></h2>
+                  <button onclick="closeModal('breakToggle')" type="button"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-xl px-2 py-1 inline-flex items-center">
+                    &times;
+                  </button>
+                </div>
+
+                <div class="p-3 pt-0 text-center">
+                  <div class="text-7xl">
+                    <i class="ph-light ph-warning-circle text-red-500"></i>
+                  </div>
+                  <div class="text-xl">Break Available</div>
+                  <p>✨ Break slot now available! Team members can take a break. 1 break slot(s) open. 🎉</p>
+
+                  <div class="pt-3">
+                    <button type="button" onclick="closeModal('breakToggle')"
+                      class="text-white bg-blue-700 hover:bg-blue-800 hover:shadow-lg hover:shadow-blue-300 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-2.5 py-1.5  focus:outline-none dark:focus:ring-blue-800 rounded">Ok</button>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <h1 class="text-lg font-bold mb-6">Ticket Management and Resolution Tracking</h1>
+
+          <table class="w-full border-collapse border border-gray-300">
+            <thead class="text-sm">
+              <tr class="bg-blue-200">
+                <th class="border p-1"></th>
+                <th class="border p-1">Ticket ID</th>
+                <!-- <th class="border p-1">Subject</th> -->
+                <th class="border p-1">Subject</th>
+                <th class="border p-1">Priority</th>
+                <th class="border p-1">Status</th>
+                <th class="border p-1">Ticket Age</th>
+                <th class="border p-1">Total Effort</th>
+                <th class="border p-1">Individual Effort</th>
+                <th class="border p-1">Action</th>
+                <th class="border p-1">On Call</th>
+                <th class="border p-1">Accept</th>
+              </tr>
+            </thead>
+            <tbody class="text-center">
+              <!-- <tr>
+                <th class="text-left p-1" colspan="8">New Request</th>
+              </tr> -->
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-blue-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">I need a new keyboard</td> -->
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">I
+                  need a new
+                  keyboard
+
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 14</td> -->
+                <td class="border px-2 py-1 bg-green-200 text-green-700">Low</td>
+                <td class="border px-2 py-1 text-white bg-green-500">New</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-green-200 text-green-700">00:00:00</td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-green-200 text-green-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 14</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100 ">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-blue-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">I forgot my email password</td> -->
+
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">I
+                  forgot my
+                  email
+                  password
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 16</td> -->
+                <td class="border px-2 py-1 bg-yellow-300 text-yellow-700">Medium</td>
+                <td class="border px-2 py-1 bg-green-500 text-white">New</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-orange-200 text-orange-700">00:00:00</td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-orange-200 text-orange-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 16</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+
+              <!-- <tr>
+                <th class="text-left p-1" colspan="8">Working on it</th>
+              </tr> -->
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-purple-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">Faulty internet connection</td> -->
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">
+                  Faulty internet
+                  connection
+
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 5</td> -->
+                <td class="border px-2 py-1 bg-red-500 text-white">High</td>
+                <td class="border px-2 py-1 bg-orange-400 text-white">Working on it</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-blue-200 text-blue-700">00:00:00</td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-blue-200 text-blue-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 14</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-purple-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">New software subscription</td> -->
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">New
+                  software
+                  subscription
+
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 16</td> -->
+                <td class="border text-center px-2 py-1 bg-yellow-300 text-yellow-700">Medium</td>
+                <td class="border px-2 py-1 bg-orange-400 text-white">Working on it</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-gray-200 text-gray-700">00:00:00</td>
+                <td class="border animate-pulse px-2 py-1 text-center bg-gray-200 text-gray-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 16</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+
+              <!-- <tr>
+                <th class="text-left p-1" colspan="8">Done</th>
+              </tr> -->
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-green-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">Problem with the VPN</td> -->
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">
+                  Problem with
+                  the VPN
+
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 5</td> -->
+                <td class="border px-2 py-1 bg-red-500 text-white">High</td>
+                <td class="border px-2 py-1 bg-green-500 text-white">Done</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse text-center px-2 py-1 bg-yellow-200 text-yellow-700">00:00:00</td>
+                <td class="border animate-pulse text-center px-2 py-1 bg-yellow-200 text-yellow-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 14</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+
+              <tr>
+                <th></th>
+              </tr>
+
+              <tr class="border border-l-4 border-green-500 bg-gray-100 hover:bg-gray-200">
+                <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+                <td class="border px-2 py-1">100012</td>
+                <!-- <td class="border p-2">Computer crashed</td> -->
+                <td id="hover-to-show-data" class="has-tooltip relative cursor-pointer border px-2 py-1 text-left">
+                  Computer
+                  crashed
+
+                  <div class='has-tooltip mt-2 text-center'>
+                    <span class='tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20'>More
+                      Content</span>
+                    <!-- <button class="p-2 bg-violet-300 text-gray-600 rounded-lg">More</button> -->
+                  </div>
+
+                  <!-- <details open class="group">
+                    <summary class="invisible h-0">
+                    </summary>
+                    <div id="table-hover-div" class="rounded hidden w-10 ">
+                      <p class="">more content</p>
+                    </div>
+                  </details> -->
+                </td>
+                <!-- <td class="border p-2">Sep 16</td> -->
+                <td class="border px-2 py-1 bg-red-500 text-white">High</td>
+                <td class="border px-2 py-1 bg-green-500 text-white">Done</td>
+                <td class="border px-2 py-1 text-center"><button class="">68:08:13</button></td>
+                <td class="border animate-pulse px-2 py-1 bg-red-200 text-red-700">00:00:00</td>
+                <td class="border animate-pulse px-2 py-1 bg-red-200 text-red-700">00:00:00</td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-green-500 bg-green-100 py-1 px-3">Start</button>
+                </td>
+                <td class="border px-2 py-1 text-center">
+                  <button class="border text-white bg-gray-400 py-1 px-1">Start Call</button>
+                </td>
+                <td class="border px-2 py-1 text-center">✅</td>
+                <!-- <td class="border p-2 text-center"><img src="https://picsum.photos/seed/picsum/200/300" alt="User"
+                    class="w-8 h-8 rounded-full" onerror="this.onerror=null; this.src='default-user.jpg';"></td> -->
+                <!-- <td class="border p-2">Sep 16</td> -->
+              </tr>
+
+              <tr class="hidden text-left bg-gray-100">
+                <td colspan="8" class="py-2 px-4">
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Assign</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Change
+                    Status</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Call
+                    Details</button>
+
+                  <button
+                    class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">From
+                    existing query</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+
+        <div class="relative max-w-full mx-auto bg-white p-6 shadow-lg rounded-lg overflow-x-auto my-2">
+          <table class="w-full text-sm text-left rtl:text-right">
+            <thead class="bg-gray-200 text-xs uppercase text-center">
+              <tr>
+                <th scope="col" class="px-6 py-3">
+                  Client name
+                </th>
+                <th scope="col" class="px-6 py-3">
+                  Client email
+                </th>
+                <th scope="col" class="px-6 py-3">
+                  Call Duration
+                </th>
+                <th scope="col" class="px-6 py-3">
+                  Ticket Created
+                </th>
+                <th scope="col" class="px-6 py-3">
+                  Note
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class=" border-b border-gray-200 hover:bg-gray-100">
+                <th scope="row" class="px-6 py-4 font-medium whitespace-nowrap">
+                  clienttestname5
+                </th>
+                <td class="px-6 py-4">
+                  clienttestmail5@gmail.com
+                </td>
+                <td class="px-6 py-4">
+                  1m 10s
+                </td>
+                <td class="px-6 py-4 text-center">
+                  ✅
+                </td>
+                <td class="px-6 py-4">
+                  testnote 5
+                </td>
+              </tr>
+              <tr class=" border-b border-gray-200 hover:bg-gray-100">
+                <th scope="row" class="px-6 py-4 font-medium whitespace-nowrap">
+                  clienttestname5
+                </th>
+                <td class="px-6 py-4">
+                  clienttestmail5@gmail.com
+                </td>
+                <td class="px-6 py-4">
+                  1m 10s
+                </td>
+                <td class="px-6 py-4 text-center">
+                  ❌
+                </td>
+                <td class="px-6 py-4">
+                  testnote 5
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+
+        <!-- <div class="container mx-auto">
+          <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+            <thead class="bg-gray-200">
+              <tr>
+                <th class="py-3 px-4 text-left">
+                  <input type="checkbox" class="w-4 h-4">
+                </th>
+                <th class="py-3 px-4 text-left">Priority / Urgency</th>
+                <th class="py-3 px-4 text-left">Title</th>
+                <th class="py-3 px-4 text-left">Created by</th>
+                <th class="py-3 px-4 text-left">Created at</th>
+                <th class="py-3 px-4 text-left">Service</th>
+                <th class="py-3 px-4 text-left">Assigned to</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b hover:bg-gray-100">
+                <td class="py-3 px-4">
+                  <input type="checkbox" class="w-4 h-4">
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">P1 High</span>
+                </td>
+                <td class="py-3 px-4">What are the inputs and outputs of accept decline?</td>
+                <td class="py-3 px-4">Customer</td>
+                <td class="py-3 px-4">11:26 PM</td>
+                <td class="py-3 px-4">Alma Connect</td>
+                <td class="py-3 px-4">Eduardo</td>
+              </tr>
+              <tr class="border-b hover:bg-gray-100">
+                <td class="py-3 px-4">
+                  <input type="checkbox" class="w-4 h-4">
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">P2 High</span>
+                </td>
+                <td class="py-3 px-4">System slowdowns; potential service outages</td>
+                <td class="py-3 px-4">Customer</td>
+                <td class="py-3 px-4">12:20 PM</td>
+                <td class="py-3 px-4">Hiverbite</td>
+                <td class="py-3 px-4">Kyle</td>
+              </tr>
+              <tr class="border-b hover:bg-gray-100">
+                <td class="py-3 px-4">
+                  <input type="checkbox" class="w-4 h-4">
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 bg-gray-500 text-white rounded-full text-sm font-semibold">P3 Low</span>
+                </td>
+                <td class="py-3 px-4">Poor user experience; increased support requests</td>
+                <td class="py-3 px-4">System</td>
+                <td class="py-3 px-4">05:13 PM</td>
+                <td class="py-3 px-4">Accept Decline</td>
+                <td class="py-3 px-4">Max</td>
+              </tr>
+              <tr class="border-b hover:bg-gray-100">
+                <td class="py-3 px-4">
+                  <input type="checkbox" class="w-4 h-4">
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 bg-gray-500 text-white rounded-full text-sm font-semibold">P4 Low</span>
+                </td>
+                <td class="py-3 px-4">Reduced application performance; potential data loss</td>
+                <td class="py-3 px-4">System</td>
+                <td class="py-3 px-4">11:22 PM</td>
+                <td class="py-3 px-4">CampusAge</td>
+                <td class="py-3 px-4">Kristin</td>
+              </tr>
+              <tr class="border-b hover:bg-gray-100">
+                <td class="py-3 px-4">
+                  <input type="checkbox" class="w-4 h-4">
+                </td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-1 bg-red-500 text-white rounded-full text-sm font-semibold">P1 High</span>
+                </td>
+                <td class="py-3 px-4">Network Latency Issues</td>
+                <td class="py-3 px-4">Customer</td>
+                <td class="py-3 px-4">11:22 PM</td>
+                <td class="py-3 px-4">Alma Connect</td>
+                <td class="py-3 px-4">Darlene</td>
+              </tr>
+            </tbody>
+          </table>
+        </div> -->
+      </main>
+    </div>
+  </div>
+
+
+  <!--
+  <div class="max-w-full mx-auto">
+    <h1 class="text-3xl font-bold">Ajil's Dashboard</h1>
+
+    <div class="flex justify-between items-center mt-4">
+      <button class="bg-orange-400 text-white px-4 py-2 rounded-lg">New Call</button>
+      <div class="flex items-center space-x-2">
+        <span class="text-green-600 font-bold">Active</span>
+        <div class="relative cursor-pointer">
+          <input type="checkbox" class="sr-only" checked>
+          <div class="block w-10 h-6 bg-green-500 rounded-full"></div>
+          <div class="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mt-6">
+      <div class="bg-purple-600 text-white p-4 rounded-lg">
+        <p class="font-bold">Total Tickets</p>
+        <p class="text-xl">10</p>
+      </div>
+      <div class="bg-indigo-600 text-white p-4 rounded-lg">
+        <p class="font-bold">Total Time Spent</p>
+        <p class="text-xl">339.57 hours</p>
+      </div>
+      <div class="bg-green-500 text-white p-4 rounded-lg">
+        <p class="font-bold">Ticket Status</p>
+        <ul class="text-sm">
+          <li>Closed: 6</li>
+          <li>Resolved: 1</li>
+          <li>Pending: 3</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-blue-600 text-white p-4 rounded-lg">
+      <h2 class="font-bold">Today's Status</h2>
+      <div class="grid grid-cols-4 gap-4 mt-4">
+        <div class="bg-white text-gray-700 p-4 rounded-lg flex flex-col items-center">
+          <span class="text-2xl">📩</span>
+          <p class="font-bold">Today's Tickets</p>
+          <p class="text-xl">0</p>
+        </div>
+        <div class="bg-white text-gray-700 p-4 rounded-lg flex flex-col items-center">
+          <span class="text-2xl">📂</span>
+          <p class="font-bold">Open Tickets</p>
+          <p class="text-xl">0</p>
+        </div>
+        <div class="bg-white text-gray-700 p-4 rounded-lg flex flex-col items-center">
+          <span class="text-2xl">📁</span>
+          <p class="font-bold">Closed Tickets</p>
+          <p class="text-xl">0</p>
+        </div>
+        <div class="bg-white text-gray-700 p-4 rounded-lg flex flex-col items-center">
+          <span class="text-2xl">📞</span>
+          <p class="font-bold">Total Call Time</p>
+          <p class="text-xl">0h 0m</p>
+        </div>
+      </div>
+    </div>
+  </div> -->
+
+  <!-- <div class="overflow-x-auto my-4">
+    <table class="min-w-full bg-white border border-gray-200 shadow-lg rounded-lg">
+      <thead class="bg-gray-700 text-white text-sm md:text-base">
+        <tr>
+          <th class="py-3 px-4 text-left">Actions</th>
+          <th class="py-3 px-4 text-left">Ticket ID</th>
+          <th class="py-3 px-4 text-left">Subject</th>
+          <th class="py-3 px-4 text-left">Status</th>
+          <th class="py-3 px-4 text-left">Priority</th>
+          <th class="py-3 px-4 text-left">Time Since Created</th>
+          <th class="py-3 px-4 text-left">Total Spent</th>
+          <th class="py-3 px-4 text-left">Individual Spent</th>
+          <th class="py-3 px-4 text-left">On Call</th>
+          <th class="py-3 px-4 text-left">Acknowledgment</th>
+        </tr>
+      </thead>
+      <tbody class="text-sm md:text-base">
+        <tr class="border-b hover:bg-gray-50">
+          <td class="py-3 px-4 text-blue-600 font-bold cursor-pointer">+</td>
+          <td class="py-3 px-4">101123</td>
+          <td class="py-3 px-4">notification alert</td>
+          <td class="py-3 px-4">pending</td>
+          <td class="py-3 px-4 text-red-500 font-bold">urgent</td>
+          <td class="py-3 px-4"><span class="bg-red-500 text-white px-2 py-1 rounded-md">267:00:00</span></td>
+          <td class="py-3 px-4">00:00:00</td>
+          <td class="py-3 px-4">00:00:00</td>
+          <td class="py-3 px-4 text-center">
+            <button class="bg-green-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start</button>
+            <button class="bg-gray-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start Call</button>
+          </td>
+          <td class="py-3 px-4 text-green-500 font-bold">✔ Acknowledged</td>
+        </tr>
+        <tr class="border-b hover:bg-gray-50">
+          <td class="py-3 px-4 text-blue-600 font-bold cursor-pointer">+</td>
+          <td class="py-3 px-4">101102</td>
+          <td class="py-3 px-4">alert to assigned user</td>
+          <td class="py-3 px-4">pending</td>
+          <td class="py-3 px-4 text-orange-500 font-bold">high</td>
+          <td class="py-3 px-4"><span class="bg-orange-400 text-white px-2 py-1 rounded-md">267:42:26</span></td>
+          <td class="py-3 px-4">00:00:15</td>
+          <td class="py-3 px-4">00:00:00</td>
+          <td class="py-3 px-4 text-center">
+            <button class="bg-green-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start</button>
+            <button class="bg-gray-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start Call</button>
+          </td>
+          <td class="py-3 px-4 text-green-500 font-bold">✔ Acknowledged</td>
+        </tr>
+        <tr class="border-b hover:bg-gray-50">
+          <td class="py-3 px-4 text-blue-600 font-bold cursor-pointer">+</td>
+          <td class="py-3 px-4">112201</td>
+          <td class="py-3 px-4">today status checking</td>
+          <td class="py-3 px-4">pending</td>
+          <td class="py-3 px-4 text-green-500 font-bold">low</td>
+          <td class="py-3 px-4"><span class="bg-green-500 text-white px-2 py-1 rounded-md">288:51:52</span></td>
+          <td class="py-3 px-4">00:00:00</td>
+          <td class="py-3 px-4">00:00:00</td>
+          <td class="py-3 px-4 text-center">
+            <button class="bg-green-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start</button>
+            <button class="bg-gray-800 text-white px-4 py-2 mx-3 my-2 rounded-md">Start Call</button>
+          </td>
+          <td class="py-3 px-4 text-green-500 font-bold">✔ Acknowledged</td>
+        </tr>
+      </tbody>
+    </table>
+  </div> -->
+
+  <!-- <div class="max-w-full mx-auto bg-white p-5 shadow-lg rounded-lg">
+    <h2 class="text-2xl font-bold mb-4">Call Details</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full border-collapse border border-gray-300">
+        <thead>
+          <tr class="bg-green-800 text-white">
+            <th class="p-3 text-left">Client name</th>
+            <th class="p-3 text-left">Client email</th>
+            <th class="p-3 text-left">Call Duration</th>
+            <th class="p-3 text-left">Ticket Created</th>
+            <th class="p-3 text-left">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-gray-300">
+            <td class="p-3">clienttestname5</td>
+            <td class="p-3">clienttestmail5@gmail.com</td>
+            <td class="p-3">1m 10s</td>
+            <td class="p-3 text-center"><span class="text-green-600">✅</span></td>
+            <td class="p-3">testnote 5</td>
+          </tr>
+          <tr class="border-b border-gray-300 bg-gray-100">
+            <td class="p-3">clienttestname3</td>
+            <td class="p-3">clienttestmail3@gmail.com</td>
+            <td class="p-3">1m 27s</td>
+            <td class="p-3 text-center"><span class="text-green-600">✅</span></td>
+            <td class="p-3">client test note 4</td>
+          </tr>
+          <tr class="border-b border-gray-300">
+            <td class="p-3">clienttestname2</td>
+            <td class="p-3">-</td>
+            <td class="p-3">0m 25s</td>
+            <td class="p-3 text-center"><span class="text-red-600">❌</span></td>
+            <td class="p-3">it is only for testing</td>
+          </tr>
+          <tr class="border-b border-gray-300 bg-gray-100">
+            <td class="p-3">Client name 1</td>
+            <td class="p-3">-</td>
+            <td class="p-3">0m 38s</td>
+            <td class="p-3 text-center"><span class="text-red-600">❌</span></td>
+            <td class="p-3">test note 1</td>
+          </tr>
+          <tr>
+            <td class="p-3">client test name</td>
+            <td class="p-3">clienttestmail@gmail.com</td>
+            <td class="p-3">0m 51s</td>
+            <td class="p-3 text-center"><span class="text-green-600">✅</span></td>
+            <td class="p-3">test note for client call</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div> -->
+
+  <script>
+    function toggleRow(button) {
+      let row = button.closest("tr").nextElementSibling;
+      // console.log(row);
+
+      if (row.classList.contains("hidden")) {
+        row.classList.remove("hidden");
+        button.textContent = "-";
+      } else {
+        row.classList.add("hidden");
+        button.textContent = "+";
+      }
+    }
+  </script>
+
+
+
+  <!-- right sidebar (Ticket status)-->
+  <script>
+    const rightSidebar = document.getElementById('rightSidebar');
+    // Hover over area to show the sidebar
+    document.body.addEventListener('mousemove', (event) => {
+
+      if (event.clientY >= 100 && event.clientY <= 230 && event.clientX > window.innerWidth - 50) {
+        rightSidebar.classList.remove('translate-x-full');
+      } else {
+        rightSidebar.classList.add('translate-x-full');
+      }
+    });
+  </script>
+  <!-- right sidebar (Ticket status)-->
+
+  <!-- Ticket status chart -->
+
+  <script>
+
+    // Pie Chart Data for Ticket Status
+
+    const doughnutData = {
+      labels: ['Total Tickets', 'Open', 'Waiting On Customer', 'Pending', 'Resolved', 'Closed', 'On Hold', 'Initial Response'],
+      datasets: [{
+        label: 'Counts',
+        data: [50, 10, 50, 40, 5, 3, 7, 6],
+        backgroundColor: ['#d83369', '#ff9800', '#ea3610', '#eed910', '#93ee10', '#10ee38', '#10cfee', '#1035ee '], // Colors for Open and Closed Tickets
+      }]
+    };
+
+    // Bar Chart Data for Performance
+    const barData = {
+      labels: ['Today Tickets', 'Open Tickets', 'Closed Tickets'],
+      datasets: [{
+        label: 'Counts',
+        data: [6, 1, 0],
+        backgroundColor: '#2196f3',
+        borderRadius: 10,
+      }]
+    };
+
+    // Pie Chart Configuration
+    const doughnutChartConfig = {
+      type: 'doughnut',
+      data: doughnutData,
+      options: {
+        responsive: true,
+        // radius:50,
+        // width:100,
+        // height:100
+        // aspectRatio: 1.5,
+        // maintainAspectRatio: false
+      }
+    };
+
+    // Bar Chart Configuration
+    const barChartConfig = {
+      type: 'bar',
+      data: barData,
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 5
+            }
+          }
+        }
+      }
+    };
+    // console.log(doughnutData.datasets[0].data[1]);
+
+    const tableBody = document.getElementById("dataTable");
+    doughnutData.labels.forEach((label, index) => {
+      let row = `<tr>
+                    <td class="px-2 py-1 flex items-center">
+                        <span class="w-4 h-4 inline-block rounded-full mr-2" style="background-color: ${doughnutData.datasets[0].backgroundColor[index]};"></span>
+                        ${label}
+                    </td>
+                    <td class="px-2 py-1 text-center">${doughnutData.datasets[0].data[index]}</td>
+                </tr>`;
+      tableBody.innerHTML += row;
+    });
+
+    // Initialize the charts
+    const pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), doughnutChartConfig);
+    const barChart = new Chart(document.getElementById('barChart').getContext('2d'), barChartConfig);
+  </script>
+
+  <!-- Ticket status chart -->
+
+
+  <!-- modal functions for client call -->
+
+  <script type="text/javascript">
+
+    const newQueryForm = document.getElementById('newQueryForm');
+    const existingQueryForm = document.getElementById('existingQueryForm');
+
+    const clientEmail = document.getElementById('clientEmail');
+    const newQuerySubmitBtn = document.getElementById('newQuerySubmitBtn');
+
+    const existingQueryTicketDetailsForm = document.getElementById('existingQueryTicketDetailsForm');
+
+
+
+    // client call functions
+
+
+
+    const clientCallNewQuery = () => {
+      existingQueryForm.classList.add('hidden');
+      newQueryForm.classList.toggle('hidden');
+      existingQueryTicketDetailsForm.classList.add('hidden');
+    }
+
+    //  create ticket toggle function
+
+    const createTicketToggle = (event) => {
+
+
+
+      if (event.target.checked) {
+        clientEmail.style.display = 'grid';
+        newQuerySubmitBtn.textContent = 'Send';
+      }
+      else {
+        clientEmail.style.display = 'none';
+        newQuerySubmitBtn.textContent = 'Save';
+      }
+
+    }
+    // create ticket toggle function
+
+    const clientCallExistingQuery = () => {
+      newQueryForm.classList.add('hidden');
+      existingQueryForm.classList.toggle('hidden');
+      existingQueryTicketDetailsForm.classList.add('hidden');
+    }
+
+    // client call functions
+
+    const existingQuerySubmitBtn = () => {
+      existingQueryTicketDetailsForm.classList.toggle('hidden')
+    }
+
+  </script>
+
+  <!-- end modal functions for client call -->
+
+  <!-- dynamic modal -->
+  <script>
+    // Modal function
+
+    window.openModal = function (modalId) {
+      document.getElementById(modalId).style.display = 'block';
+      document.getElementsByTagName('body')[0].classList.add('overflow-y-hidden');
+    }
+
+    window.closeModal = function (modalId) {
+      document.getElementById(modalId).style.display = 'none';
+      document.getElementsByTagName('body')[0].classList.remove('overflow-y-hidden');
+
+      // newQueryForm.classList.add('hidden');
+      // existingQueryForm.classList.add('hidden');
+    }
+
+    // Close all modals when press ESC
+    // document.onkeydown = function (event) {
+    //   event = event || window.event;
+    //   if (event.keyCode === 27) {
+    //     document.getElementsByTagName('body')[0].classList.remove('overflow-y-hidden')
+    //     let modals = document.getElementById('newCallModal').style.display = 'none'
+    //   }
+    // };
+
+    // Modal function
+  </script>
+  <!-- end dynamic modal -->
+
+</body>
+
+</html>

@@ -1,0 +1,91 @@
+<style>
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 64px;
+      width: calc(100% - 64px);
+      z-index: 1000;
+      transition: left 0.3s ease, width 0.3s ease;
+    }
+
+    .navbar:hover {
+      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+    }
+
+    #dropdownMenu {
+        display: none;
+    }
+
+    #dropdownMenu.show {
+        display: block;
+    }
+</style>
+
+<nav class="navbar bg-white shadow-lg p-2 flex justify-end gap-4 items-center">
+    <div class="flex space-x-4">
+        {% if request.user.is_authenticated %}
+         <a href="#" onclick="openModal()" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
+        </a>
+        <a href="{% url 'create_ticket' %}" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-plus-circle"></i> <span class="ml-2">Create Ticket</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center space-x-4 cursor-pointer">
+        <div class="relative">
+            <!-- Button to toggle dropdown -->
+            <button class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700"
+                    id="dropdownButton" onclick="toggleDropdown()">
+                {{ request.user.username|slice:":2"|upper }}
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="absolute right-0 hidden bg-white shadow-md rounded-md mt-2 w-48" id="dropdownMenu">
+                <ul class="py-1">
+                    <li>
+                        <a href="{% url 'view_profile' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-user"></i>
+                            <span class="ml-2">Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'user_tickets' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-eye"></i>
+                            <span class="ml-2">My Tickets</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'user_activity' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-eye"></i>
+                            <span class="ml-2">My Activity</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logout' %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-sign-out"></i>
+                            <span class="ml-2">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<script>
+function toggleDropdown() {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    dropdownMenu.classList.toggle('show');
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdownButton = document.getElementById('dropdownButton');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+}
+</script>

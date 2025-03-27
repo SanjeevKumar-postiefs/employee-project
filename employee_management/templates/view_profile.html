@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<!-- Profile Picture Modal -->
+{% if profile.profile_picture %}
+<div id="profilePictureModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="relative max-w-4xl mx-4">
+        <div class="bg-transparent">
+            <div class="relative">
+                <img src="{{ profile.profile_picture.url }}" alt="Profile Picture" class="rounded-lg shadow-xl max-h-[80vh]">
+                <button type="button" class="absolute top-2 right-2 text-white hover:text-gray-300" onclick="document.getElementById('profilePictureModal').classList.add('hidden')">
+                    <i class="ph ph-x-circle text-2xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="ml-0 mt-10">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Profile Header -->
+        <div class="bg-gradient-to-r from-blue-800 to-blue-600 p-8 text-white">
+            <div class="flex flex-col md:flex-row items-center gap-8">
+                <!-- Profile Picture Section -->
+                <div class="relative w-44 h-44">
+                    {% if profile.profile_picture %}
+                        <div class="relative w-full h-full rounded-full overflow-hidden group">
+                            <img src="{{ profile.profile_picture.url }}"
+                                 alt="Profile Picture"
+                                 class="w-full h-full object-cover border-4 border-white/20">
+
+                            <!-- Enlarged Picture on Hover -->
+                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <img src="{{ profile.profile_picture.url }}"
+                                     alt="Profile Picture"
+                                     class="w-full h-full object-cover">
+                            </div>
+                        </div>
+
+                        {% if request.user == user %}
+                        <!-- Picture Controls -->
+                        <div class="absolute -bottom-2 right-0 flex gap-2">
+                            <form method="post" enctype="multipart/form-data" id="profilePictureForm">
+                                {% csrf_token %}
+                                <label for="profilePicture" class="w-10 h-10 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110">
+                                    <i class="ph ph-camera text-white text-xl"></i>
+                                </label>
+                                <input type="file" id="profilePicture" name="profile_picture" accept="image/*" class="hidden">
+                            </form>
+
+                            <form method="post" id="removePictureForm">
+                                {% csrf_token %}
+                                <input type="hidden" name="remove_picture" value="true">
+                                <button type="submit" class="w-10 h-10 bg-red-500/70 hover:bg-red-500/90 rounded-full flex items-center justify-center transition-all hover:scale-110">
+                                    <i class="ph ph-trash text-white text-xl"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="w-full h-full rounded-full bg-white/10 flex items-center justify-center text-4xl font-bold border-4 border-white/20">
+                            {{ user.username|slice:":2"|upper }}
+                        </div>
+                        {% if request.user == user %}
+                        <div class="absolute -bottom-2 right-0">
+                            <form method="post" enctype="multipart/form-data" id="profilePictureForm">
+                                {% csrf_token %}
+                                <label for="profilePicture" class="w-10 h-10 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center cursor-pointer transition-all hover:scale-110">
+                                    <i class="ph ph-camera text-white text-xl"></i>
+                                </label>
+                                <input type="file" id="profilePicture" name="profile_picture" accept="image/*" class="hidden">
+                            </form>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <!-- Profile Info -->
+                <div class="text-center md:text-left">
+                    <h2 class="text-3xl font-bold">{{ user.get_full_name|default:user.username }}</h2>
+                    <p class="text-lg text-white/90 mt-2">{{ profile.skill }} - {{ profile.level }}</p>
+
+                    <!-- Status Badge -->
+                    <div class="mt-4">
+                        {% if profile.is_on_break %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-full bg-yellow-500/20 text-yellow-100">
+                                <i class="ph ph-coffee mr-2"></i> On Break
+                            </span>
+                        {% elif profile.is_active %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-full bg-green-500/20 text-green-100">
+                                <i class="ph ph-circle mr-2 animate-pulse"></i> Active
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-full bg-gray-500/20 text-gray-100">
+                                <i class="ph ph-circle-notch mr-2"></i> Inactive
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 bg-gray-50">
+            <!-- Total Tickets -->
+            <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition-transform">
+                <div class="text-blue-600 text-2xl mb-4">
+                    <i class="ph ph-ticket"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-gray-800">{{ total_tickets }}</h3>
+                <p class="text-gray-600 mt-1">Total Tickets</p>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-600 rounded-full" style="width: {% if total_tickets > 0 %}{{ resolved_tickets|multiply:100|divide:total_tickets }}{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+
+            <!-- Resolved Tickets -->
+            <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition-transform">
+                <div class="text-green-600 text-2xl mb-4">
+                    <i class="ph ph-check-circle"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-gray-800">{{ resolved_tickets }}</h3>
+                <p class="text-gray-600 mt-1">Resolved Tickets</p>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-600 rounded-full" style="width: {% if total_tickets > 0 %}{{ resolved_tickets|multiply:100|divide:total_tickets }}{% else %}0{% endif %}%"></div>
+                </div>
+            </div>
+
+            <!-- Hours Worked -->
+            <div class="bg-white p-6 rounded-xl shadow-sm hover:-translate-y-1 transition-transform">
+                <div class="text-cyan-600 text-2xl mb-4">
+                    <i class="ph ph-clock"></i>
+                </div>
+                <h3 class="text-3xl font-bold text-gray-800">{{ total_time }}</h3>
+                <p class="text-gray-600 mt-1">Hours Worked</p>
+                <div class="mt-4 h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="h-full bg-cyan-600 rounded-full w-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Details -->
+        <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-6 pb-2 border-b">Profile Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">Username</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ user.username }}</span>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">First Name</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ user.first_name|default:"-" }}</span>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">Last Name</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ user.last_name|default:"-" }}</span>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">Email</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ user.email }}</span>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">Level</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ profile.level }}</span>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <label class="text-sm text-gray-600">Skill</label>
+                    <span class="block text-gray-800 font-medium mt-1">{{ profile.skill }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-center gap-4 p-6 bg-gray-50">
+            {% if request.user == user %}
+            <a href="{% url 'edit_user' %}" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="ph ph-pencil-simple mr-2"></i> Edit Profile
+            </a>
+            {% endif %}
+            <a href="{% url 'user_tickets' user.id %}" class="inline-flex items-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors">
+                <i class="ph ph-ticket mr-2"></i> View Tickets
+            </a>
+            <a href="{% url 'user_activity' user.id %}" class="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i class="ph ph-chart-line mr-2"></i> View Activity
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('profilePicture')?.addEventListener('change', function() {
+    document.getElementById('profilePictureForm').submit();
+});
+
+document.getElementById('removePictureForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (confirm('Are you sure you want to remove your profile picture?')) {
+        this.submit();
+    }
+});
+</script>
+{% endblock %}

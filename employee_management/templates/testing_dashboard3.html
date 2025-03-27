@@ -1,0 +1,3014 @@
+{% load static %}
+{% load custom_filters %}
+{% load timedelta_filters %}
+{% load duration_filters %}
+{% csrf_token %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/phosphor-icons@1.4.2/src/css/icons.css">
+
+{% block extra_head %}
+<style>
+  .main-content {
+    margin-left: 0px;
+    transition: margin-left 0.3s ease;
+  }
+
+  .content-area {
+    margin-top: 64px;
+    overflow: auto;
+    height: calc(100vh - 64px);
+  }
+
+  /* Break toggle animation */
+  .peer-checked:after:translate-x-full {
+    transform: translateX(100%);
+  }
+
+  /* Status text animation */
+  @keyframes statusPing {
+    75%, 100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  .status-ping::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: currentColor;
+    animation: statusPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+      .navbar {
+      position: fixed;
+      top: 0;
+      left: 64px;
+      width: calc(100% - 64px);
+      z-index: 1000;
+      transition: left 0.3s ease, width 0.3s ease;
+    }
+
+    .navbar:hover {
+      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+    }
+
+    #dropdownMenu {
+        display: none;
+    }
+
+    #dropdownMenu.show {
+        display: block;
+    }
+
+        .sidebar {
+      width: 64px;
+      transition: width 0.3s ease;
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      z-index: 9999;
+    }
+
+    .sidebar:hover {
+      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
+    }
+
+    .side-menu-has-tooltip {
+      position: relative;
+    }
+
+    .side-menu-has-tooltip:hover .side-menu-tooltip {
+      visibility: visible;
+      z-index: 9999;
+      left: 25px;
+    }
+
+    .side-menu-tooltip {
+      visibility: hidden;
+      position: absolute;
+      padding: 0 8px;
+      border-radius: 5px;
+    }
+
+    .company-logo {
+      display: none;
+    }
+
+    .sidebar h2 {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .sidebar i {
+      min-width: 24px;
+    }
+
+</style>
+
+
+
+
+
+<style>
+ /* Ensure smooth transitions for showing/hiding sections */
+#newQuerySection, #existingQuerySection {
+    display: none;  /* Hidden by default */
+    max-height: 1000px;  /* Ensure there's enough room to expand */
+    overflow: hidden;
+    transition: max-height 0.5s ease-in-out;
+}
+
+.show-section {
+    display: block;
+    max-height: none;  /* Remove height limitation */
+}
+
+.start-button.paused-by-call {
+    background-color: #6c757d;
+    opacity: 0.8;
+    cursor: not-allowed;
+}
+
+.modal-content {
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.modal-header {
+    background: #f8f9fa;
+    border-radius: 15px 15px 0 0;
+    padding: 1.5rem;
+}
+
+.modal-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+
+
+
+
+
+
+
+/* Status Indicator Styling */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 500;
+    position: relative;
+}
+
+.status-text.active {
+    color: #28a745;
+}
+
+.status-text.break {
+    color: #dc3545;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+
+.status-text.active + .status-dot {
+    background-color: #28a745;
+    animation: pulse-green 2s infinite;
+}
+
+.status-text.break + .status-dot {
+    background-color: #dc3545;
+    animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+    }
+}
+
+@keyframes pulse-red {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+/* Time Column Base Styles */
+.time-column {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.timer-span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Priority-based Animations */
+@keyframes pulse-urgent {
+    0% {
+        background-color: rgba(239, 68, 68, 0.7); /* #ef4444 with opacity */
+        color: white;
+    }
+    50% {
+        background-color: rgba(239, 68, 68, 0.9); /* #ef4444 with higher opacity */
+        color: white;
+    }
+    100% {
+        background-color: rgba(239, 68, 68, 0.7); /* #ef4444 with opacity */
+        color: white;
+    }
+}
+
+@keyframes pulse-high {
+    0% {
+        background-color: rgba(249, 115, 22, 0.7); /* #f97316 with opacity */
+        color: white;
+    }
+    50% {
+        background-color: rgba(249, 115, 22, 0.9); /* #f97316 with higher opacity */
+        color: white;
+    }
+    100% {
+        background-color: rgba(249, 115, 22, 0.7); /* #f97316 with opacity */
+        color: white;
+    }
+}
+
+@keyframes pulse-medium {
+    0% {
+        background-color: rgba(250, 204, 21, 0.7); /* #facc15 with opacity */
+        color: #713f12;
+    }
+    50% {
+        background-color: rgba(250, 204, 21, 0.9); /* #facc15 with higher opacity */
+        color: #713f12;
+    }
+    100% {
+        background-color: rgba(250, 204, 21, 0.7); /* #facc15 with opacity */
+        color: #713f12;
+    }
+}
+
+@keyframes pulse-low {
+    0% {
+        background-color: rgba(34, 197, 94, 0.7); /* #22c55e with opacity */
+        color: white;
+    }
+    50% {
+        background-color: rgba(34, 197, 94, 0.9); /* #22c55e with higher opacity */
+        color: white;
+    }
+    100% {
+        background-color: rgba(34, 197, 94, 0.7); /* #22c55e with opacity */
+        color: white;
+    }
+}
+
+/* Total Time Column Priority Styles */
+.time-column.total-time.priority-urgent {
+    animation: pulse-urgent 2s infinite !important;
+}
+
+.time-column.total-time.priority-high {
+    animation: pulse-high 2s infinite !important;
+}
+
+.time-column.total-time.priority-medium {
+    animation: pulse-medium 2s infinite !important;
+}
+
+.time-column.total-time.priority-low {
+    animation: pulse-low 2s infinite !important;
+}
+
+/* Individual Time Column Priority Styles */
+.time-column.individual-time.exceeded.priority-urgent {
+    animation: pulse-urgent 2s infinite;
+}
+
+.time-column.individual-time.exceeded.priority-high {
+    animation: pulse-high 2s infinite;
+}
+
+.time-column.individual-time.exceeded.priority-medium {
+    animation: pulse-medium 2s infinite;
+}
+
+.time-column.individual-time.exceeded.priority-low {
+    animation: pulse-low 2s infinite;
+}
+
+
+
+/* Notifications Styling */
+.notifications-popup {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    margin-top: 20px !important;
+}
+
+.notifications-container {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+.notifications-header h4 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.notifications-list {
+    padding: 10px;
+}
+
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-content {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.ticket-id {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.priority-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.priority-badge.urgent { background: #ff4444; color: white; }
+.priority-badge.high { background: #ffbb33; color: black; }
+.priority-badge.medium { background: #ff8800; color: white; }
+.priority-badge.low { background: #00C851; color: white; }
+
+.notification-body {
+    font-size: 0.9rem;
+}
+
+.subject {
+    color: #2c3e50;
+    margin-bottom: 3px;
+}
+
+.time-exceeded {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+.dismiss-ticket, .dismiss-all {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dismiss-ticket:hover, .dismiss-all:hover {
+    opacity: 0.7;
+}
+
+.dismiss-all {
+    background: #e74c3c;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+
+.ticket-notification {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-left: 4px solid #0d6efd;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+    padding: 15px;
+    width: 350px;
+}
+
+#notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ticket-notification .notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ticket-notification .notification-body {
+    margin-bottom: 10px;
+}
+
+.ticket-notification .notification-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+
+
+
+
+<!--Time Since Created Styling-->
+
+/* Hover effects */
+.created-timer-span:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Custom tooltip */
+.created-timer-span::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background-color: #1f2937;
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.created-timer-span::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: #1f2937;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+
+
+.ticket-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+    width: 350px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-left: 4px solid #0366d6;
+    animation: slideIn 0.5s ease-out;
+}
+
+.ticket-alert.priority-urgent {
+    border-left-color: #dc3545;
+}
+
+.ticket-alert.priority-high {
+    border-left-color: #fd7e14;
+}
+
+.alert-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alert-body {
+    padding: 15px;
+}
+
+.alert-actions {
+    padding: 10px 15px;
+    border-top: 1px solid #e1e4e8;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.notification-item .message {
+    color: #666;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.notification-item {
+    border-left: 4px solid transparent;
+}
+
+.notification-item.priority-urgent { border-left-color: #ff4444; }
+.notification-item.priority-high { border-left-color: #ffbb33; }
+.notification-item.priority-medium { border-left-color: #ff8800; }
+.notification-item.priority-low { border-left-color: #00C851; }
+
+/* Add to your existing CSS */
+.acknowledge-button {
+    transition: all 0.3s ease;
+}
+
+.acknowledge-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.acknowledge-button .fa-spinner {
+    margin-right: 5px;
+}
+
+.text-success {
+    transition: opacity 0.3s ease;
+}
+
+
+.my-swal-popup {
+    width: auto !important;
+    max-width: 600px;
+}
+
+.my-swal pre {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    font-size: 14px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.my-swal .alert {
+    text-align: left;
+    margin-bottom: 0;
+}
+
+
+
+    .tooltip {
+    visibility: hidden;
+    position: absolute;
+    z-index: 50;
+  }
+
+  .has-tooltip:hover .tooltip {
+    visibility: visible;
+  }
+
+  /* For timer animations */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Preserve existing functionality styles */
+  .start-button.paused-by-call,
+  .start-button.blocked {
+    opacity: 0.7;
+    cursor: not-allowed !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    pointer-events: all !important;
+  }
+
+    /* Add these styles */
+.call-action-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    margin: 0;  /* Add this */
+    padding: 0;  /* Add this */
+}
+
+.call-action-form button,
+.start-button {
+    height: 32px;  /* Fixed height to match */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Style both buttons the same way */
+.start-button,
+.call-action-form button {
+    border: 1px solid;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    line-height: 1.25;
+}
+
+/* Start button specific styles */
+.start-button {
+    color: #22c55e !important;
+    background-color: #dcfce7 !important;
+    border-color: #22c55e !important;
+    min-width: 70px;
+}
+
+/* Call button specific styles */
+.call-action-form button {
+    margin: 0 !important;  /* Add this */
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: white !important;
+    background-color: #9ca3af !important;
+    border: 1px solid #9ca3af !important;
+    min-width: 70px;
+    line-height: 1;  /* Add this */
+}
+
+
+/* Button Container Styles */
+.call-action-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Base Button Styles */
+.start-button,
+.call-action-form button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    height: 32px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Start Button */
+.start-button {
+    color: #22c55e !important;
+    background-color: #dcfce7 !important;
+    border-color: #22c55e !important;
+    min-width: 80px;
+}
+
+
+/* Plus Button Styles */
+td[onclick] {
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: bold;
+    user-select: none;
+}
+
+/* Time Display Styles */
+.created-timer-span {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-family: monospace;
+}
+
+/* Priority Colors */
+td[data-priority="urgent"] {
+    background-color: #ef4444 !important; /* red-500 */
+    color: white !important;
+}
+
+td[data-priority="high"] {
+    background-color: #f97316 !important; /* orange-500 */
+    color: white !important;
+}
+
+td[data-priority="medium"] {
+    background-color: #facc15 !important; /* yellow-400 */
+    color: #713f12 !important; /* yellow-900 */
+}
+
+td[data-priority="low"] {
+    background-color: #22c55e !important; /* green-500 */
+    color: white !important;
+}
+
+/* Status Colors */
+td[data-status="open"] {
+    background-color: #22c55e !important; /* green-500 */
+    color: white !important;
+}
+
+td[data-status="pending"] {
+    background-color: #eab308 !important; /* yellow-500 */
+    color: white !important;
+}
+
+td[data-status="resolved"] {
+    background-color: #3b82f6 !important; /* blue-500 */
+    color: white !important;
+}
+
+td[data-status="closed"] {
+    background-color: #6b7280 !important; /* gray-500 */
+    color: white !important;
+}
+
+td[data-status="waiting_on_customer"] {
+    background-color: #f97316 !important; /* orange-500 */
+    color: white !important;
+}
+
+td[data-status="initial_response"] {
+    background-color: #8b5cf6 !important; /* purple-500 */
+    color: white !important;
+}
+
+td[data-status="on_hold"] {
+    background-color: #ec4899 !important; /* pink-500 */
+    color: white !important;
+}
+
+.max-w-full.mx-auto.bg-white {
+    padding: .5rem;
+    margin: 0;
+    width: 100%;
+    border-radius: 0.5rem;
+}
+
+
+.text-sm th {
+    text-align: center !important;
+}
+
+.text-sm th{
+    padding: 0.75rem !important;
+    vertical-align: middle !important;
+    white-space: nowrap;
+}
+
+
+
+</style>
+
+{% endblock %}
+
+</head>
+<body>
+
+
+<nav class="navbar bg-white shadow-lg p-2 flex justify-end gap-4 items-center">
+    <div class="flex space-x-4">
+        {% if request.user.is_authenticated %}
+         <a href="#" onclick="openModal()" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
+        </a>
+        <a href="{% url 'create_ticket' %}" class="hover:text-gray-500 flex items-center">
+            <i class="ph ph-plus-circle"></i> <span class="ml-2">Create Ticket</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="flex items-center space-x-4 cursor-pointer">
+        <div class="relative">
+            <!-- Button to toggle dropdown -->
+            <button class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700"
+                    id="dropdownButton" onclick="toggleDropdown()">
+                {{ request.user.username|slice:":2"|upper }}
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="absolute right-0 hidden bg-white shadow-md rounded-md mt-2 w-48" id="dropdownMenu">
+                <ul class="py-1">
+                    <li>
+                        <a href="{% url 'view_profile' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-user"></i>
+                            <span class="ml-2">Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'user_tickets' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-eye"></i>
+                            <span class="ml-2">My Tickets</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'user_activity' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-eye"></i>
+                            <span class="ml-2">My Activity</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logout' %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
+                            <i class="ph ph-sign-out"></i>
+                            <span class="ml-2">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+        <!-- Sidebar -->
+<aside class="sidebar bg-white flex flex-col p-4 space-y-6 group shadow-lg">
+    <h2 class="text-xl font-bold flex items-center space-x-1">
+      <img style="width: 32px; height: 31px;" class="company-favicon"
+        src="{% static 'img/favicon.ico' %}" alt="favicon">
+      <span class="">
+        <img style="height: 31px;" class="company-logo" src="{% static 'img/favicon.ico' %}" alt="">
+      </span>
+    </h2>
+
+    <nav class="flex flex-col space-y-2">
+        <!-- Dashboard -->
+        <a href="{% url 'dashboard' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-chart-line"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Dashboard</div>
+            </div>
+        </a>
+
+        <!-- Home -->
+        <a href="{% url 'home' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-house"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Home</div>
+            </div>
+        </a>
+
+        <!-- Active Users Dropdown -->
+        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-user"></i>
+            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'Linux' %}" class="block">Linux</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'Windows' %}" class="block">Windows/Azure</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'AWS' %}" class="block">Network/AWS</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'LEVELONE' %}" class="block">LevelONE</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'employees_by_skill' 'OCI' %}" class="block">OCI</a>
+                    </li>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users -->
+        <a href="{% url 'employee_list' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-users"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Employees</div>
+            </div>
+        </a>
+
+        <!-- Tickets -->
+        <a href="{% url 'ticket_list' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-ticket"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">All Tickets</div>
+            </div>
+        </a>
+
+        <!-- Daily Activity -->
+        <a href="{% url 'daily_activity' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-activity"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Daily Activity</div>
+            </div>
+        </a>
+
+        <!-- Work Report -->
+        <a href="{% url 'work_report' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-chart-bar"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Report</div>
+            </div>
+        </a>
+
+        <!-- Text Improver -->
+        <a href="{% url 'text_improver:generator' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-text-t"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Generate</div>
+            </div>
+        </a>
+
+        <!-- On Duty Management -->
+        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-calendar"></i>
+            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'on_duty_request' %}" class="block">Request</a>
+                    </li>
+                    <li class="hover:bg-blue-200 list-none p-2 rounded">
+                        <a href="{% url 'on_duty_list' %}" class="block">Status</a>
+                    </li>
+                </div>
+            </div>
+        </div>
+
+        {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
+        <!-- Activity Tracker -->
+        <a href="{% url 'tracking:activity_dashboard' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-activity"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Activity</div>
+            </div>
+        </a>
+
+        <!-- Add Employee -->
+        <a href="{% url 'add_employee' %}"
+            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
+            <i class="ph ph-plus"></i>
+            <div class="side-menu-tooltip bg-transparent">
+                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Add&nbsp;employee</div>
+            </div>
+        </a>
+        {% endif %}
+    </nav>
+</aside>
+
+
+
+<!-- Dashboard Page -->
+<div class="dashboard-content"><br><br>
+
+    <!-- Dashboard Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-dark">{{user.username}}'s Dashboard</h1>
+
+        <div class="dropdown ms-2">
+            <button class="btn btn-primary ms-2" type="button" data-bs-toggle="modal" data-bs-target="#clientCallModal">
+            New Call
+            </button>
+        </div>
+        <div class="break-toggle-container">
+    <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center" onsubmit="return false;">
+        {% csrf_token %}
+        <div class="status-toggle-wrapper">
+            <label class="modern-switch">
+                <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
+                <span class="modern-slider">
+                    <span class="toggle-circle"></span>
+                </span>
+            </label>
+            <div class="status-indicator">
+                <span id="breakStatus" class="status-text {% if employee_profile.is_on_break %}break{% else %}active{% endif %}">
+                    {% if employee_profile.is_on_break %}
+                    On Break
+                    {% else %}
+                    Active
+                    {% endif %}
+                </span>
+                <span class="status-dot"></span>
+            </div>
+        </div>
+    </form>
+</div>
+    </div>
+
+
+
+
+
+<!--    &lt;!&ndash; Today's Status Box &ndash;&gt;-->
+<!--<div class="row mb-4">-->
+<!--    <div class="col-12">-->
+<!--        <div class="card">-->
+<!--            <div class="card-header bg-primary text-white">-->
+<!--                <h4 class="mb-0">Today's Status</h4>-->
+<!--            </div>-->
+<!--            <div class="card-body">-->
+<!--                <div class="row">-->
+<!--                    &lt;!&ndash; Today's Tickets &ndash;&gt;-->
+<!--                    <div class="col-md-3">-->
+<!--                        <div class="stat-box text-center p-3 border rounded">-->
+<!--                            <i class="fas fa-ticket-alt fa-2x mb-2 text-primary"></i>-->
+<!--                            <h5>Today's Tickets</h5>-->
+<!--                            <h3 id="todayTicketCount">{{ todays_tickets }}</h3>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    &lt;!&ndash; Open Tickets &ndash;&gt;-->
+<!--                    <div class="col-md-3">-->
+<!--                        <div class="stat-box text-center p-3 border rounded">-->
+<!--                            <i class="fas fa-folder-open fa-2x mb-2 text-warning"></i>-->
+<!--                            <h5>Open Tickets</h5>-->
+<!--                            <h3 id="openTicketCount">{{ open_tickets }}</h3>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    &lt;!&ndash; Closed Tickets &ndash;&gt;-->
+<!--                    <div class="col-md-3">-->
+<!--                        <div class="stat-box text-center p-3 border rounded">-->
+<!--                            <i class="fas fa-folder-minus fa-2x mb-2 text-success"></i>-->
+<!--                            <h5>Closed Tickets</h5>-->
+<!--                            <h3 id="closedTicketCount">{{ closed_tickets }}</h3>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    &lt;!&ndash; Total Call Time &ndash;&gt;-->
+<!--                    <div class="col-md-3">-->
+<!--                        <div class="stat-box text-center p-3 border rounded">-->
+<!--                            <i class="fas fa-phone fa-2x mb-2 text-info"></i>-->
+<!--                            <h5>Total Call Time</h5>-->
+<!--                            <h3 id="totalCallTime">{{ call_duration }}</h3>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+
+    <!-- Ticket Table with Actions -->
+<main class="content-area">
+  <div class="max-w-full mx-auto bg-white shadow-lg rounded-lg">
+      <h1 class="text-3xl font-bold mb-6">Tickets Table</h1>
+
+    <table class="w-full border-collapse border border-gray-300">
+      <thead class="text-sm">
+        <tr class="bg-blue-200">
+          <th class="border p-1"></th>
+          <th class="border p-1">Ticket ID</th>
+          <th class="border p-1">Subject</th>
+          <th class="border p-1">Priority</th>
+          <th class="border p-1">Status</th>
+          <th class="border p-1">Time Since Created</th>
+          <th class="border p-1">Total Spent</th>
+          <th class="border p-1">Individual Spent</th>
+          <th class="border p-1">Action</th>
+          <th class="border p-1">On Call</th>
+          <th class="border p-1">Accept</th>
+        </tr>
+      </thead>
+      <tbody class="text-center">
+        {% for ticket in tickets %}
+          {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
+          <!-- Empty row for spacing -->
+          <tr><td colspan="11" class="h-1"></td></tr>
+
+          <!-- Main Ticket Row -->
+          <tr class="border border-l-4 border-blue-500 bg-gray-100 hover:bg-gray-200"
+              data-ticket-id="{{ ticket.id }}"
+              data-priority="{{ ticket.priority|lower }}"
+              data-created-at="{{ ticket.created_at|date:'Y-m-d H:i:s' }}">
+
+            <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
+            <td class="border px-2 py-1">{{ ticket.ticket_id }}</td>
+            <td class="border px-2 py-1 text-left has-tooltip relative cursor-pointer">
+              {{ ticket.subject }}
+              <div class="has-tooltip mt-2 text-center">
+                <span class="tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20">
+                  {{ ticket.description }}
+                </span>
+              </div>
+            </td>
+            <td class="border px-2 py-1" data-priority="{{ ticket.priority|lower }}">
+    {{ ticket.priority }}
+</td>
+            <td class="border px-2 py-1" data-status="{{ ticket.status|lower }}">
+    {{ ticket.status }}
+</td>
+            <td class="border px-2 py-1 text-center">
+                <span id="created-timer-{{ ticket.id }}"
+                      class="created-timer-span priority-{{ ticket.priority|lower }}"
+                      data-created-at="{{ ticket.created_at|localize_datetime|date:'c' }}"
+                      data-status="{{ ticket.status }}"
+                      data-priority="{{ ticket.priority|lower }}"
+                      title="Created: {{ ticket.created_at|date:'F j, Y, g:i a' }}">
+                    {{ ticket.time_since_created }}
+                </span>
+            </td>
+            <!-- Replace your existing Total Spent column with this -->
+<td class="border px-2 py-1 text-center time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
+    <span id="timer-{{ ticket.id }}"
+          class="timer-span"
+          data-ticket-id="{{ ticket.id }}">
+        {{ ticket.time_spent|format_duration }}
+    </span>
+</td>
+
+<!-- Replace your existing Individual Spent column with this -->
+<td class="border px-2 py-1 text-center time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded priority-{{ ticket.priority|lower }}{% endif %}">
+    <span id="individual-timer-{{ ticket.id }}"
+          class="timer-span"
+          data-ticket-id="{{ ticket.id }}">
+        {{ ticket.individual_time_spent|format_duration }}
+    </span>
+</td>
+            <td class="border px-2 py-1 text-center">
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+    <button class="start-button" data-ticket-id="{{ ticket.id }}">
+        {% if ticket.is_active %}Stop{% else %}Start{% endif %}
+    </button>
+</td>
+            <td class="border px-2 py-1 text-center" style="vertical-align: middle;">
+    <form method="post" action="{% url 'start_end_call' ticket.id %}"
+          class="call-action-form" data-ticket-id="{{ ticket.id }}">
+        {% csrf_token %}
+        {% if ticket.call_in_progress %}
+            <input type="hidden" name="action" value="end_call">
+            <button type="submit">End Call</button>
+        {% else %}
+            <input type="hidden" name="action" value="start_call">
+            <button type="submit">Start Call</button>
+        {% endif %}
+    </form>
+</td>
+            <td class="border px-2 py-1 text-center">
+              {% if ticket.assigned_to == request.user %}
+                {% if not ticket.is_acknowledged %}
+                  <button class="btn btn-primary btn-sm acknowledge-button"
+                          data-ticket-id="{{ ticket.id }}"
+                          data-acknowledge-button="true"
+                          onclick="notificationManager.acknowledgeTicket({{ ticket.id }}); return false;">
+                    Accept
+                  </button>
+                {% else %}
+                  <span class="text-success">✅</span>
+                {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Expanded Row -->
+          <tr class="hidden text-left bg-gray-100" id="expanded-row-{{ ticket.id }}">
+            <td colspan="11" class="py-2 px-4">
+              <a href="{% url 'assign_ticket' ticket.id %}"
+                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
+                Assign
+              </a>
+
+              <div class="dropdown inline-block">
+                <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2"
+                        id="statusDropdown-{{ ticket.id }}"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                  Change Status
+                </button>
+<!--                <ul class="dropdown-menu" aria-labelledby="statusDropdown-{{ ticket.id }}">-->
+<!--                  {% for status in ticket_statuses %}-->
+<!--                    {% if status.0 != ticket.status %}-->
+<!--                      <li>-->
+<!--                        <a class="dropdown-item change-status" href="#"-->
+<!--                           data-ticket-id="{{ ticket.id }}"-->
+<!--                           data-new-status="{{ status.0 }}">-->
+<!--                          {{ status.1 }}-->
+<!--                        </a>-->
+<!--                      </li>-->
+<!--                    {% endif %}-->
+<!--                  {% endfor %}-->
+<!--                </ul>-->
+              </div>
+
+              <a href="{% url 'view_call_details' ticket.id %}"
+                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
+                Call Details
+              </a>
+
+              <a href="{% url 'view_ticket_notes' ticket.id %}"
+                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
+                From existing query
+              </a>
+
+                <a href="{% url 'view_ticket_notes_all' ticket.id %}"
+                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
+                all notes
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+
+
+<!-- Post-Call Details Modal (Bootstrap) -->
+<div class="modal fade" id="postCallModal" tabindex="-1" role="dialog" aria-labelledby="postCallModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="postCallModalLabel">Post-Call Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="postCallForm" method="post">
+        <div class="modal-body">
+          {% csrf_token %}
+          <input type="hidden" name="ticket_id" id="modal-ticket-id" value="">
+
+          <div class="form-group">
+            <label for="ticket-id">Ticket ID:</label>
+            <input type="text" id="modal-ticket-id-display" class="form-control" readonly>
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Subject:</label>
+            <input type="text" id="modal-subject" class="form-control" readonly>
+          </div>
+
+          <div class="form-group">
+            <label for="status">Status:</label>
+            <select id="modal-status" name="status" class="form-control">
+              {% for status in ticket_statuses %}
+                <option value="{{ status.0 }}">{{ status.1 }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+
+
+          <div class="form-group">
+            <label for="call-note">Call Note:</label>
+            <textarea name="note" id="modal-call-note" class="form-control" rows="4" placeholder="Describe the call..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+<!-- Client Call Modal with question: Is it a new query? -->
+<div class="modal fade" id="clientCallModal" tabindex="-1" aria-labelledby="clientCallModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="clientCallModalLabel">Client Call</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Question for user -->
+                <div class="text-center">
+                    <h5 class="mb-4">Is it a new query?</h5>
+                    <div class="query-toggle-container">
+                        <div class="toggle-option" data-value="new">
+                            <div class="toggle-circle" id="newQueryCircle"></div>
+                            <span class="toggle-label">New Query</span>
+                        </div>
+                        <div class="toggle-option" data-value="existing">
+                            <div class="toggle-circle" id="existingQueryCircle"></div>
+                            <span class="toggle-label">Existing Query</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Query Form (Initially Hidden) -->
+<div id="newQuerySection" class="query-section" style="display: none; margin-top: 20px;">
+
+    <form id="newQueryForm" method="post">
+        {% csrf_token %}
+        <!-- Move the toggle to the top -->
+        <div class="mb-3 form-check">
+            <div class="d-flex align-items-center">
+                <label class="form-check-label me-2" for="create_ticket">Need to create ticket?</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="create_ticket" name="create_ticket">
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="primary_email" class="form-label">Primary Email (LEVELONE)</label>
+            <input type="email" class="form-control" id="primary_email" name="primary_email" value="levelone@example.com" readonly>
+        </div>
+
+        <!-- Add the new client name field -->
+        <div class="mb-3">
+            <label for="client_name" class="form-label">Client Name</label>
+            <input type="text" class="form-control" id="client_name" name="client_name" required placeholder="Enter client name">
+        </div>
+
+        <!-- Email fields that will be toggled -->
+        <div id="emailFields" style="display: none;">
+            <div class="mb-3">
+                <label for="client_email" class="form-label">Client Email</label>
+                <input type="email" class="form-control" id="client_email" name="client_email" placeholder="Enter client email">
+            </div>
+            <div class="mb-3">
+                <label for="cc_email" class="form-label">CC</label>
+                <input type="email" class="form-control" id="cc_email" name="cc_email" placeholder="Enter CC email (optional)">
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="note" class="form-label">Note</label>
+            <textarea class="form-control" id="note" name="note" rows="4" required placeholder="Enter note about the query"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="newQuerySubmitBtn">Save</button>
+    </form>
+</div>
+
+                <!-- Existing Query Form (Initially Hidden) -->
+<div id="existingQuerySection" class="query-section" style="display: none; margin-top: 20px;">
+    <h5>Existing Query</h5>
+    <form id="existingQueryForm" method="post" action="">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="ticket-id" class="form-label">Ticket ID</label>
+            <input type="text" class="form-control" id="ticket-id" name="ticket_id" placeholder="Enter ticket ID">
+        </div>
+        <button type="button" class="btn btn-primary" id="search-ticket">Search</button>
+
+        <!-- Ticket details section (Initially hidden) -->
+        <div id="ticket-details" style="display: none; margin-top: 20px;">
+            <h5>Ticket Details</h5>
+            <div class="mb-3">
+                <label for="subject" class="form-label">Subject</label>
+                <input type="text" class="form-control" id="subject" name="subject">
+            </div>
+            <div class="mb-3">
+                <label for="assigned-to" class="form-label">Assigned To</label>
+                <select class="form-control" id="assigned-to" name="assigned_to">
+                    <!-- Dynamic options for users -->
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="priority" class="form-label">Priority</label>
+                <select class="form-control" id="priority" name="priority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                </select>
+            </div>
+
+            <!-- Important: change the name to match 'client_call_note' -->
+            <div class="mb-3">
+                <label for="client_call_note" class="form-label">Note</label>
+                <textarea class="form-control" id="client_call_note" name="client_call_note" rows="4" placeholder="Enter note about the ticket"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success">Update Ticket</button>
+        </div>
+    </form>
+</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Add this after your existing modals -->
+<div class="mt-4">
+    <h4>Call Details</h4>
+    <!-- New Queries Table -->
+    <div id="newQueriesTable">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Client name</th>
+                    <th>Client email</th>
+                    <th>Call Duration</th>
+                    <th>Ticket Created</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody id="newQueriesBody">
+                <!-- Will be populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Bootstrap JS (including Popper.js) -->
+    <!-- Include Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include Bootstrap and jQuery in your template -->
+
+
+    <script>
+
+            document.querySelectorAll('.btn-close-ticket').forEach(button => {
+            button.addEventListener('click', function() {
+                const ticketId = this.dataset.ticketId;
+                if (confirm('Are you sure you want to close this ticket?')) {
+                    // Create a form to submit the POST request
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
+
+                    form.appendChild(csrfInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+
+            // Add click event for custom dropdown toggle
+            document.getElementById('activityDropdown').addEventListener('click', function() {
+                this.classList.toggle('active');
+            });
+
+             document.addEventListener("DOMContentLoaded", function() {
+            // Get all buttons that toggle ticket options
+            const ticketToggles = document.querySelectorAll('.ticket-toggle');
+
+            ticketToggles.forEach(button => {
+                button.addEventListener('click', function() {
+                    const currentTarget = this.getAttribute('data-bs-target');
+
+                    // Collapse all other ticket options
+                    ticketToggles.forEach(btn => {
+                        const target = btn.getAttribute('data-bs-target');
+                        if (target !== currentTarget) {
+                            const collapseElement = document.querySelector(target);
+                            if (collapseElement && collapseElement.classList.contains('show')) {
+                                // Collapse if it's not the current target
+                                collapseElement.classList.remove('show');
+                            }
+                        }
+                    });
+                });
+            });
+        });
+        </script>
+
+    {% if error %}
+        <script>
+            Swal.fire({
+                title: 'Unauthorized Access',
+                text: "{{ error }}",
+                icon: 'error',
+                confirmButtonText: 'Okay'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{% url 'home' %}";  // Redirect to the homepage
+                }
+            });
+        </script>
+        {% endif %}
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Get CSRF token from the page
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Function to initialize ticket statuses from localStorage
+    function initializeTicketStatuses() {
+        document.querySelectorAll('[data-ticket-id]').forEach(row => {
+            const ticketId = row.dataset.ticketId;
+            const statusChanged = localStorage.getItem(`ticket_${ticketId}_status_changed`);
+            if (statusChanged) {
+                const individualTimeCell = row.querySelector('.time-column.individual-time');
+                if (individualTimeCell) {
+                    individualTimeCell.classList.remove('exceeded');
+                }
+                row.dataset.statusChanged = statusChanged;
+            }
+        });
+    }
+
+    // Initialize ticket statuses when page loads
+    initializeTicketStatuses();
+
+    // Listen for clicks on all status change links in the dashboard
+    document.querySelectorAll('.change-status').forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const ticketId = this.dataset.ticketId;
+            const newStatus = this.dataset.newStatus;
+            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+
+            // Perform AJAX request to update the status
+            fetch('/update_ticket_status/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    ticket_id: ticketId,
+                    new_status: newStatus
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find and update the status cell in the current row
+                    const statusCell = ticketRow.querySelector('td:nth-child(3)');
+                    if (statusCell) {
+                        statusCell.textContent = data.new_status_label;
+                    }
+
+                    // Store the status change timestamp in localStorage and row dataset
+                    const statusChangeTime = data.status_changed || new Date().toISOString();
+                    localStorage.setItem(`ticket_${ticketId}_status_changed`, statusChangeTime);
+                    ticketRow.dataset.statusChanged = statusChangeTime;
+
+                    // Reset individual time column color
+                    const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
+                    if (individualTimeCell) {
+                        individualTimeCell.classList.remove('exceeded');
+                        individualTimeCell.style.animation = 'none';
+                        individualTimeCell.style.backgroundColor = '';
+                        void individualTimeCell.offsetWidth;
+                        individualTimeCell.style.animation = '';
+                    }
+
+                    // Update the individual timer display to show 0
+                    const individualTimerSpan = ticketRow.querySelector('#individual-timer-' + ticketId);
+                    if (individualTimerSpan) {
+                        individualTimerSpan.textContent = '0:00:00';
+                    }
+
+                    // If the status is 'closed' or 'resolved', hide the row
+                    if (newStatus === 'closed' || newStatus === 'resolved') {
+                        ticketRow.style.display = 'none';
+                        const optionsRow = document.querySelector(`#options-${ticketId}`).parentNode;
+                        if (optionsRow) {
+                            optionsRow.style.display = 'none';
+                        }
+                    }
+
+                    // Keep the total time column colored if time limit is exceeded
+                    if (ticketRow.classList.contains('priority-alert')) {
+                        const totalTimeCell = ticketRow.querySelector('.time-column.total-time');
+                        if (totalTimeCell) {
+                            const priorityClass = `priority-${ticketRow.dataset.priority}`;
+                            totalTimeCell.classList.add(priorityClass);
+                        }
+                    }
+
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Ticket status updated successfully',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    // Show error message
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to update status',
+                        icon: 'error'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while updating the status',
+                    icon: 'error'
+                });
+            });
+        });
+    });
+
+    // Function to update time display and colors
+        function updateTicketDisplay(ticketId) {
+        const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+        if (!ticketRow) return;
+
+        const totalTimeCell = ticketRow.querySelector('.time-column.total-time');
+        const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
+        const statusChanged = localStorage.getItem(`ticket_${ticketId}_status_changed`);
+
+        if (ticketRow.classList.contains('priority-alert')) {
+            const priorityClass = `priority-${ticketRow.dataset.priority}`;
+
+            // Always keep total time column colored if time limit is exceeded
+            if (totalTimeCell) {
+                totalTimeCell.classList.add(priorityClass);
+            }
+
+            // Only add color to individual time if status hasn't been changed
+            if (individualTimeCell && !statusChanged) {
+                individualTimeCell.classList.add('exceeded');
+            }
+        }
+    }
+
+    // Update displays initially
+    document.querySelectorAll('[data-ticket-id]').forEach(row => {
+        updateTicketDisplay(row.dataset.ticketId);
+    });
+
+    // Update displays periodically
+    setInterval(() => {
+        document.querySelectorAll('[data-ticket-id]').forEach(row => {
+            updateTicketDisplay(row.dataset.ticketId);
+        });
+    }, 30000); // Update every 30 seconds
+
+    // Clear old status changes from localStorage periodically
+    function cleanupOldStatusChanges() {
+        const keys = Object.keys(localStorage);
+        const now = new Date();
+        keys.forEach(key => {
+            if (key.startsWith('ticket_') && key.endsWith('_status_changed')) {
+                const timestamp = localStorage.getItem(key);
+                const changeTime = new Date(timestamp);
+                // Remove entries older than 24 hours
+                if (now - changeTime > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(key);
+                }
+            }
+        });
+    }
+
+    // Run cleanup every hour
+    setInterval(cleanupOldStatusChanges, 60 * 60 * 1000);
+    cleanupOldStatusChanges(); // Run cleanup on page load
+
+    // Close any dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('.dropdown-toggle')) {
+            document.querySelectorAll('.dropdown-menu').forEach(dropdown => {
+                if (dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const postCallForm = document.querySelector('form');
+
+    if (postCallForm) {
+        postCallForm.addEventListener('submit', function (e) {
+            e.preventDefault(); // Prevent the form from submitting normally
+
+            const formData = new FormData(this);
+            const actionUrl = this.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // After successful form submission, redirect or update UI
+                    window.location.href = '/dashboard/';  // Redirect to dashboard
+                } else {
+                    console.error('Error saving post-call details.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize variables and constants
+    let timers = {};
+    const localStorageKey = 'ticketTimers';
+    const breakToggle = document.getElementById('breakToggle');
+    const breakStatus = document.getElementById('breakStatus');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    let activeTicketId = null;
+    let activeCallTicketId = null;
+
+    // Add CSS for disabled button styling
+    const style = document.createElement('style');
+    style.textContent = `
+        .start-button.started-by-call {
+            opacity: 0.7;
+            cursor: not-allowed !important;
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+            pointer-events: all !important;
+        }
+        .start-button.blocked {
+            opacity: 0.7;
+            cursor: not-allowed !important;
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+            pointer-events: all !important;
+        }
+        .call-action-form button.blocked {
+            opacity: 0.7;
+            cursor: not-allowed !important;
+            pointer-events: all !important;
+        }
+        /* Hover states */
+        .start-button.blocked:hover,
+        .start-button.started-by-call:hover,
+        .call-action-form button.blocked:hover {
+            opacity: 0.7 !important;
+            cursor: not-allowed !important;
+            background-color: #6c757d !important;
+            border-color: #6c757d !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+
+    // Utility functions
+    function formatTime(seconds) {
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    function getCurrentDateTime() {
+        const now = new Date();
+        return now.getUTCFullYear() + '-' +
+               String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
+               String(now.getUTCDate()).padStart(2, '0') + ' ' +
+               String(now.getUTCHours()).padStart(2, '0') + ':' +
+               String(now.getUTCMinutes()).padStart(2, '0') + ':' +
+               String(now.getUTCSeconds()).padStart(2, '0');
+    }
+
+    function blockOtherTicketButtons(currentTicketId) {
+    document.querySelectorAll('.start-button').forEach(button => {
+        const ticketId = button.dataset.ticketId;
+        if (ticketId !== currentTicketId) {
+            button.classList.add('blocked');
+            button.disabled = true;
+        }
+    });
+}
+
+    function unblockAllTicketButtons() {
+        document.querySelectorAll('.start-button').forEach(button => {
+            button.classList.remove('blocked');
+            button.disabled = false;
+        });
+    }
+
+    function blockAllTicketInteractions(exceptTicketId) {
+        document.querySelectorAll('.start-button, .call-action-form button').forEach(button => {
+            const ticketId = button.closest('[data-ticket-id]')?.dataset.ticketId;
+            if (ticketId !== exceptTicketId) {
+                button.classList.add('blocked');
+                button.disabled = true;
+            }
+        });
+    }
+
+    function unblockAllTicketInteractions() {
+        document.querySelectorAll('.start-button, .call-action-form button').forEach(button => {
+            button.classList.remove('blocked');
+            button.disabled = false;
+        });
+        // Reapply blocks if there's an active timer
+        if (activeTicketId && !activeCallTicketId) {
+            blockOtherTicketButtons(activeTicketId);
+        }
+    }
+
+    function pauseFrontendTimer(ticketId) {
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+
+            timers[ticketId].isPausedByCall = true;
+            timers[ticketId].pausedAt = {
+                total: timers[ticketId].currentTotal,
+                individual: timers[ticketId].currentIndividual,
+                time: Date.now(),
+                pausedDateTime: getCurrentDateTime()
+            };
+
+            const totalTimerElement = document.getElementById('timer-' + ticketId);
+            const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+
+            if (totalTimerElement) {
+                totalTimerElement.textContent = formatTime(timers[ticketId].currentTotal);
+            }
+            if (individualTimerElement) {
+                individualTimerElement.textContent = formatTime(timers[ticketId].currentIndividual);
+            }
+
+            localStorage.setItem(localStorageKey, JSON.stringify(timers));
+        }
+    }
+
+    function resumeFrontendTimer(ticketId) {
+        if (timers[ticketId] && timers[ticketId].isPausedByCall) {
+            const pausedValues = timers[ticketId].pausedAt;
+            if (pausedValues) {
+                startFrontendTimers(
+                    ticketId,
+                    pausedValues.total,
+                    pausedValues.individual,
+                    Date.now(),
+                    timers[ticketId].startedByCall // Preserve the startedByCall state
+                );
+                delete timers[ticketId].isPausedByCall;
+                delete timers[ticketId].pausedAt;
+            }
+        }
+    }
+
+    function startFrontendTimers(ticketId, totalAccumulatedTime, individualAccumulatedTime, startTime, startedByCall = false) {
+        const totalTimerElement = document.getElementById('timer-' + ticketId);
+        const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+
+        if (!totalTimerElement || !individualTimerElement) return;
+
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+        }
+
+        // Update button state for call-started timers
+        if (startButton && startedByCall) {
+            startButton.textContent = 'Stop';
+            startButton.classList.add('started-by-call');
+            startButton.disabled = true;
+        }
+
+        timers[ticketId] = {
+            totalAccumulatedTime: totalAccumulatedTime,
+            individualAccumulatedTime: individualAccumulatedTime,
+            startTime: startTime,
+            isActive: true,
+            currentTotal: totalAccumulatedTime,
+            currentIndividual: individualAccumulatedTime,
+            startDateTime: getCurrentDateTime(),
+            startedByCall: startedByCall // Track if timer was started by call
+        };
+
+        totalTimerElement.textContent = formatTime(totalAccumulatedTime);
+        individualTimerElement.textContent = formatTime(individualAccumulatedTime);
+
+        timers[ticketId].interval = setInterval(() => {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const totalTime = totalAccumulatedTime + elapsedTime;
+            const individualTime = individualAccumulatedTime + elapsedTime;
+
+            timers[ticketId].currentTotal = totalTime;
+            timers[ticketId].currentIndividual = individualTime;
+
+            totalTimerElement.textContent = formatTime(totalTime);
+            individualTimerElement.textContent = formatTime(individualTime);
+        }, 1000);
+
+        if (timers[ticketId].isPausedByCall) {
+            delete timers[ticketId].isPausedByCall;
+        }
+
+        localStorage.setItem(localStorageKey, JSON.stringify(timers));
+    }
+
+    function stopFrontendTimers(ticketId) {
+        if (timers[ticketId] && timers[ticketId].interval) {
+            clearInterval(timers[ticketId].interval);
+
+            timers[ticketId].totalAccumulatedTime = timers[ticketId].currentTotal;
+            timers[ticketId].individualAccumulatedTime = timers[ticketId].currentIndividual;
+            timers[ticketId].isActive = false;
+            timers[ticketId].stopDateTime = getCurrentDateTime();
+
+            const totalTimerElement = document.getElementById('timer-' + ticketId);
+            const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+            const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+
+            if (totalTimerElement) {
+                totalTimerElement.textContent = formatTime(timers[ticketId].totalAccumulatedTime);
+            }
+            if (individualTimerElement) {
+                individualTimerElement.textContent = formatTime(timers[ticketId].individualAccumulatedTime);
+            }
+
+            // Reset button state if it was started by call
+            if (startButton && timers[ticketId].startedByCall) {
+                startButton.classList.remove('started-by-call');
+                startButton.disabled = false;
+            }
+
+            delete timers[ticketId];
+            localStorage.setItem(localStorageKey, JSON.stringify(timers));
+        }
+    }
+
+    function handleBreakToggle(isBreak) {
+        // First make the server request to check if break is allowed
+        fetch("{% url 'toggle_break_status' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'error') {
+                // Revert the checkbox if there's an error
+                breakToggle.checked = !isBreak;
+
+                // Show error message using SweetAlert2
+                Swal.fire({
+                    title: 'Break Not Available',
+                    text: data.message,
+                    icon: 'warning',
+                    confirmButtonText: 'Ok',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+
+            // If successful, proceed with existing break toggle logic
+            // Update text and classes
+            const breakStatus = document.getElementById('breakStatus');
+            breakStatus.textContent = isBreak ? 'On Break' : 'Active';
+
+            // Remove existing classes and add the appropriate one
+            breakStatus.classList.remove('active', 'break');
+            breakStatus.classList.add(isBreak ? 'break' : 'active');
+
+            // Update the toggle color
+            const modernSlider = document.querySelector('.modern-slider');
+            if (modernSlider) {
+                modernSlider.style.backgroundColor = isBreak ? '#dc3545' : '#28a745';
+            }
+
+            // Handle all active timers
+            document.querySelectorAll('.start-button').forEach(button => {
+                const ticketId = button.dataset.ticketId;
+
+                if (isBreak && timers[ticketId] && timers[ticketId].isActive) {
+                    clearInterval(timers[ticketId].interval);
+                    timers[ticketId].isPausedForBreak = true;
+                    timers[ticketId].pausedAt = {
+                        total: timers[ticketId].currentTotal,
+                        individual: timers[ticketId].currentIndividual,
+                        time: Date.now(),
+                        pausedDateTime: getCurrentDateTime()
+                    };
+
+                    const totalTimerElement = document.getElementById('timer-' + ticketId);
+                    const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+
+                    if (totalTimerElement) {
+                        totalTimerElement.textContent = formatTime(timers[ticketId].currentTotal);
+                    }
+                    if (individualTimerElement) {
+                        individualTimerElement.textContent = formatTime(timers[ticketId].currentIndividual);
+                    }
+                } else if (!isBreak && timers[ticketId] && timers[ticketId].isPausedForBreak) {
+                    const pausedValues = timers[ticketId].pausedAt;
+                    if (pausedValues) {
+                        startFrontendTimers(
+                            ticketId,
+                            pausedValues.total,
+                            pausedValues.individual,
+                            Date.now(),
+                            timers[ticketId].startedByCall
+                        );
+                        timers[ticketId].isPausedForBreak = false;
+                        delete timers[ticketId].pausedAt;
+                    }
+                }
+            });
+
+            // Show notification if others can take breaks
+            if (data.message) {
+                Swal.fire({
+                    title: 'Break Available',
+                    text: data.message,
+                    icon: 'info',
+                    confirmButtonText: 'Ok',
+                    confirmButtonColor: '#3085d6'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Revert the checkbox state on error
+            breakToggle.checked = !isBreak;
+        });
+    }
+
+    // Call Action Form Handler
+    document.querySelectorAll('.call-action-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const actionUrl = this.getAttribute('action');
+            const ticketId = this.dataset.ticketId;
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (formData.get('action') === 'start_call') {
+                        // Store whether the timer was started by this call
+                        form.dataset.timerStartedByCall = data.timer_started_by_call;
+                        activeCallTicketId = ticketId;
+                        blockAllTicketInteractions(ticketId);
+
+                        // Get the start button and handle timer
+                        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                        if (startButton && data.timer_started_by_call) {
+                            // Get the timer elements
+                            const totalTimerElement = document.getElementById('timer-' + ticketId);
+                            const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+
+                            // Parse current display values if they exist
+                            let totalTime = 0;
+                            let individualTime = 0;
+
+                            if (totalTimerElement && individualTimerElement) {
+                                // Convert HH:MM:SS to seconds
+                                const parseTimeToSeconds = (timeStr) => {
+                                    const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+                                    return hours * 3600 + minutes * 60 + seconds;
+                                };
+
+                                // Get current display values
+                                totalTime = parseTimeToSeconds(totalTimerElement.textContent);
+                                individualTime = parseTimeToSeconds(individualTimerElement.textContent);
+                            }
+
+                            // Check for existing timer in memory
+                            if (timers[ticketId]) {
+                                totalTime = Math.max(totalTime, timers[ticketId].currentTotal || 0);
+                                individualTime = Math.max(individualTime, timers[ticketId].currentIndividual || 0);
+                            } else {
+                                // Check localStorage for existing timer
+                                const savedTimers = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
+                                if (savedTimers[ticketId]) {
+                                    totalTime = Math.max(totalTime, savedTimers[ticketId].currentTotal || 0);
+                                    individualTime = Math.max(individualTime, savedTimers[ticketId].currentIndividual || 0);
+                                }
+                            }
+
+                            // Use server values as fallback
+                            totalTime = Math.max(totalTime, data.time_spent_seconds || 0);
+                            individualTime = Math.max(individualTime, data.individual_time_spent_seconds || 0);
+
+                            // Start timer with preserved values
+                            startFrontendTimers(
+                                ticketId,
+                                totalTime,
+                                individualTime,
+                                Date.now(),
+                                true // Indicate this timer was started by call
+                            );
+                            startButton.textContent = 'Stop';
+                        }
+
+                        // Update UI and pause timers for paused tickets
+                        if (data.paused_tickets) {
+                            data.paused_tickets.forEach(pausedId => {
+                                const pausedButton = document.querySelector(`.start-button[data-ticket-id="${pausedId}"]`);
+                                if (pausedButton) {
+                                    pausedButton.textContent = 'Paused';
+                                    pausedButton.classList.add('paused-by-call');
+                                    pauseFrontendTimer(pausedId);
+                                }
+                            });
+                        }
+
+                        // Update call button
+                        const button = this.querySelector('button');
+                        button.textContent = 'End Call';
+                        button.classList.remove('btn-warning');
+                        button.classList.add('btn-danger');
+                        this.querySelector('input[name="action"]').value = 'end_call';
+                    } else if (formData.get('action') === 'end_call') {
+                        // Show the post-call modal
+                        $('#postCallModal').modal('show');
+
+                        // Populate modal fields
+                        document.getElementById('modal-ticket-id').value = data.ticket_id;
+                        document.getElementById('modal-ticket-id-display').value = data.ticket_display_id;
+                        document.getElementById('modal-subject').value = data.subject;
+                        document.getElementById('modal-status').value = data.current_status;
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+    // Post Call Form Handler
+    document.getElementById('postCallForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const ticketId = document.getElementById('modal-ticket-id').value;
+
+        if (ticketId) {
+            fetch(`/ticket/post_call_details/${ticketId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    activeCallTicketId = null;
+                    unblockAllTicketInteractions();
+                    // Resume paused timers
+                    if (data.resumed_tickets) {
+                        data.resumed_tickets.forEach(resumedId => {
+                            const resumedButton = document.querySelector(`.start-button[data-ticket-id="${resumedId}"]`);
+                            if (resumedButton) {
+                                resumedButton.textContent = 'Stop';
+                                resumedButton.classList.remove('paused-by-call');
+                                resumeFrontendTimer(resumedId);
+                            }
+                        });
+                    }
+
+                    // Find the call form to check if timer should be stopped
+                    const callForm = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"]`);
+                    const timerStartedByCall = callForm ? callForm.dataset.timerStartedByCall === 'true' : false;
+
+                    // Handle the timer that was started by the call
+                    if (timerStartedByCall) {
+                        const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                        if (startButton) {
+                            startButton.textContent = 'Start';
+                            startButton.classList.remove('started-by-call');
+                            startButton.disabled = false;
+                            stopFrontendTimers(ticketId);
+                        }
+                    }
+
+                    // Reset call button state
+                    if (callForm) {
+                        const callButton = callForm.querySelector('button');
+                        callButton.textContent = 'Start Call';
+                        callButton.classList.remove('btn-danger');
+                        callButton.classList.add('btn-warning');
+                        callForm.querySelector('input[name="action"]').value = 'start_call';
+                        callForm.dataset.timerStartedByCall = 'false';
+                    }
+
+                    // Close modal and reload
+                    $('#postCallModal').modal('hide');
+                    location.reload();
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    });
+
+    // Modal close handlers
+    const closeButton = document.querySelector('#postCallModal .btn-secondary');
+    const closeIcon = document.querySelector('#postCallModal .close');
+
+    if (closeButton) {
+        closeButton.addEventListener('click', function() {
+            $('#postCallModal').modal('hide');
+        });
+    }
+
+    if (closeIcon) {
+        closeIcon.addEventListener('click', function() {
+            $('#postCallModal').modal('hide');
+        });
+    }
+
+    // Enhanced Start/Stop button click handler with call-started timer blocking
+    document.querySelectorAll('.start-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            if (breakToggle.checked) return;
+
+            const ticketId = this.dataset.ticketId;
+
+            // Block interaction if timer was started by call
+            if (timers[ticketId] && timers[ticketId].startedByCall) {
+                alert('This timer was started by a call and can only be stopped by ending the call.');
+                return;
+            }
+
+            // Block if there's an active call on another ticket
+            if (activeCallTicketId && activeCallTicketId !== ticketId) {
+                alert('Please end the current call before starting a new timer.');
+                return;
+            }
+
+            const action = this.textContent.trim() === 'Start' ? 'start' : 'stop';
+
+            fetch(`/tickets/${ticketId}/${action}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.textContent = action === 'start' ? 'Stop' : 'Start';
+
+                    if (action === 'start') {
+                        activeTicketId = ticketId;
+                        blockOtherTicketButtons(ticketId);
+                        startFrontendTimers(
+                            ticketId,
+                            data.time_spent_seconds,
+                            data.individual_time_spent_seconds,
+                            Date.now(),
+                            false
+                        );
+                    } else {
+                        activeTicketId = null;
+                        unblockAllTicketButtons();
+                        stopFrontendTimers(ticketId);
+                    }
+                } else {
+                    alert('Failed to update ticket activity');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+    // Break toggle event listener
+    if (breakToggle) {
+        breakToggle.addEventListener('change', function() {
+            handleBreakToggle(this.checked);
+        });
+    }
+
+    // Initialize active timers from localStorage with call-started state preservation
+    const savedTimers = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
+    Object.entries(savedTimers).forEach(([ticketId, timerData]) => {
+        if (timerData.isActive) {
+            startFrontendTimers(
+                ticketId,
+                timerData.totalAccumulatedTime,
+                timerData.individualAccumulatedTime,
+                timerData.startTime,
+                timerData.startedByCall // Preserve the call-started state
+            );
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Handle Note form submission via AJAX
+    document.getElementById('noteForm').addEventListener('submit', function(e) {
+        e.preventDefault();  // Prevent default form submission
+
+        const formData = new FormData(this);
+
+        fetch('{% url "save_call_note" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);  // Show success message
+                $('#clientCallModal').modal('hide');  // Close modal
+            } else {
+                alert(data.message);  // Show error message
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const newQueryCircle = document.getElementById('newQueryCircle');
+    const existingQueryCircle = document.getElementById('existingQueryCircle');
+    const newQuerySection = document.getElementById('newQuerySection');
+    const existingQuerySection = document.getElementById('existingQuerySection');
+
+    // Handle toggle circle clicks
+    document.querySelectorAll('.toggle-option').forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.dataset.value;
+
+            // Reset all circles
+            document.querySelectorAll('.toggle-circle').forEach(circle => {
+                circle.classList.remove('active');
+            });
+
+            // Activate clicked circle
+            this.querySelector('.toggle-circle').classList.add('active');
+
+            // Show appropriate section
+            if (value === 'new') {
+                newQuerySection.style.display = 'block';
+                existingQuerySection.style.display = 'none';
+                startNewCall();
+            } else {
+                existingQuerySection.style.display = 'block';
+                newQuerySection.style.display = 'none';
+                startNewCall();
+            }
+        });
+    });
+});
+</script>
+
+<script>
+document.getElementById("search-ticket").addEventListener("click", function() {
+    var ticketId = document.getElementById("ticket-id").value;
+    if (ticketId) {
+        fetch(`/tickets/search/${ticketId}/`, {
+            method: "GET",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Populate ticket details
+                document.getElementById("subject").value = data.ticket.subject;
+                document.getElementById("priority").value = data.ticket.priority;
+
+                // Populate assigned-to dropdown
+                var assignedToDropdown = document.getElementById("assigned-to");
+                assignedToDropdown.innerHTML = '';  // Clear existing options
+                data.users.forEach(user => {
+                    var option = document.createElement("option");
+                    option.value = user.id;
+                    option.textContent = user.username;
+                    if (user.id == data.ticket.assigned_to) {
+                        option.selected = true;
+                    }
+                    assignedToDropdown.appendChild(option);
+                });
+
+                // Populate the note field
+                document.getElementById("note").value = data.ticket.note || "";  // If no note, set empty string
+
+                // Show ticket details section
+                document.getElementById("ticket-details").style.display = "block";
+            } else {
+                alert("Ticket not found");
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+
+document.getElementById("existingQueryForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    // First end the call to get duration
+    const endCallResponse = await fetch('/end-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    }).then(response => response.json());
+
+    var ticketId = document.getElementById("ticket-id").value;
+    var subject = document.getElementById("subject").value;
+    var assignedTo = document.getElementById("assigned-to").value;
+    var priority = document.getElementById("priority").value;
+    var clientCallNote = document.getElementById("client_call_note").value;
+
+    // Create form data and append call duration if available
+    const formData = new FormData();
+    formData.append("subject", subject);
+    formData.append("assigned_to", assignedTo);
+    formData.append("priority", priority);
+    formData.append("client_call_note", clientCallNote);
+
+    if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
+        formData.append("call_duration_seconds", endCallResponse.call_duration);
+    }
+
+    fetch(`/tickets/update/${ticketId}/`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert("Ticket updated successfully");
+
+            // Hide the modal after update
+            var modal = document.getElementById("clientCallModal");
+            if (modal) {
+                modal.classList.remove('show');
+                modal.setAttribute('aria-hidden', 'true');
+                modal.style.display = 'none';
+
+                var modalBackdrop = document.querySelector('.modal-backdrop');
+                if (modalBackdrop) {
+                    modalBackdrop.remove();
+                }
+
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+
+                window.location.reload()
+            }
+        } else {
+            alert("Failed to update ticket");
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+</script>
+<script>
+// Define callStartTime in the global scope
+let callStartTime = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    const clientCallModal = document.getElementById("clientCallModal");
+    const newQueryBtn = document.getElementById("newQueryBtn");
+    const existingQueryBtn = document.getElementById("existingQueryBtn");
+    const newQuerySection = document.getElementById("newQuerySection");
+    const existingQuerySection = document.getElementById("existingQuerySection");
+    const createTicketToggle = document.getElementById("create_ticket");
+    const submitButton = document.getElementById("newQuerySubmitBtn");
+    const emailFields = document.getElementById("emailFields");
+    const clientEmailInput = document.getElementById("client_email");
+    const ccEmailInput = document.getElementById("cc_email");
+
+    // Modal handling
+    if (clientCallModal) {
+        const closeButton = clientCallModal.querySelector('.btn-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', endNewCall);
+        }
+        clientCallModal.addEventListener('hidden.bs.modal', endNewCall);
+        window.addEventListener('beforeunload', endNewCall);
+    }
+
+    // Button handlers
+    if (newQueryBtn) {
+        newQueryBtn.addEventListener("click", function() {
+            newQuerySection.style.display = "block";
+            existingQuerySection.style.display = "none";
+            startNewCall();
+        });
+    }
+
+    if (existingQueryBtn) {
+        existingQueryBtn.addEventListener("click", function() {
+            existingQuerySection.style.display = "block";
+            newQuerySection.style.display = "none";
+            startNewCall();
+        });
+    }
+
+    // Create ticket toggle handler
+    if (createTicketToggle) {
+        createTicketToggle.addEventListener("change", function() {
+            submitButton.textContent = this.checked ? "Send" : "Save";
+            emailFields.style.display = this.checked ? "block" : "none";
+            clientEmailInput.required = this.checked;
+
+            if (!this.checked) {
+                clientEmailInput.value = "";
+                ccEmailInput.value = "";
+            }
+
+            this.checked ? this.classList.add("bg-success") : this.classList.remove("bg-success");
+        });
+    }
+
+    // Form submission handlers
+    const newQueryForm = document.getElementById("newQueryForm");
+    if (newQueryForm) {
+        newQueryForm.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            // First end the call to get duration
+            const endCallResponse = await fetch('/end-new-call/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json());
+
+            if (endCallResponse.status === 'success') {
+                const formData = new FormData(this);
+
+                // Add the call duration to the form data
+                if (endCallResponse.call_duration) {
+                    formData.append('call_duration_seconds', endCallResponse.call_duration);
+                }
+
+                // Save the call query
+                fetch('/save-new-call-query/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Call query saved successfully');
+                        window.location.reload();
+                        loadCallQueries();
+                        bootstrap.Modal.getInstance(document.getElementById('clientCallModal')).hide();
+                    } else {
+                        alert('Error saving call query');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        });
+    }
+
+    // Initial load of queries
+    loadCallQueries();
+});
+
+// Call handling functions
+function startNewCall() {
+    fetch('/start-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Call started successfully');
+            callStartTime = new Date(data.call_start_time);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function endNewCall() {
+    if (!callStartTime) return; // Don't end if no call is started
+
+    fetch('/end-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            console.log('Call ended successfully');
+            callStartTime = null;
+            if (newQuerySection) newQuerySection.style.display = "none";
+            if (existingQuerySection) existingQuerySection.style.display = "none";
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// Query loading functions
+function loadCallQueries() {
+    fetch('/get-call-queries/')
+    .then(response => response.json())
+    .then(data => {
+        updateNewQueriesTable(data.new_queries);
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateNewQueriesTable(queries) {
+    const tbody = document.getElementById("newQueriesBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+    queries.forEach(query => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${query.client_name || '-'}</td>
+            <td>${query.client_email || '-'}</td>
+            <td>${query.call_duration || '-'}</td>
+            <td>
+                <span class="badge ${query.ticket_created ? 'bg-success' : 'bg-danger'}">
+                    ${query.ticket_created ? '✓' : '✗'}
+                </span>
+            </td>
+            <td>${query.note}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to format time
+    function formatTime(hours, minutes, seconds) {
+        // Handle negative values
+        if (hours < 0 || minutes < 0 || seconds < 0) {
+            return "00:00:00";
+        }
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    // Function to update a single timer
+    function updateCreatedTimer(timerElement) {
+        // Get the created_at time from the data attribute
+        let createdAtStr = timerElement.dataset.createdAt;
+
+        // Convert to local timezone
+        const createdAt = new Date(createdAtStr);
+        const status = timerElement.dataset.status;
+
+        // Don't update timer if ticket is closed or resolved
+        if (status === 'closed' || status === 'resolved') {
+            return;
+        }
+
+        const now = new Date();
+
+        // Ensure proper timezone handling
+        const diff = now - createdAt;
+
+        // Prevent negative values
+        if (diff < 0) {
+            timerElement.textContent = "00:00:00";
+            return;
+        }
+
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        timerElement.textContent = formatTime(hours, minutes, seconds);
+    }
+
+    // Update all timers
+    function updateAllCreatedTimers() {
+        const timerElements = document.querySelectorAll('.created-timer-span');
+        timerElements.forEach(updateCreatedTimer);
+    }
+
+    // Initial update
+    updateAllCreatedTimers();
+
+    // Update every second
+    setInterval(updateAllCreatedTimers, 1000);
+});
+
+
+
+// Format large time durations
+function formatLongDuration(hours) {
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remainingHours = hours % 24;
+        return `${days}d ${String(remainingHours).padStart(2, '0')}:`;
+    }
+    return String(hours).padStart(2, '0') + ':';
+}
+
+// Update the timer update function to handle long durations
+function updateCreatedTimer(timerElement) {
+    const createdAt = new Date(timerElement.dataset.createdAt + 'Z');
+    const status = timerElement.dataset.status;
+
+    if (status === 'closed' || status === 'resolved') {
+        return;
+    }
+
+    const now = new Date();
+    const diff = now - createdAt;
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    const formattedTime = formatLongDuration(hours) +
+        String(minutes).padStart(2, '0') + ':' +
+        String(seconds).padStart(2, '0');
+
+    timerElement.textContent = formattedTime;
+
+    // Add warning class for long-running tickets
+    if (hours >= 24) {
+        timerElement.classList.add('long-running');
+    }
+}
+</script>
+
+<script>
+function updateDashboardStats() {
+    fetch('/api/daily-stats/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('todayTicketCount').textContent = data.todays_tickets;
+            document.getElementById('openTicketCount').textContent = data.open_tickets;
+            document.getElementById('closedTicketCount').textContent = data.closed_tickets;
+            document.getElementById('totalCallTime').textContent = data.call_duration;
+        })
+        .catch(error => console.error('Error updating stats:', error));
+}
+
+// Update stats every minute
+setInterval(updateDashboardStats, 60000);
+
+// Update when page becomes visible
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        updateDashboardStats();
+    }
+});
+
+// Update after relevant actions
+document.addEventListener('ticketStatusChanged', updateDashboardStats);
+document.addEventListener('callEnded', updateDashboardStats);
+</script>
+
+
+{% block extra_js %}
+<!-- Make sure these are in the correct order -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<div id="notification-container"></div>
+<audio id="notificationSound" src="{% static 'employee/sounds/notification.mp3' %}" preload="auto"></audio>
+<script src="{% static 'employee/js/notifications.js' %}"></script>
+
+<script>
+    // Initialize notification manager
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make sure notificationManager is available globally
+        window.notificationManager = window.notificationManager || new NotificationManager();
+    });
+</script>
+{% endblock %}
+
+<script>
+function handleLogout(event) {
+    event.preventDefault();
+
+    // Make an AJAX call to the logout endpoint
+    fetch('/logout', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'error') {
+            // Create a formatted list of tickets grouped by status
+            let ticketList = Object.entries(data.tickets).map(([status, tickets]) => {
+                const ticketsInStatus = tickets.map(ticket =>
+                    `   • ${ticket.ticket_id}: ${ticket.subject}`
+                ).join('\n');
+                return `${status} Tickets:\n${ticketsInStatus}`;
+            }).join('\n\n');
+
+            // Show the alert with Sweetalert2
+            Swal.fire({
+                title: 'Cannot Logout',
+                html: `<div class="alert alert-warning">
+                    <p>You have the following unresolved tickets that need to be assigned to another agent:</p>
+                    <pre class="text-left">${ticketList}</pre>
+                    <p class="mt-3">Please assign these tickets to another agent before logging out.</p>
+                </div>`,
+                icon: 'warning',
+                confirmButtonText: 'OK',
+                customClass: {
+                    container: 'my-swal',
+                    popup: 'my-swal-popup'
+                }
+            });
+        } else if (data.status === 'success') {
+            // Show a success message and redirect
+            Swal.fire({
+                title: 'Success',
+                text: 'You have been successfully logged out.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.href = '/login';
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // If there's an error, redirect to login page anyway
+        window.location.href = '/login';
+    });
+}
+
+// Add event listener to logout link/button
+document.addEventListener('DOMContentLoaded', function() {
+    const logoutLink = document.querySelector('a[href="/logout"]');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', handleLogout);
+    }
+});
+</script>
+<script>
+function toggleRow(cell) {
+    const row = cell.closest('tr');
+    const expandedRow = row.nextElementSibling;
+
+    if (expandedRow.classList.contains('hidden')) {
+        expandedRow.classList.remove('hidden');
+        cell.textContent = '-';
+    } else {
+        expandedRow.classList.add('hidden');
+        cell.textContent = '+';
+    }
+}
+</script>
+<script>
+function toggleDropdown() {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    dropdownMenu.classList.toggle('show');
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const dropdownButton = document.getElementById('dropdownButton');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+}
+</script>
+</body>
+</html>
