@@ -1,0 +1,48 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+Lib/
+Scripts/
+pyvenv.cfg
+
+# Large model files
+*.dll
+*.lib
+*.gguf
+*.gguf.part
+mistral-7b-instruct-v0.1.Q4_0.gguf
+employee_management/text_improver/models/
+employee_management/.venv/
+**/torch/
+**/gpt4all/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+*.pyc
+
+# Django
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+# Node
+node_modules/
+package-lock.json
+
+# Desktop Agent
+desktop_agent/build/
+desktop_agent/dist/
+desktop_agent/Deployment/
+*.spec
+*.sqlite
+
+# IDE
+.idea/
+.vscode/
