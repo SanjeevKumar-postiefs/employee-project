@@ -35,10 +35,18 @@
 
     <div class="flex items-center space-x-4 cursor-pointer">
         <div class="relative">
-            <!-- Button to toggle dropdown -->
-            <button class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700"
+            <!-- Button to toggle dropdown with profile picture -->
+            <button class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
                     id="dropdownButton" onclick="toggleDropdown()">
-                {{ request.user.username|slice:":2"|upper }}
+                {% if request.user.employeeprofile.profile_picture %}
+                    <img src="{{ request.user.employeeprofile.profile_picture.url }}"
+                         alt="{{ request.user.username }}"
+                         class="w-full h-full object-cover">
+                {% else %}
+                    <div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-700">
+                        {{ request.user.username|slice:":2"|upper }}
+                    </div>
+                {% endif %}
             </button>
 
             <!-- Dropdown Menu -->

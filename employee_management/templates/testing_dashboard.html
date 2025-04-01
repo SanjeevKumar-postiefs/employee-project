@@ -855,7 +855,7 @@ td[data-status="on_hold"] {
     color: #22c55e !important;
     background-color: #dcfce7 !important;
     border-color: #22c55e !important;
-    min-width: 70px;
+    min-width: 40px;
 }
 
 /* Call button specific styles */
@@ -903,7 +903,7 @@ td[data-status="on_hold"] {
     color: #22c55e !important;
     background-color: #dcfce7 !important;
     border-color: #22c55e !important;
-    min-width: 80px;
+    min-width: 60px;
 }
 
 
@@ -982,17 +982,17 @@ td[data-status="on_hold"] {
     <table class="w-full border-collapse border border-gray-300">
       <thead class="text-sm">
         <tr class="bg-blue-200">
-          <th class="border p-1"></th>
-          <th class="border p-1">Ticket ID</th>
+          <th class="border p-1 w-4"></th>
+          <th class="border p-1 w-6">Ticket ID</th>
           <th class="border p-1">Subject</th>
-          <th class="border p-1">Priority</th>
-          <th class="border p-1">Status</th>
-          <th class="border p-1">Ticket Age</th>
-          <th class="border p-1">Total Effort</th>
-          <th class="border p-1">Individual Effort</th>
-          <th class="border p-1">Action</th>
-          <th class="border p-1">On Call</th>
-          <th class="border p-1">Accept</th>
+          <th class="border p-1 w-5">Priority</th>
+          <th class="border p-1 w-6">Status</th>
+          <th class="border p-1 w-6">Ticket Age</th>
+          <th class="border p-1 w-6">Total Effort</th>
+          <th class="border p-1 w-2">Individual Effort</th>
+          <th class="border p-1 w-6">Action</th>
+          <th class="border p-1 w-6">On Call</th>
+          <th class="border p-1 w-6">Accept</th>
         </tr>
       </thead>
       <tbody class="text-center">
@@ -1013,7 +1013,7 @@ td[data-status="on_hold"] {
               {{ ticket.subject }}
             </td>
             <td class="border px-2 py-1" data-priority="{{ ticket.priority|lower }}">
-                {{ ticket.priority }}
+                {{ ticket.priority|priority_abbreviation }}
             </td>
             <td class="border px-2 py-1" data-status="{{ ticket.status|lower }}">
                 {{ ticket.status|status_abbreviation }}

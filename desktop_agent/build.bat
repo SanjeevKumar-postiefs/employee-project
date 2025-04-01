@@ -41,6 +41,10 @@ pyinstaller --clean ^
     --hidden-import activity_tracker.api_client ^
     --hidden-import activity_tracker.config ^
     --hidden-import activity_tracker.storage ^
+    --hidden-import win32ts ^
+    --hidden-import win32profile ^
+    --hidden-import win32security.logon ^
+    --hidden-import win32security.impersonation ^
     --runtime-hook add_dll_directory.py ^
     service_wrapper.py
 

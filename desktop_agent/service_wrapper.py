@@ -1,18 +1,20 @@
 import os
 import sys
+import time
 import win32serviceutil
 import win32service
 import win32event
 import servicemanager
 import socket
 import threading
-from datetime import datetime
 import win32ts
 import win32security
+import win32profile
+import win32api
 import win32con
 import win32process
-import win32api
 import logging
+from datetime import datetime
 from pathlib import Path
 
 # Set up logging
@@ -58,21 +60,33 @@ class ActivityTrackerService(win32serviceutil.ServiceFramework):
         except Exception as e:
             logger.error(f"Error stopping service: {e}")
 
+    def get_user_email(self, session_id):
+        try:
+            # Get user token
+            user_token = win32ts.WTSQueryUserToken(session_id)
+
+            # Create temp file for output
+            temp_file = os.path.join(os.environ.get('PROGRAMDATA', ''), 'EmployeeActivityTracker', 'temp', 'email.txt')
+
+            # Run whoami /upn directly
+            import subprocess
+            result = subprocess.run(['whoami', '/upn'], capture_output=True, text=True)
+            email = result.stdout.strip()
+
+            if email and '@' in email:
+                logger.info(f"Found user email: {email}")
+                return email
+
+            logger.error("Failed to get user email")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error getting user email: {e}")
+            return None
+
     def SvcDoRun(self):
         try:
             logger.info("Service starting")
-
-            # Add the current directory to Python path
-            if getattr(sys, 'frozen', False):
-                # Running as compiled exe
-                current_dir = os.path.dirname(sys.executable)
-            else:
-                # Running as script
-                current_dir = os.path.dirname(os.path.abspath(__file__))
-
-            if current_dir not in sys.path:
-                sys.path.insert(0, current_dir)
-                logger.info(f"Added to Python path: {current_dir}")
 
             # Wait for user session
             session_id = self.wait_for_user_session()
@@ -80,26 +94,131 @@ class ActivityTrackerService(win32serviceutil.ServiceFramework):
                 logger.error("No valid user session found")
                 return
 
-            # Import and initialize ActivityTracker
-            from activity_tracker.activity_tracker import ActivityTracker
+            try:
+                # Get user information
+                user = win32ts.WTSQuerySessionInformation(None, session_id, win32ts.WTSUserName)
+                domain = win32ts.WTSQuerySessionInformation(None, session_id, win32ts.WTSDomainName)
+                logger.info(f"User context: {domain}\\{user}")
 
-            logger.info("Initializing ActivityTracker")
-            self.tracker = ActivityTracker()
+                # Get user email
+                user_email = self.get_user_email(session_id)
+                if not user_email:
+                    logger.error("Could not get user email")
+                    return
 
-            logger.info("Starting ActivityTracker")
-            self.tracker.start()
+                # Set up user environment
+                user_profile = f"C:\\Users\\{user}"
+                activity_tracker_dir = os.path.join(user_profile, '.activity_tracker')
+                os.makedirs(activity_tracker_dir, exist_ok=True)
 
-            logger.info("Service started successfully")
+                # Set environment variables
+                os.environ.update({
+                    'USERNAME': user,
+                    'USERDOMAIN': domain,
+                    'USERPROFILE': user_profile,
+                    'APPDATA': os.path.join(user_profile, 'AppData', 'Roaming'),
+                    'LOCALAPPDATA': os.path.join(user_profile, 'AppData', 'Local'),
+                    'TEMP': os.path.join(user_profile, 'AppData', 'Local', 'Temp'),
+                    'TMP': os.path.join(user_profile, 'AppData', 'Local', 'Temp'),
+                    'ACTIVITY_TRACKER_DIR': activity_tracker_dir
+                })
 
-            # Wait for service stop signal
-            win32event.WaitForSingleObject(self.stop_event, win32event.INFINITE)
+                # Create custom ActivityTracker class
+                from activity_tracker.activity_tracker import ActivityTracker
+                from activity_tracker.config import IDLE_THRESHOLD
+
+                class CustomActivityTracker(ActivityTracker):
+                    def __init__(self, session_id, user_email):
+                        self.session_id = session_id
+                        self._user_email = user_email
+                        super().__init__()
+
+                    def get_user_email(self):
+                        return self._user_email
+
+                    def is_user_idle(self):
+                        try:
+                            last_input = win32api.GetLastInputInfo()
+                            current_tick = win32api.GetTickCount()
+                            idle_time = (current_tick - last_input) / 1000
+
+                            if idle_time > IDLE_THRESHOLD:
+                                if not self.is_currently_idle:
+                                    self.idle_session_start = time.time() - idle_time
+                                    self.is_currently_idle = True
+                                    self.last_idle_report = None
+                                    logger.info("=" * 50)
+                                    logger.info(
+                                        f"User became idle at: {datetime.fromtimestamp(self.idle_session_start)}")
+                                    logger.info("Status: Idle")
+                                    logger.info(f"Idle time: {idle_time:.2f} seconds")
+
+                                return True, time.time() - self.idle_session_start
+                            else:
+                                if self.is_currently_idle:
+                                    total_idle_time = time.time() - self.idle_session_start
+                                    self.is_currently_idle = False
+                                    current_time = datetime.now()
+
+                                    total_minutes = int(total_idle_time // 60)
+                                    total_seconds = int(total_idle_time % 60)
+                                    logger.info("=" * 50)
+                                    logger.info(f"User became active at: {current_time}")
+                                    logger.info(f"Total idle time: {total_minutes} minutes {total_seconds} seconds")
+
+                                    current_activity = {
+                                        'timestamp': current_time.isoformat(),
+                                        'email': self.user_info['email'],
+                                        'is_idle': False,
+                                        'idle_duration': total_idle_time,
+                                        'idle_start_time': datetime.fromtimestamp(self.idle_session_start).isoformat(),
+                                        'hostname': self.hostname
+                                    }
+
+                                    logger.info(f"Sending activity data: {current_activity}")
+
+                                    try:
+                                        self.api_client.send_activity_data(current_activity)
+                                        logger.info("Activity data sent successfully")
+                                    except Exception as e:
+                                        logger.error(f"Error sending activity data: {e}")
+                                        self.storage.store(current_activity)
+                                        logger.info("Activity data stored locally")
+
+                                    self.idle_session_start = None
+                                    return False, total_idle_time
+
+                                return False, 0
+
+                        except Exception as e:
+                            logger.error(f"Error checking idle status: {e}")
+                            return False, 0
+
+                logger.info("Initializing ActivityTracker")
+                self.tracker = CustomActivityTracker(session_id, user_email)
+
+                logger.info("Starting ActivityTracker")
+                self.tracker.start()
+
+                logger.info("Service started successfully")
+
+                # Wait for service stop signal
+                while True:
+                    if win32event.WaitForSingleObject(self.stop_event, 1000) == win32event.WAIT_OBJECT_0:
+                        break
+
+            except Exception as e:
+                logger.error(f"Failed to start tracker: {e}")
+                raise
 
         except Exception as e:
             logger.error(f"Service error: {e}")
             raise
+        finally:
+            if self.tracker:
+                self.tracker.stop()
 
     def wait_for_user_session(self):
-        """Wait for an active user session"""
         while True:
             try:
                 sessions = win32ts.WTSEnumerateSessions(None)
@@ -108,68 +227,24 @@ class ActivityTrackerService(win32serviceutil.ServiceFramework):
                         user = win32ts.WTSQuerySessionInformation(
                             None, session['SessionId'], win32ts.WTSUserName
                         )
-                        domain = win32ts.WTSQuerySessionInformation(
-                            None, session['SessionId'], win32ts.WTSDomainName
-                        )
                         if user and user != 'SYSTEM':
-                            logger.info(f"Found active user session: {domain}\\{user}")
                             return session['SessionId']
             except Exception as e:
                 logger.error(f"Error checking user sessions: {e}")
-            win32event.WaitForSingleObject(self.stop_event, 1000)  # Wait 1 second
-            if win32event.WaitForSingleObject(self.stop_event, 0) == win32event.WAIT_OBJECT_0:
+
+            if win32event.WaitForSingleObject(self.stop_event, 1000) == win32event.WAIT_OBJECT_0:
                 return None
 
 
-def prepare_environment():
-    """Prepare the service environment"""
-    try:
-        # Create necessary directories
-        program_data = os.environ.get('PROGRAMDATA', '')
-        if program_data:
-            app_data_dir = os.path.join(program_data, 'EmployeeActivityTracker')
-            os.makedirs(app_data_dir, exist_ok=True)
-            os.makedirs(os.path.join(app_data_dir, 'logs'), exist_ok=True)
-
-        # Add DLL directories
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        dll_dirs = [
-            base_dir,
-            os.path.join(base_dir, 'activity_tracker'),
-            os.path.join(sys.prefix, 'DLLs'),
-            os.path.join(sys.prefix, 'Lib', 'site-packages', 'pywin32_system32'),
-        ]
-
-        for dll_dir in dll_dirs:
-            if os.path.exists(dll_dir):
-                try:
-                    os.add_dll_directory(dll_dir)
-                    logger.info(f"Added DLL directory: {dll_dir}")
-                except Exception as e:
-                    logger.warning(f"Failed to add DLL directory {dll_dir}: {e}")
-
-        return True
-    except Exception as e:
-        logger.error(f"Failed to prepare environment: {e}")
-        return False
-
-
 if __name__ == '__main__':
-    try:
-        if len(sys.argv) == 1:
+    if len(sys.argv) == 1:
+        try:
             logger.info("Preparing to start service")
-            if prepare_environment():
-                servicemanager.Initialize()
-                servicemanager.PrepareToHostSingle(ActivityTrackerService)
-                servicemanager.StartServiceCtrlDispatcher()
-            else:
-                logger.error("Failed to prepare environment")
-        else:
-            win32serviceutil.HandleCommandLine(ActivityTrackerService)
-    except Exception as e:
-        logger.error(f"Service failed to start: {e}")
-        raise
+            servicemanager.Initialize()
+            servicemanager.PrepareToHostSingle(ActivityTrackerService)
+            servicemanager.StartServiceCtrlDispatcher()
+        except Exception as e:
+            logger.error(f"Service failed to start: {e}")
+            raise
+    else:
+        win32serviceutil.HandleCommandLine(ActivityTrackerService)

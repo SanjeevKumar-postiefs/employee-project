@@ -1057,7 +1057,8 @@ def dashboard(request):
         'call_duration': formatted_duration
     }
 
-    return render(request, 'testing_dashboard.html', context)
+    return render(request, 'testing_dashboard3.html', context)
+
 
 @login_required
 def get_daily_stats(request):
@@ -1629,21 +1630,45 @@ def acknowledge_ticket(request, ticket_id):
     if request.method == 'POST':
         try:
             ticket = get_object_or_404(Ticket, id=ticket_id, assigned_to=request.user)
-            ticket.acknowledge(request.user)
 
-            # Mark all notifications for this ticket as read
-            UnifiedNotification.objects.filter(
-                ticket=ticket,
-                user=request.user
-            ).update(is_read=True)
+            # Add logging for debugging
+            print(f"Acknowledging ticket {ticket_id} for user {request.user}")
 
-            return JsonResponse({'success': True})
+            success = ticket.acknowledge(request.user)
+
+            if success:
+                # Mark related notifications as read
+                UnifiedNotification.objects.filter(
+                    ticket=ticket,
+                    user=request.user
+                ).update(is_read=True)
+
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Ticket acknowledged successfully'
+                })
+            else:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Failed to acknowledge ticket'
+                }, status=400)
+
+        except Ticket.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Ticket not found'
+            }, status=404)
         except Exception as e:
+            print(f"Error acknowledging ticket: {e}")
             return JsonResponse({
                 'success': False,
                 'error': str(e)
-            }, status=400)
-    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+            }, status=500)
+
+    return JsonResponse({
+        'success': False,
+        'error': 'Invalid request method'
+    }, status=400)
 
 def ticket_list(request):
     tickets = Ticket.objects.all().order_by('-created_at')
@@ -1899,91 +1924,6 @@ def on_duty_action(request, request_id):
     return redirect(f"{reverse('on_duty_list')}?tab=team-requests")
 
 
-@login_required
-def get_new_tickets(request):
-    user = request.user
-    now = timezone.localtime(timezone.now())
-    local_today_start = timezone.make_aware(datetime.combine(now.date(), time.min))
-    local_today_end = timezone.make_aware(datetime.combine(now.date(), time.max))
 
-    # Define status_abbreviation function inside views.py
-    def get_status_abbreviation(value):
-        status_map = {
-            'waiting_on_customer': 'WOC',
-            'initial_response': 'IR',
-            'on_hold': 'OH',
-        }
-        return status_map.get(value, value.title())
-
-    try:
-        employee_profile = EmployeeProfile.objects.get(user=user)
-    except EmployeeProfile.DoesNotExist:
-        employee_profile = None
-
-    # Get active tickets using the same query as dashboard
-    tickets = Ticket.objects.filter(
-        assigned_to=user
-    ).exclude(
-        status__in=['closed', 'resolved']
-    ).order_by('-created_at')
-
-    tickets_data = []
-    for ticket in tickets:
-        # Check if ticket has exceeded time limit
-        has_exceeded = ticket.has_exceeded_time_limit()
-
-        tickets_data.append({
-            'id': ticket.id,
-            'ticket_id': ticket.ticket_id,
-            'subject': ticket.subject,
-            'priority': ticket.priority,
-            'status': ticket.status,
-            'status_abbreviation': get_status_abbreviation(ticket.status),  # Use the local function
-            'created_at': ticket.created_at.isoformat(),
-            'time_since_created': calculate_time_since_created(ticket.created_at),
-            'time_spent': format_duration(ticket.time_spent) if ticket.time_spent else "00:00:00",
-            'individual_time_spent': format_duration(ticket.individual_time_spent) if ticket.individual_time_spent else "00:00:00",
-            'is_active': ticket.is_active,
-            'call_in_progress': ticket.call_in_progress,
-            'is_acknowledged': ticket.is_acknowledged,
-            'has_exceeded_time_limit': has_exceeded,
-            'status_changed': ticket.status_changed is not None,
-            'assigned_to': user.id
-        })
-
-    return JsonResponse({
-        'tickets': tickets_data,
-        'current_time': now.strftime('%Y-%m-%d %H:%M:%S')
-    })
-
-
-def calculate_time_since_created(created_at):
-    now = timezone.localtime(timezone.now())
-    time_diff = now - created_at
-    days = time_diff.days
-    hours = time_diff.seconds // 3600
-    minutes = (time_diff.seconds % 3600) // 60
-    return f"{days}d {hours}h {minutes}m" if days else f"{hours}h {minutes}m"
-
-
-def format_duration(duration):
-    if not duration:
-        return "00:00:00"
-
-    # Remove microseconds if present
-    if isinstance(duration, str):
-        if '.' in duration:
-            duration = duration.split('.')[0]
-        if len(duration.split(':')) == 3:
-            hours, minutes, seconds = duration.split(':')
-            return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
-        return duration
-
-    # Handle timedelta objects
-    total_seconds = int(duration.total_seconds())
-    hours = total_seconds // 3600
-    minutes = (total_seconds % 3600) // 60
-    seconds = total_seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 

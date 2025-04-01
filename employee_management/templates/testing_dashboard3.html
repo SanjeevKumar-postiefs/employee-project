@@ -1,20 +1,11 @@
+{% extends 'base.html' %}
 {% load static %}
 {% load custom_filters %}
 {% load timedelta_filters %}
 {% load duration_filters %}
 {% csrf_token %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/phosphor-icons@1.4.2/src/css/icons.css">
+{% block content %}
+
 
 {% block extra_head %}
 <style>
@@ -52,187 +43,515 @@
     animation: statusPing 1s cubic-bezier(0, 0, 0.2, 1) infinite;
   }
 
-      .navbar {
-      position: fixed;
-      top: 0;
-      left: 64px;
-      width: calc(100% - 64px);
-      z-index: 1000;
-      transition: left 0.3s ease, width 0.3s ease;
-    }
-
-    .navbar:hover {
-      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
-    }
-
-    #dropdownMenu {
-        display: none;
-    }
-
-    #dropdownMenu.show {
-        display: block;
-    }
-
-        .sidebar {
-      width: 64px;
-      transition: width 0.3s ease;
-      position: fixed;
-      top: 0;
-      height: 100vh;
-      z-index: 9999;
-    }
-
-    .sidebar:hover {
-      box-shadow: rgba(17, 17, 26, 0.1) 0px 4px 16px, rgba(17, 17, 26, 0.1) 0px 8px 24px, rgba(17, 17, 26, 0.1) 0px 16px 56px;
-    }
-
-    .side-menu-has-tooltip {
-      position: relative;
-    }
-
-    .side-menu-has-tooltip:hover .side-menu-tooltip {
-      visibility: visible;
-      z-index: 9999;
-      left: 25px;
-    }
-
-    .side-menu-tooltip {
-      visibility: hidden;
-      position: absolute;
-      padding: 0 8px;
-      border-radius: 5px;
-    }
-
-    .company-logo {
-      display: none;
-    }
-
-    .sidebar h2 {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: center;
-    }
-
-    .sidebar i {
-      min-width: 24px;
-    }
-
-</style>
-
-
-
-
-
-<style>
- /* Ensure smooth transitions for showing/hiding sections */
-#newQuerySection, #existingQuerySection {
-    display: none;  /* Hidden by default */
-    max-height: 1000px;  /* Ensure there's enough room to expand */
-    overflow: hidden;
-    transition: max-height 0.5s ease-in-out;
+  /* Call Details Table specific styles */
+.call-details-table {
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
-.show-section {
-    display: block;
-    max-height: none;  /* Remove height limitation */
-}
-
-.start-button.paused-by-call {
-    background-color: #6c757d;
-    opacity: 0.8;
-    cursor: not-allowed;
-}
-
-.modal-content {
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    background: #f8f9fa;
-    border-radius: 15px 15px 0 0;
-    padding: 1.5rem;
-}
-
-.modal-title {
+.call-details-table thead th {
+    background-color: #F3F4F6;
     font-weight: 600;
-    color: #2c3e50;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.modal-body {
-    padding: 2rem;
+.call-details-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+/* Hover effect */
+.call-details-table tbody tr:hover {
+    background-color: #F9FAFB;
+    transition: background-color 0.2s ease;
+}
+
+/* Responsive padding for mobile */
+@media (max-width: 640px) {
+    .call-details-table th,
+    .call-details-table td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+/* Right Sidebar Styles */
+#rightSidebar {
+    width: 400px;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+}
+
+/* Chart Container Styles */
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+/* Summary Section Hover Effects */
+.bg-gray-100:hover {
+    background-color: #f7fafc;
+    transition: background-color 0.3s ease;
+}
+
+/* Data Table Hover Effects */
+#dataTable tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #rightSidebar {
+        width: 100%;
+    }
+}
+
+/* Priority Colors */
+td[data-priority="urgent"] {
+    background-color: #ef4444 !important; /* red-500 */
+    color: white !important;
+}
+
+td[data-priority="high"] {
+    background-color: #f97316 !important; /* orange-500 */
+    color: white !important;
+}
+
+td[data-priority="medium"] {
+    background-color: #facc15 !important; /* yellow-400 */
+    color: #713f12 !important; /* yellow-900 */
+}
+
+td[data-priority="low"] {
+    background-color: #22c55e !important; /* green-500 */
+    color: white !important;
+}
+
+/* Status Colors */
+td[data-status="open"] {
+    background-color: #ff9800 !important; /* Orange */
+    color: white !important;
+}
+
+td[data-status="pending"] {
+    background-color: #dc3545 !important; /* Red */
+    color: white !important;
+}
+
+td[data-status="resolved"] {
+    background-color: #007bff !important; /* Blue */
+    color: white !important;
+}
+
+td[data-status="closed"] {
+    background-color: #007bff !important; /* Blue */
+    color: white !important;
+}
+
+td[data-status="waiting_on_customer"] {
+    background-color: #ffc107 !important; /* Yellow */
+    color: white !important;
+}
+
+td[data-status="initial_response"] {
+    background-color: #28a745 !important; /* Green */
+    color: white !important;
+}
+
+td[data-status="on_hold"] {
+    background-color: #ffc107 !important; /* Yellow */
+    color: white !important;
 }
 
 
+/* Time Display Styles */
+.created-timer-span {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-family: monospace;
+}
 
 
+/* Break Toggle Container */
 
+.break-toggle-container {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
 
+/* Status Toggle Wrapper */
+.status-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
 
+/* Modern Switch */
+.modern-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+    margin: 0;
+}
 
-/* Status Indicator Styling */
+.modern-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Slider Background */
+.modern-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e2e8f0;
+    transition: 0.4s;
+    border-radius: 34px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle Circle */
+.toggle-circle {
+    position: absolute;
+    content: "";
+    height: 24px;
+    width: 24px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Active State */
+.modern-switch input:checked + .modern-slider {
+    background-color: #ef4444;
+}
+
+.modern-switch input:checked + .modern-slider .toggle-circle {
+    transform: translateX(30px);
+}
+
+/* Status Indicator */
 .status-indicator {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 500;
 }
 
+/* Status Text */
 .status-text {
-    font-size: 14px;
-    font-weight: 500;
-    position: relative;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .status-text.active {
-    color: #28a745;
+    color: #22c55e;
 }
 
 .status-text.break {
-    color: #dc3545;
+    color: #ef4444;
 }
 
+/* Status Dot */
 .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
+    background-color: #22c55e;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+/* Status Dot Animation */
+.status-dot::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: inherit;
+    opacity: 0.4;
+    animation: pulse 1.5s infinite;
+}
+
+/* Break State */
+.break ~ .status-dot {
+    background-color: #ef4444;
+}
+
+/* Hover Effects */
+.modern-slider:hover {
+    opacity: 0.9;
+}
+
+.modern-switch input:focus + .modern-slider {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.4;
+    }
+    50% {
+        transform: scale(2);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* Disable styles */
+.modern-switch input:disabled + .modern-slider {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Hover animations */
+.break-toggle-container:hover {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+}
+
+/* Media Query for smaller screens */
+@media (max-width: 640px) {
+    .break-toggle-container {
+        padding: 6px 12px;
+    }
+
+    .modern-switch {
+        width: 50px;
+        height: 26px;
+    }
+
+    .toggle-circle {
+        height: 20px;
+        width: 20px;
+    }
+
+    .modern-switch input:checked + .modern-slider .toggle-circle {
+        transform: translateX(24px);
+    }
+
+    .status-text {
+        font-size: 0.875rem;
+    }
+}
+
+/* Break Toggle Container */
+
+
+
+/* Status Dropdown Styles */
+
+.dropdown {
+    position: relative;
     display: inline-block;
+}
+
+.dropdown-menu {
+    min-width: 120px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 0.25rem 0;
+    position: absolute;
+    left: 0;
+    z-index: 50;
+    width: max-content;
+}
+
+.dropdown-menu.bottom-full {
+    bottom: 100%;
+}
+
+.dropdown-menu.top-full {
+    top: 100%;
+}
+
+.dropdown-item {
+    padding: 0.375rem 0.75rem;
+    color: #4a5568;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: none;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: #f3f4f6;
+    color: #1e40af;
+}
+
+.dropdown-item:active {
+    background-color: #e5e7eb;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Animation for dropdown */
+.dropdown-menu:not(.hidden) {
+    animation: fadeIn 0.1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(var(--translate-direction, -10px));
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Status Dropdown Styles */
+
+
+/* Subject cell styles */
+    .subject-cell {
+        max-width: 256px; /* w-64 equivalent */
+        position: relative;
+    }
+
+    /* Truncate text with ellipsis */
+    .truncate-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+    }
+
+    /* Hover tooltip */
+    .truncate-text:hover::after {
+        content: attr(title);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-size: 10rem;
+        white-space: normal;
+        max-width: 600px;
+        min-width: 300px;
+        z-index: 50;
+        word-wrap: break-word;
+        line-height: 100.5;
+    }
+
+    /* Add shadow and styling to the tooltip */
+    .truncate-text:hover::after {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+/* Subject cell styles */
+
+
+/* Note cell styles */
+.note-cell {
+    max-width: 256px;
     position: relative;
 }
 
-.status-text.active + .status-dot {
-    background-color: #28a745;
-    animation: pulse-green 2s infinite;
+.truncate-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
 }
 
-.status-text.break + .status-dot {
+.truncate-text:hover::after {
+    content: attr(title);
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 1rem;
+    white-space: normal;
+    max-width: 600px;
+    min-width: 300px;
+    z-index: 50;
+    word-wrap: break-word;
+    line-height: 1.5;
+}
+
+.truncate-text:hover::after {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Add borders to table cells */
+.call-details-table td,
+.call-details-table th {
+    border: 1px solid #e5e7eb;
+}
+
+
+/* Acknowledge Button Styles */
+.acknowledge-button {
     background-color: #dc3545;
-    animation: pulse-red 2s infinite;
+    color: white;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
 }
 
-@keyframes pulse-green {
-    0% {
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-    }
+.acknowledge-button:hover {
+    background-color: #c82333;
 }
 
-@keyframes pulse-red {
-    0% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-    }
+.acknowledge-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
 }
+
+.text-success {
+    color: #28a745;
+}
+/* Acknowledge Button Styles */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* Time Column Base Styles */
 .time-column {
@@ -500,52 +819,6 @@
 }
 
 
-
-
-
-<!--Time Since Created Styling-->
-
-/* Hover effects */
-.created-timer-span:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-/* Custom tooltip */
-.created-timer-span::after {
-    content: attr(title);
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 8px 12px;
-    background-color: #1f2937;
-    color: white;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    z-index: 1000;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.created-timer-span::before {
-    content: '';
-    position: absolute;
-    bottom: calc(100% + 2px);
-    left: 50%;
-    transform: translateX(-50%);
-    border: 8px solid transparent;
-    border-top-color: #1f2937;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-}
-
-
-
 .ticket-alert {
     position: fixed;
     top: 20px;
@@ -619,46 +892,8 @@
 .notification-item.priority-medium { border-left-color: #ff8800; }
 .notification-item.priority-low { border-left-color: #00C851; }
 
-/* Add to your existing CSS */
-.acknowledge-button {
-    transition: all 0.3s ease;
-}
-
-.acknowledge-button:disabled {
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-.acknowledge-button .fa-spinner {
-    margin-right: 5px;
-}
-
-.text-success {
-    transition: opacity 0.3s ease;
-}
 
 
-.my-swal-popup {
-    width: auto !important;
-    max-width: 600px;
-}
-
-.my-swal pre {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    margin: 10px 0;
-    font-size: 14px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.my-swal .alert {
-    text-align: left;
-    margin-bottom: 0;
-}
 
 
 
@@ -692,162 +927,70 @@
     pointer-events: all !important;
   }
 
-    /* Add these styles */
+
+
+/* Base Container Styles */
 .call-action-form {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100%;
-    margin: 0;  /* Add this */
-    padding: 0;  /* Add this */
+    margin: 0;
+    padding: 0;
 }
 
-.call-action-form button,
-.start-button {
-    height: 32px;  /* Fixed height to match */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Style both buttons the same way */
+/* Base Button Styles - Common properties for all buttons */
 .start-button,
 .call-action-form button {
-    border: 1px solid;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
-    line-height: 1.25;
-}
-
-/* Start button specific styles */
-.start-button {
-    color: #22c55e !important;
-    background-color: #dcfce7 !important;
-    border-color: #22c55e !important;
-    min-width: 70px;
-}
-
-/* Call button specific styles */
-.call-action-form button {
-    margin: 0 !important;  /* Add this */
-    height: 32px;
+    /* Display and Alignment */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
-    color: white !important;
-    background-color: #9ca3af !important;
-    border: 1px solid #9ca3af !important;
-    min-width: 70px;
-    line-height: 1;  /* Add this */
-}
 
-
-/* Button Container Styles */
-.call-action-form {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Base Button Styles */
-.start-button,
-.call-action-form button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
+    /* Dimensions */
     height: 32px;
+    width: 70px;
+
+    /* Spacing */
+    padding: 0 0.25rem; /* Reduced horizontal padding */
+
+    /* Typography */
+    font-size: 0.875rem;
+    line-height: 1;
+
+    /* Border and Shape */
     border: 1px solid;
+    border-radius: 0.25rem;
+
+    /* Interaction */
     cursor: pointer;
     transition: all 0.2s ease;
+
+    /* Width Behavior */
+    white-space: nowrap; /* Prevents text wrapping */
 }
 
-/* Start Button */
+/* Start Button Specific Styles */
 .start-button {
     color: #22c55e !important;
     background-color: #dcfce7 !important;
     border-color: #22c55e !important;
-    min-width: 80px;
 }
 
-
-/* Plus Button Styles */
-td[onclick] {
-    cursor: pointer;
-    font-size: 1.25rem;
-    font-weight: bold;
-    user-select: none;
-}
-
-/* Time Display Styles */
-.created-timer-span {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    font-family: monospace;
-}
-
-/* Priority Colors */
-td[data-priority="urgent"] {
-    background-color: #ef4444 !important; /* red-500 */
+/* Call Button Specific Styles */
+.call-action-form button {
+    margin: 0 !important;
     color: white !important;
+    background-color: #9ca3af !important;
+    border-color: #9ca3af !important;
 }
 
-td[data-priority="high"] {
-    background-color: #f97316 !important; /* orange-500 */
-    color: white !important;
-}
 
-td[data-priority="medium"] {
-    background-color: #facc15 !important; /* yellow-400 */
-    color: #713f12 !important; /* yellow-900 */
-}
 
-td[data-priority="low"] {
-    background-color: #22c55e !important; /* green-500 */
-    color: white !important;
-}
 
-/* Status Colors */
-td[data-status="open"] {
-    background-color: #22c55e !important; /* green-500 */
-    color: white !important;
-}
 
-td[data-status="pending"] {
-    background-color: #eab308 !important; /* yellow-500 */
-    color: white !important;
-}
 
-td[data-status="resolved"] {
-    background-color: #3b82f6 !important; /* blue-500 */
-    color: white !important;
-}
 
-td[data-status="closed"] {
-    background-color: #6b7280 !important; /* gray-500 */
-    color: white !important;
-}
-
-td[data-status="waiting_on_customer"] {
-    background-color: #f97316 !important; /* orange-500 */
-    color: white !important;
-}
-
-td[data-status="initial_response"] {
-    background-color: #8b5cf6 !important; /* purple-500 */
-    color: white !important;
-}
-
-td[data-status="on_hold"] {
-    background-color: #ec4899 !important; /* pink-500 */
-    color: white !important;
-}
 
 .max-w-full.mx-auto.bg-white {
     padding: .5rem;
@@ -873,307 +1016,62 @@ td[data-status="on_hold"] {
 
 {% endblock %}
 
-</head>
-<body>
 
-
-<nav class="navbar bg-white shadow-lg p-2 flex justify-end gap-4 items-center">
-    <div class="flex space-x-4">
-        {% if request.user.is_authenticated %}
-         <a href="#" onclick="openModal()" class="hover:text-gray-500 flex items-center">
-            <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
-        </a>
-        <a href="{% url 'create_ticket' %}" class="hover:text-gray-500 flex items-center">
-            <i class="ph ph-plus-circle"></i> <span class="ml-2">Create Ticket</span>
-        </a>
-        {% endif %}
-    </div>
-
-    <div class="flex items-center space-x-4 cursor-pointer">
-        <div class="relative">
-            <!-- Button to toggle dropdown -->
-            <button class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700"
-                    id="dropdownButton" onclick="toggleDropdown()">
-                {{ request.user.username|slice:":2"|upper }}
-            </button>
-
-            <!-- Dropdown Menu -->
-            <div class="absolute right-0 hidden bg-white shadow-md rounded-md mt-2 w-48" id="dropdownMenu">
-                <ul class="py-1">
-                    <li>
-                        <a href="{% url 'view_profile' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
-                            <i class="ph ph-user"></i>
-                            <span class="ml-2">Profile</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'user_tickets' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
-                            <i class="ph ph-eye"></i>
-                            <span class="ml-2">My Tickets</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'user_activity' request.user.id %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
-                            <i class="ph ph-eye"></i>
-                            <span class="ml-2">My Activity</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'logout' %}" class="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-200">
-                            <i class="ph ph-sign-out"></i>
-                            <span class="ml-2">Logout</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</nav>
-
-        <!-- Sidebar -->
-<aside class="sidebar bg-white flex flex-col p-4 space-y-6 group shadow-lg">
-    <h2 class="text-xl font-bold flex items-center space-x-1">
-      <img style="width: 32px; height: 31px;" class="company-favicon"
-        src="{% static 'img/favicon.ico' %}" alt="favicon">
-      <span class="">
-        <img style="height: 31px;" class="company-logo" src="{% static 'img/favicon.ico' %}" alt="">
-      </span>
-    </h2>
-
-    <nav class="flex flex-col space-y-2">
-        <!-- Dashboard -->
-        <a href="{% url 'dashboard' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-chart-line"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Dashboard</div>
-            </div>
-        </a>
-
-        <!-- Home -->
-        <a href="{% url 'home' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-house"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Home</div>
-            </div>
-        </a>
-
-        <!-- Active Users Dropdown -->
-        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-user"></i>
-            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'employees_by_skill' 'Linux' %}" class="block">Linux</a>
-                    </li>
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'employees_by_skill' 'Windows' %}" class="block">Windows/Azure</a>
-                    </li>
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'employees_by_skill' 'AWS' %}" class="block">Network/AWS</a>
-                    </li>
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'employees_by_skill' 'LEVELONE' %}" class="block">LevelONE</a>
-                    </li>
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'employees_by_skill' 'OCI' %}" class="block">OCI</a>
-                    </li>
-                </div>
-            </div>
-        </div>
-
-        <!-- Users -->
-        <a href="{% url 'employee_list' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-users"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Employees</div>
-            </div>
-        </a>
-
-        <!-- Tickets -->
-        <a href="{% url 'ticket_list' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-ticket"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">All Tickets</div>
-            </div>
-        </a>
-
-        <!-- Daily Activity -->
-        <a href="{% url 'daily_activity' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-activity"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Daily Activity</div>
-            </div>
-        </a>
-
-        <!-- Work Report -->
-        <a href="{% url 'work_report' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-chart-bar"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Report</div>
-            </div>
-        </a>
-
-        <!-- Text Improver -->
-        <a href="{% url 'text_improver:generator' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-text-t"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Generate</div>
-            </div>
-        </a>
-
-        <!-- On Duty Management -->
-        <div class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-calendar"></i>
-            <div class="side-menu-tooltip bg-transparent flex flex-col p-2 justify-between">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'on_duty_request' %}" class="block">Request</a>
-                    </li>
-                    <li class="hover:bg-blue-200 list-none p-2 rounded">
-                        <a href="{% url 'on_duty_list' %}" class="block">Status</a>
-                    </li>
-                </div>
-            </div>
-        </div>
-
-        {% if request.user.is_authenticated and request.user.employeeprofile.is_admin %}
-        <!-- Activity Tracker -->
-        <a href="{% url 'tracking:activity_dashboard' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-activity"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Activity</div>
-            </div>
-        </a>
-
-        <!-- Add Employee -->
-        <a href="{% url 'add_employee' %}"
-            class="side-menu-has-tooltip p-2 flex items-center space-x-2 rounded hover:bg-gray-700 hover:text-white">
-            <i class="ph ph-plus"></i>
-            <div class="side-menu-tooltip bg-transparent">
-                <div style="background-color: rgba(83, 85, 84, 0.74);" class="mx-2 p-2 rounded">Add&nbsp;employee</div>
-            </div>
-        </a>
-        {% endif %}
-    </nav>
-</aside>
 
 
 
 <!-- Dashboard Page -->
-<div class="dashboard-content"><br><br>
-
-    <!-- Dashboard Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-dark">{{user.username}}'s Dashboard</h1>
-
-        <div class="dropdown ms-2">
-            <button class="btn btn-primary ms-2" type="button" data-bs-toggle="modal" data-bs-target="#clientCallModal">
-            New Call
-            </button>
-        </div>
-        <div class="break-toggle-container">
-    <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center" onsubmit="return false;">
-        {% csrf_token %}
-        <div class="status-toggle-wrapper">
-            <label class="modern-switch">
-                <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
-                <span class="modern-slider">
-                    <span class="toggle-circle"></span>
-                </span>
-            </label>
-            <div class="status-indicator">
-                <span id="breakStatus" class="status-text {% if employee_profile.is_on_break %}break{% else %}active{% endif %}">
-                    {% if employee_profile.is_on_break %}
-                    On Break
-                    {% else %}
-                    Active
-                    {% endif %}
-                </span>
-                <span class="status-dot"></span>
+<div class="main-content">
+<div class="p-1 content-area">
+<div class="max-w-full mx-auto bg-white p-6 shadow-lg rounded-lg overflow-x-auto">
+    <div class="flex justify-between items-center mb-7">
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient hover:scale-105 transition-transform duration-200 tracking-tight">
+            Dashboard
+        </h1>
+            <div class="break-toggle-container">
+                <form action="{% url 'toggle_break_status' %}" method="post" id="breakToggleForm" class="d-flex align-items-center" onsubmit="return false;">
+                {% csrf_token %}
+                    <div class="status-toggle-wrapper">
+                        <label class="modern-switch">
+                            <input type="checkbox" id="breakToggle" {% if employee_profile.is_on_break %}checked{% endif %}>
+                            <span class="modern-slider">
+                            <span class="toggle-circle"></span>
+                            </span>
+                        </label>
+                        <div class="status-indicator">
+                            <span id="breakStatus" class="status-text {% if employee_profile.is_on_break %}break{% else %}active{% endif %}">
+                                {% if employee_profile.is_on_break %}
+                                On Break
+                                {% else %}
+                                Active
+                                {% endif %}
+                            </span>
+                    <span class="status-dot"></span>
+                </div>
             </div>
-        </div>
-    </form>
-</div>
+        </form>
     </div>
-
-
-
-
-
-<!--    &lt;!&ndash; Today's Status Box &ndash;&gt;-->
-<!--<div class="row mb-4">-->
-<!--    <div class="col-12">-->
-<!--        <div class="card">-->
-<!--            <div class="card-header bg-primary text-white">-->
-<!--                <h4 class="mb-0">Today's Status</h4>-->
-<!--            </div>-->
-<!--            <div class="card-body">-->
-<!--                <div class="row">-->
-<!--                    &lt;!&ndash; Today's Tickets &ndash;&gt;-->
-<!--                    <div class="col-md-3">-->
-<!--                        <div class="stat-box text-center p-3 border rounded">-->
-<!--                            <i class="fas fa-ticket-alt fa-2x mb-2 text-primary"></i>-->
-<!--                            <h5>Today's Tickets</h5>-->
-<!--                            <h3 id="todayTicketCount">{{ todays_tickets }}</h3>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    &lt;!&ndash; Open Tickets &ndash;&gt;-->
-<!--                    <div class="col-md-3">-->
-<!--                        <div class="stat-box text-center p-3 border rounded">-->
-<!--                            <i class="fas fa-folder-open fa-2x mb-2 text-warning"></i>-->
-<!--                            <h5>Open Tickets</h5>-->
-<!--                            <h3 id="openTicketCount">{{ open_tickets }}</h3>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    &lt;!&ndash; Closed Tickets &ndash;&gt;-->
-<!--                    <div class="col-md-3">-->
-<!--                        <div class="stat-box text-center p-3 border rounded">-->
-<!--                            <i class="fas fa-folder-minus fa-2x mb-2 text-success"></i>-->
-<!--                            <h5>Closed Tickets</h5>-->
-<!--                            <h3 id="closedTicketCount">{{ closed_tickets }}</h3>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                    &lt;!&ndash; Total Call Time &ndash;&gt;-->
-<!--                    <div class="col-md-3">-->
-<!--                        <div class="stat-box text-center p-3 border rounded">-->
-<!--                            <i class="fas fa-phone fa-2x mb-2 text-info"></i>-->
-<!--                            <h5>Total Call Time</h5>-->
-<!--                            <h3 id="totalCallTime">{{ call_duration }}</h3>-->
-<!--                        </div>-->
-<!--                    </div>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</div>-->
+</div>
 
     <!-- Ticket Table with Actions -->
-<main class="content-area">
+
   <div class="max-w-full mx-auto bg-white shadow-lg rounded-lg">
-      <h1 class="text-3xl font-bold mb-6">Tickets Table</h1>
+      <h1 class="text-2xl font-bold mb-6">Tickets Table</h1>
 
     <table class="w-full border-collapse border border-gray-300">
       <thead class="text-sm">
         <tr class="bg-blue-200">
-          <th class="border p-1"></th>
-          <th class="border p-1">Ticket ID</th>
-          <th class="border p-1">Subject</th>
-          <th class="border p-1">Priority</th>
-          <th class="border p-1">Status</th>
-          <th class="border p-1">Time Since Created</th>
-          <th class="border p-1">Total Spent</th>
-          <th class="border p-1">Individual Spent</th>
-          <th class="border p-1">Action</th>
-          <th class="border p-1">On Call</th>
-          <th class="border p-1">Accept</th>
+          <th class="border p-1 w-4"></th>
+          <th class="border p-1 w-6">Ticket ID</th>
+          <th class="border p-1 w-64">Subject</th>
+          <th class="border p-1 w-5">Priority</th>
+          <th class="border p-1 w-6">Status</th>
+          <th class="border p-1 w-6">Ticket Age</th>
+          <th class="border p-1 w-6">Total Effort</th>
+          <th class="border p-1 w-2">Indiv Effort</th>
+          <th class="border p-1 w-6">Action</th>
+          <th class="border p-1 w-6">On Call</th>
+          <th class="border p-1 w-6">Accept</th>
         </tr>
       </thead>
       <tbody class="text-center">
@@ -1190,20 +1088,21 @@ td[data-status="on_hold"] {
 
             <td class="border px-2 py-1 text-center cursor-pointer" onclick="toggleRow(this)">+</td>
             <td class="border px-2 py-1">{{ ticket.ticket_id }}</td>
-            <td class="border px-2 py-1 text-left has-tooltip relative cursor-pointer">
-              {{ ticket.subject }}
-              <div class="has-tooltip mt-2 text-center">
-                <span class="tooltip w-40 break-words rounded-lg shadow-lg p-1 bg-gray-100 -mt-16 -ml-20">
-                  {{ ticket.description }}
-                </span>
-              </div>
+            <td class="border px-2 py-1 text-left subject-cell">
+                <div class="truncate-text" title="{{ ticket.subject }}">
+                    {{ ticket.subject }}
+                </div>
             </td>
             <td class="border px-2 py-1" data-priority="{{ ticket.priority|lower }}">
-    {{ ticket.priority }}
-</td>
+                {{ ticket.priority|priority_abbreviation }}
+            </td>
             <td class="border px-2 py-1" data-status="{{ ticket.status|lower }}">
-    {{ ticket.status }}
-</td>
+                <span class=" full relative group cursor-help"
+                      title="{{ ticket.status|status_full_name }}"
+                      data-tooltip="{{ ticket.status }}">
+                    {{ ticket.status|status_abbreviation }}
+                </span>
+            </td>
             <td class="border px-2 py-1 text-center">
                 <span id="created-timer-{{ ticket.id }}"
                       class="created-timer-span priority-{{ ticket.priority|lower }}"
@@ -1215,54 +1114,53 @@ td[data-status="on_hold"] {
                 </span>
             </td>
             <!-- Replace your existing Total Spent column with this -->
-<td class="border px-2 py-1 text-center time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
-    <span id="timer-{{ ticket.id }}"
-          class="timer-span"
-          data-ticket-id="{{ ticket.id }}">
-        {{ ticket.time_spent|format_duration }}
-    </span>
-</td>
+            <td class="border px-2 py-1 text-center time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
+                <span id="timer-{{ ticket.id }}"
+                      class="timer-span"
+                      data-ticket-id="{{ ticket.id }}">
+                    {{ ticket.time_spent|format_duration }}
+                </span>
+            </td>
 
 <!-- Replace your existing Individual Spent column with this -->
-<td class="border px-2 py-1 text-center time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded priority-{{ ticket.priority|lower }}{% endif %}">
-    <span id="individual-timer-{{ ticket.id }}"
-          class="timer-span"
-          data-ticket-id="{{ ticket.id }}">
-        {{ ticket.individual_time_spent|format_duration }}
-    </span>
-</td>
+            <td class="border px-2 py-1 text-center time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded priority-{{ ticket.priority|lower }}{% endif %}">
+                <span id="individual-timer-{{ ticket.id }}"
+                      class="timer-span"
+                      data-ticket-id="{{ ticket.id }}">
+                    {{ ticket.individual_time_spent|format_duration }}
+                </span>
+            </td>
             <td class="border px-2 py-1 text-center">
-    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-    <button class="start-button" data-ticket-id="{{ ticket.id }}">
-        {% if ticket.is_active %}Stop{% else %}Start{% endif %}
-    </button>
-</td>
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <button class="start-button" data-ticket-id="{{ ticket.id }}">
+                    {% if ticket.is_active %}Stop{% else %}Start{% endif %}
+                </button>
+            </td>
             <td class="border px-2 py-1 text-center" style="vertical-align: middle;">
-    <form method="post" action="{% url 'start_end_call' ticket.id %}"
-          class="call-action-form" data-ticket-id="{{ ticket.id }}">
-        {% csrf_token %}
-        {% if ticket.call_in_progress %}
-            <input type="hidden" name="action" value="end_call">
-            <button type="submit">End Call</button>
-        {% else %}
-            <input type="hidden" name="action" value="start_call">
-            <button type="submit">Start Call</button>
-        {% endif %}
-    </form>
-</td>
+                <form method="post" action="{% url 'start_end_call' ticket.id %}"
+                      class="call-action-form" data-ticket-id="{{ ticket.id }}">
+                    {% csrf_token %}
+                    {% if ticket.call_in_progress %}
+                        <input type="hidden" name="action" value="end_call">
+                        <button type="submit">End Call</button>
+                    {% else %}
+                        <input type="hidden" name="action" value="start_call">
+                        <button type="submit">Start Call</button>
+                    {% endif %}
+                </form>
+            </td>
             <td class="border px-2 py-1 text-center">
-              {% if ticket.assigned_to == request.user %}
-                {% if not ticket.is_acknowledged %}
-                  <button class="btn btn-primary btn-sm acknowledge-button"
-                          data-ticket-id="{{ ticket.id }}"
-                          data-acknowledge-button="true"
-                          onclick="notificationManager.acknowledgeTicket({{ ticket.id }}); return false;">
-                    Accept
-                  </button>
-                {% else %}
-                  <span class="text-success">✅</span>
+                {% if ticket.assigned_to == request.user %}
+                    {% if not ticket.is_acknowledged %}
+                        <button class="btn btn-primary btn-sm acknowledge-button"
+                                data-ticket-id="{{ ticket.id }}"
+                                data-acknowledge-button="true">
+                            Accept
+                        </button>
+                    {% else %}
+                        <span class="text-success">✅</span>
+                    {% endif %}
                 {% endif %}
-              {% endif %}
             </td>
           </tr>
 
@@ -1275,26 +1173,28 @@ td[data-status="on_hold"] {
               </a>
 
               <div class="dropdown inline-block">
-                <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2"
-                        id="statusDropdown-{{ ticket.id }}"
-                        data-bs-toggle="dropdown"
-                        aria-expanded="false">
-                  Change Status
-                </button>
-<!--                <ul class="dropdown-menu" aria-labelledby="statusDropdown-{{ ticket.id }}">-->
-<!--                  {% for status in ticket_statuses %}-->
-<!--                    {% if status.0 != ticket.status %}-->
-<!--                      <li>-->
-<!--                        <a class="dropdown-item change-status" href="#"-->
-<!--                           data-ticket-id="{{ ticket.id }}"-->
-<!--                           data-new-status="{{ status.0 }}">-->
-<!--                          {{ status.1 }}-->
-<!--                        </a>-->
-<!--                      </li>-->
-<!--                    {% endif %}-->
-<!--                  {% endfor %}-->
-<!--                </ul>-->
-              </div>
+    <button class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2 dropdown-toggle"
+            type="button"
+            id="statusDropdown-{{ ticket.id }}"
+            data-ticket-id="{{ ticket.id }}"
+            aria-expanded="false">
+        Change Status
+    </button>
+    <ul class="dropdown-menu hidden absolute z-10 bg-white border rounded shadow-lg"
+        aria-labelledby="statusDropdown-{{ ticket.id }}">
+        {% for status in ticket_statuses %}
+            {% if status.0 != ticket.status %}
+                <li>
+                    <a class="dropdown-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer change-status"
+                       data-ticket-id="{{ ticket.id }}"
+                       data-new-status="{{ status.0 }}">
+                        {{ status.1 }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+</div>
 
               <a href="{% url 'view_call_details' ticket.id %}"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
@@ -1317,131 +1217,239 @@ td[data-status="on_hold"] {
       </tbody>
     </table>
   </div>
-</main>
 
 
+<!-- Post-Call Details Modal (Tailwind) -->
+<div id="postCallModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="postCallModalLabel">
+    <div class="flex min-h-screen items-center justify-center p-4">
+        <!-- Modal backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
 
-<!-- Post-Call Details Modal (Bootstrap) -->
-<div class="modal fade" id="postCallModal" tabindex="-1" role="dialog" aria-labelledby="postCallModalLabel" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="postCallModalLabel">Post-Call Details</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form id="postCallForm" method="post">
-        <div class="modal-body">
-          {% csrf_token %}
-          <input type="hidden" name="ticket_id" id="modal-ticket-id" value="">
+        <!-- Modal content -->
+        <div class="relative w-full max-w-md transform rounded-lg bg-white shadow-xl transition-all">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between border-b p-4">
+                <h5 class="text-xl font-semibold text-gray-900" id="postCallModalLabel">
+                    Post-Call Details
+                </h5>
+                <button type="button" class="text-gray-400 hover:text-gray-500" data-dismiss="modal">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
-          <div class="form-group">
-            <label for="ticket-id">Ticket ID:</label>
-            <input type="text" id="modal-ticket-id-display" class="form-control" readonly>
-          </div>
+            <!-- Modal form -->
+            <form id="postCallForm" method="post">
+                <div class="p-6">
+                    {% csrf_token %}
+                    <input type="hidden" name="ticket_id" id="modal-ticket-id" value="">
 
-          <div class="form-group">
-            <label for="subject">Subject:</label>
-            <input type="text" id="modal-subject" class="form-control" readonly>
-          </div>
+                    <!-- Ticket ID field -->
+                    <div class="mb-4">
+                        <label for="modal-ticket-id-display" class="block text-sm font-medium text-gray-700">
+                            Ticket ID:
+                        </label>
+                        <input type="text"
+                               id="modal-ticket-id-display"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                               readonly>
+                    </div>
 
-          <div class="form-group">
-            <label for="status">Status:</label>
-            <select id="modal-status" name="status" class="form-control">
-              {% for status in ticket_statuses %}
-                <option value="{{ status.0 }}">{{ status.1 }}</option>
-              {% endfor %}
-            </select>
-          </div>
+                    <!-- Subject field -->
+                    <div class="mb-4">
+                        <label for="modal-subject" class="block text-sm font-medium text-gray-700">
+                            Subject:
+                        </label>
+                        <input type="text"
+                               id="modal-subject"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                               readonly>
+                    </div>
 
+                    <!-- Status field -->
+                    <div class="mb-4">
+                        <label for="modal-status" class="block text-sm font-medium text-gray-700">
+                            Status:
+                        </label>
+                        <select id="modal-status"
+                                name="status"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            {% for status in ticket_statuses %}
+                                <option value="{{ status.0 }}">{{ status.1 }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
+                    <!-- Call Note field -->
+                    <div class="mb-4">
+                        <label for="modal-call-note" class="block text-sm font-medium text-gray-700">
+                            Call Note:
+                        </label>
+                        <textarea name="note"
+                                  id="modal-call-note"
+                                  rows="4"
+                                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                  placeholder="Describe the call..."></textarea>
+                    </div>
+                </div>
 
-          <div class="form-group">
-            <label for="call-note">Call Note:</label>
-            <textarea name="note" id="modal-call-note" class="form-control" rows="4" placeholder="Describe the call..."></textarea>
-          </div>
+                <!-- Modal footer -->
+                <div class="border-t px-6 py-4 flex justify-end space-x-3">
+                    <button type="button"
+                            class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            data-dismiss="modal">
+                        Close
+                    </button>
+                    <button type="submit"
+                            class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        Save
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn btn-primary">Save</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
 
 
 
 
 <!-- Client Call Modal with question: Is it a new query? -->
-<div class="modal fade" id="clientCallModal" tabindex="-1" aria-labelledby="clientCallModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="clientCallModalLabel">Client Call</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Question for user -->
-                <div class="text-center">
-                    <h5 class="mb-4">Is it a new query?</h5>
-                    <div class="query-toggle-container">
-                        <div class="toggle-option" data-value="new">
-                            <div class="toggle-circle" id="newQueryCircle"></div>
-                            <span class="toggle-label">New Query</span>
-                        </div>
-                        <div class="toggle-option" data-value="existing">
-                            <div class="toggle-circle" id="existingQueryCircle"></div>
-                            <span class="toggle-label">Existing Query</span>
-                        </div>
-                    </div>
-                </div>
+<div id="clientCallModal" class="hidden fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50">
+    <div class="relative p-8 bg-white w-full max-w-2xl mx-auto my-10 rounded-lg shadow-lg">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-center border-b pb-4">
+            <h5 class="text-xl font-semibold">Client Call</h5>
+            <button type="button"
+        onclick="closeModal()"
+        class="text-gray-400 hover:text-gray-500 focus:outline-none">
+    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+</button>
+        </div>
 
-                <!-- New Query Form (Initially Hidden) -->
+        <!-- Modal Body -->
+        <div class="mt-6">
+            <!-- Query Type Selection -->
+            <div class="text-center mb-8">
+                <h5 class="text-lg font-medium mb-4">Is it a new query?</h5>
+                <div class="flex justify-center space-x-8">
+                    <button type="button" class="query-option" onclick="showSection('new')">
+    <div class="flex items-center space-x-2">
+        <div class="w-6 h-6 rounded-full border-2 border-blue-500 flex items-center justify-center">
+            <div class="query-circle w-4 h-4 rounded-full bg-transparent transition-colors duration-200"></div>
+        </div>
+        <span class="text-gray-700">New Query</span>
+    </div>
+</button>
+<button type="button" class="query-option" onclick="showSection('existing')">
+    <div class="flex items-center space-x-2">
+        <div class="w-6 h-6 rounded-full border-2 border-blue-500 flex items-center justify-center">
+            <div class="query-circle w-4 h-4 rounded-full bg-transparent transition-colors duration-200"></div>
+        </div>
+        <span class="text-gray-700">Existing Query</span>
+    </div>
+</button>
+                </div>
+            </div>
+
+
+<!-- Forms Container -->
+<div class="mt-6">
+<!-- New Query Form (Initially Hidden) -->
 <div id="newQuerySection" class="query-section" style="display: none; margin-top: 20px;">
-
-    <form id="newQueryForm" method="post">
+    <form id="newQueryForm" method="post" class="space-y-4">
         {% csrf_token %}
-        <!-- Move the toggle to the top -->
-        <div class="mb-3 form-check">
-            <div class="d-flex align-items-center">
-                <label class="form-check-label me-2" for="create_ticket">Need to create ticket?</label>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="create_ticket" name="create_ticket">
-                </div>
+        <!-- Ticket Toggle -->
+        <div class="mb-4">
+            <div class="flex items-center justify-between">
+                <label class="text-sm font-medium text-gray-700" for="create_ticket">
+                    Need to create ticket?
+                </label>
+                <label class="relative inline-block w-14 h-7 cursor-pointer">
+                    <input type="checkbox"
+                           id="create_ticket"
+                           name="create_ticket"
+                           class="sr-only peer">
+                    <div class="w-full h-full bg-gray-200 rounded-full peer-checked:bg-blue-600 transition-colors duration-200
+                                after:content-[''] after:absolute after:top-0.5 after:left-0.5
+                                after:bg-white after:rounded-full after:h-6 after:w-6
+                                after:transition-transform peer-checked:after:translate-x-7"></div>
+                </label>
             </div>
         </div>
 
-        <div class="mb-3">
-            <label for="primary_email" class="form-label">Primary Email (LEVELONE)</label>
-            <input type="email" class="form-control" id="primary_email" name="primary_email" value="levelone@example.com" readonly>
+        <!-- Primary Email -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="primary_email">
+                Primary Email (LEVELONE)
+            </label>
+            <input type="email"
+                   id="primary_email"
+                   name="primary_email"
+                   value="levelone@example.com"
+                   readonly
+                   class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
 
-        <!-- Add the new client name field -->
-        <div class="mb-3">
-            <label for="client_name" class="form-label">Client Name</label>
-            <input type="text" class="form-control" id="client_name" name="client_name" required placeholder="Enter client name">
+        <!-- Client Name -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="client_name">
+                Client Name
+            </label>
+            <input type="text"
+                   id="client_name"
+                   name="client_name"
+                   required
+                   placeholder="Enter client name"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
         </div>
 
-        <!-- Email fields that will be toggled -->
-        <div id="emailFields" style="display: none;">
-            <div class="mb-3">
-                <label for="client_email" class="form-label">Client Email</label>
-                <input type="email" class="form-control" id="client_email" name="client_email" placeholder="Enter client email">
+        <!-- Email Fields (Hidden by default) -->
+        <div id="emailFields" class="hidden space-y-4">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="client_email">
+                    Client Email
+                </label>
+                <input type="email"
+                       id="client_email"
+                       name="client_email"
+                       placeholder="Enter client email"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
-            <div class="mb-3">
-                <label for="cc_email" class="form-label">CC</label>
-                <input type="email" class="form-control" id="cc_email" name="cc_email" placeholder="Enter CC email (optional)">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="cc_email">
+                    CC
+                </label>
+                <input type="email"
+                       id="cc_email"
+                       name="cc_email"
+                       placeholder="Enter CC email (optional)"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
             </div>
         </div>
 
-        <div class="mb-3">
-            <label for="note" class="form-label">Note</label>
-            <textarea class="form-control" id="note" name="note" rows="4" required placeholder="Enter note about the query"></textarea>
+        <!-- Note -->
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="note">
+                Note
+            </label>
+            <textarea id="note"
+                      name="note"
+                      rows="4"
+                      required
+                      placeholder="Enter note about the query"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="newQuerySubmitBtn">Save</button>
+        <!-- Submit Button -->
+        <button type="submit"
+                id="newQuerySubmitBtn"
+                class="w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
+            Save
+        </button>
     </form>
 </div>
 
@@ -1450,11 +1458,23 @@ td[data-status="on_hold"] {
     <h5>Existing Query</h5>
     <form id="existingQueryForm" method="post" action="">
         {% csrf_token %}
-        <div class="mb-3">
-            <label for="ticket-id" class="form-label">Ticket ID</label>
-            <input type="text" class="form-control" id="ticket-id" name="ticket_id" placeholder="Enter ticket ID">
-        </div>
-        <button type="button" class="btn btn-primary" id="search-ticket">Search</button>
+<div class="mb-4">
+    <label for="ticket-id" class="block text-sm font-medium text-gray-700 mb-1">
+        Ticket ID
+    </label>
+    <div class="flex space-x-2">
+        <input type="text"
+               id="ticket-id"
+               name="ticket_id"
+               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+               placeholder="Enter ticket ID">
+        <button type="button"
+                id="search-ticket"
+                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            Search
+        </button>
+    </div>
+</div>
 
         <!-- Ticket details section (Initially hidden) -->
         <div id="ticket-details" style="display: none; margin-top: 20px;">
@@ -1495,226 +1515,293 @@ td[data-status="on_hold"] {
     </div>
 </div>
 
+<br><br>
+<!-- Call Details Table -->
+<div class="relative max-w-full mx-auto bg-white p-6 shadow-lg rounded-lg overflow-x-auto my-2">
+    <h1 class="text-2xl font-bold mb-6">Call Details</h1>
+    <table class="w-full text-sm text-left rtl:text-right border-collapse">
+        <thead class="bg-gray-200 text-xs uppercase text-center">
+            <tr>
+                <th scope="col" class="px-6 py-3 border">
+                    Client name
+                </th>
+                <th scope="col" class="px-6 py-3 border">
+                    Client email
+                </th>
+                <th scope="col" class="px-6 py-3 border">
+                    Call Duration
+                </th>
+                <th scope="col" class="px-6 py-3 border">
+                    Ticket Created
+                </th>
+                <th scope="col" class="px-6 py-3 border">
+                    Note
+                </th>
+            </tr>
+        </thead>
+        <tbody id="newQueriesBody">
+            <!-- Dynamically populated content -->
+        </tbody>
+    </table>
+</div>
+</div>
 
-<!-- Add this after your existing modals -->
-<div class="mt-4">
-    <h4>Call Details</h4>
-    <!-- New Queries Table -->
-    <div id="newQueriesTable">
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Client name</th>
-                    <th>Client email</th>
-                    <th>Call Duration</th>
-                    <th>Ticket Created</th>
-                    <th>Note</th>
-                </tr>
-            </thead>
-            <tbody id="newQueriesBody">
-                <!-- Will be populated dynamically -->
-            </tbody>
-        </table>
+<!-- Right Sidebar -->
+<div class="fixed top-20 right-0 overflow-auto h-3/4 bg-white text-gray-700 transform translate-x-full hover:translate-x-0 transition-transform duration-300 z-40"
+     id="rightSidebar">
+    <div class="p-1">
+        <div class="max-w-4xl mx-auto overflow-auto h-full rounded shadow-lg">
+            <!-- Dashboard Card -->
+            <div class="bg-white shadow-xl rounded-lg h-full">
+                <!-- Chart and Stats Section -->
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-4 p-2">
+                    <!-- Bar Chart Section -->
+                    <div class="bg-gray-50 p-2 rounded-lg shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">Today's Status</h3>
+                        <canvas id="barChart"></canvas>
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div class="bg-gray-100 p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <span class="font-semibold text-gray-600">Total Tickets Today</span>
+                                <p class="text-xl font-bold text-green-600">{{ todays_tickets }}</p>
+                            </div>
+                            <div>
+                                <span class="font-semibold text-gray-600">Total Call Time</span>
+                                <p class="text-xl font-bold text-blue-600">{{ call_duration }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pie Chart Section -->
+                    <div class="bg-gray-50 p-2 rounded-lg shadow-lg">
+                        <h3 class="text-lg font-semibold mb-4">Overall Tickets</h3>
+                        <canvas id="pieChart"></canvas>
+                    </div>
+
+                    <table class="w-full border-collapse border border-gray-300 text-left">
+                        <tbody id="dataTable" class="bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+
 </div>
+</div>
+
+
+
 
 <!-- Bootstrap JS (including Popper.js) -->
     <!-- Include Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Include Bootstrap and jQuery in your template -->
-
-
-    <script>
-
-            document.querySelectorAll('.btn-close-ticket').forEach(button => {
-            button.addEventListener('click', function() {
-                const ticketId = this.dataset.ticketId;
-                if (confirm('Are you sure you want to close this ticket?')) {
-                    // Create a form to submit the POST request
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = `/tickets/close/${ticketId}/`;  // Adjust URL as per your setup
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = 'csrfmiddlewaretoken';
-                    csrfInput.value = '{{ csrf_token }}';  // Ensure you have CSRF token in your template context
-
-                    form.appendChild(csrfInput);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        });
-
-            // Add click event for custom dropdown toggle
-            document.getElementById('activityDropdown').addEventListener('click', function() {
-                this.classList.toggle('active');
-            });
-
-             document.addEventListener("DOMContentLoaded", function() {
-            // Get all buttons that toggle ticket options
-            const ticketToggles = document.querySelectorAll('.ticket-toggle');
-
-            ticketToggles.forEach(button => {
-                button.addEventListener('click', function() {
-                    const currentTarget = this.getAttribute('data-bs-target');
-
-                    // Collapse all other ticket options
-                    ticketToggles.forEach(btn => {
-                        const target = btn.getAttribute('data-bs-target');
-                        if (target !== currentTarget) {
-                            const collapseElement = document.querySelector(target);
-                            if (collapseElement && collapseElement.classList.contains('show')) {
-                                // Collapse if it's not the current target
-                                collapseElement.classList.remove('show');
-                            }
-                        }
-                    });
-                });
-            });
-        });
-        </script>
-
-    {% if error %}
-        <script>
-            Swal.fire({
-                title: 'Unauthorized Access',
-                text: "{{ error }}",
-                icon: 'error',
-                confirmButtonText: 'Okay'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = "{% url 'home' %}";  // Redirect to the homepage
-                }
-            });
-        </script>
-        {% endif %}
-
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Get CSRF token from the page
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Function to initialize ticket statuses from localStorage
-    function initializeTicketStatuses() {
-        document.querySelectorAll('[data-ticket-id]').forEach(row => {
-            const ticketId = row.dataset.ticketId;
-            const statusChanged = localStorage.getItem(`ticket_${ticketId}_status_changed`);
-            if (statusChanged) {
-                const individualTimeCell = row.querySelector('.time-column.individual-time');
-                if (individualTimeCell) {
-                    individualTimeCell.classList.remove('exceeded');
+    // Dropdown functionality
+    function setupDropdowns() {
+        const dropdownButtons = document.querySelectorAll('.dropdown-toggle');
+
+        dropdownButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    if (menu !== this.nextElementSibling) {
+                        menu.classList.add('hidden');
+                    }
+                });
+
+                // Toggle current dropdown
+                const dropdownMenu = this.nextElementSibling;
+
+                // If menu is currently hidden, calculate position before showing
+                if (dropdownMenu.classList.contains('hidden')) {
+                    // Reset position classes before calculations
+                    dropdownMenu.classList.remove('bottom-full', 'top-full');
+                    dropdownMenu.style.removeProperty('margin-top');
+                    dropdownMenu.style.removeProperty('margin-bottom');
+
+                    // Show temporarily to calculate height
+                    dropdownMenu.classList.remove('hidden');
+
+                    const buttonRect = button.getBoundingClientRect();
+                    const menuRect = dropdownMenu.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - buttonRect.bottom;
+                    const spaceAbove = buttonRect.top;
+
+                    // Hide again for toggle
+                    dropdownMenu.classList.add('hidden');
+
+                    if (spaceBelow < menuRect.height && spaceAbove > menuRect.height) {
+                        // Position above if more space above than below
+                        dropdownMenu.classList.add('bottom-full');
+                        dropdownMenu.style.marginBottom = '0.5rem';
+                    } else {
+                        // Position below
+                        dropdownMenu.classList.add('top-full');
+                        dropdownMenu.style.marginTop = '0.5rem';
+                    }
                 }
-                row.dataset.statusChanged = statusChanged;
+
+                // Toggle visibility
+                dropdownMenu.classList.toggle('hidden');
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.dropdown')) {
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.add('hidden');
+                });
             }
         });
     }
 
-    // Initialize ticket statuses when page loads
-    initializeTicketStatuses();
+    function getStatusAbbreviation(status) {
+        const status_map = {
+            'waiting_on_customer': 'WOC',
+            'initial_response': 'IR',
+            'on_hold': 'OH'
+        };
+        // Match your filter's behavior: return from map if exists, otherwise return title case
+        return status_map[status.toLowerCase()] || status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+    }
 
-    // Listen for clicks on all status change links in the dashboard
-    document.querySelectorAll('.change-status').forEach(button => {
-        button.addEventListener('click', function (e) {
-            e.preventDefault();
+    // Status change functionality
+    function setupStatusChange() {
+        document.querySelectorAll('.change-status').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-            const ticketId = this.dataset.ticketId;
-            const newStatus = this.dataset.newStatus;
-            const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+                const ticketId = this.dataset.ticketId;
+                const newStatus = this.dataset.newStatus;
+                const dropdownMenu = this.closest('.dropdown-menu');
 
-            // Perform AJAX request to update the status
-            fetch('/update_ticket_status/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
-                },
-                body: JSON.stringify({
-                    ticket_id: ticketId,
-                    new_status: newStatus
+                // Hide dropdown
+                dropdownMenu.classList.add('hidden');
+
+                // Make API call
+                fetch('/update_ticket_status/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        ticket_id: ticketId,
+                        new_status: newStatus
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Find and update the status cell in the current row
-                    const statusCell = ticketRow.querySelector('td:nth-child(3)');
-                    if (statusCell) {
-                        statusCell.textContent = data.new_status_label;
-                    }
-
-                    // Store the status change timestamp in localStorage and row dataset
-                    const statusChangeTime = data.status_changed || new Date().toISOString();
-                    localStorage.setItem(`ticket_${ticketId}_status_changed`, statusChangeTime);
-                    ticketRow.dataset.statusChanged = statusChangeTime;
-
-                    // Reset individual time column color
-                    const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
-                    if (individualTimeCell) {
-                        individualTimeCell.classList.remove('exceeded');
-                        individualTimeCell.style.animation = 'none';
-                        individualTimeCell.style.backgroundColor = '';
-                        void individualTimeCell.offsetWidth;
-                        individualTimeCell.style.animation = '';
-                    }
-
-                    // Update the individual timer display to show 0
-                    const individualTimerSpan = ticketRow.querySelector('#individual-timer-' + ticketId);
-                    if (individualTimerSpan) {
-                        individualTimerSpan.textContent = '0:00:00';
-                    }
-
-                    // If the status is 'closed' or 'resolved', hide the row
-                    if (newStatus === 'closed' || newStatus === 'resolved') {
-                        ticketRow.style.display = 'none';
-                        const optionsRow = document.querySelector(`#options-${ticketId}`).parentNode;
-                        if (optionsRow) {
-                            optionsRow.style.display = 'none';
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update status cell
+                        const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+                        const statusCell = ticketRow.querySelector('td[data-status]');
+                        if (statusCell) {
+                            // Update status cell content and attributes
+                            const abbreviatedStatus = getStatusAbbreviation(newStatus);
+                            statusCell.textContent = abbreviatedStatus;
+                            statusCell.setAttribute('data-status', newStatus.toLowerCase());
                         }
-                    }
 
-                    // Keep the total time column colored if time limit is exceeded
-                    if (ticketRow.classList.contains('priority-alert')) {
-                        const totalTimeCell = ticketRow.querySelector('.time-column.total-time');
-                        if (totalTimeCell) {
-                            const priorityClass = `priority-${ticketRow.dataset.priority}`;
-                            totalTimeCell.classList.add(priorityClass);
+                        // Store the status change time in localStorage
+                        const statusChangeTime = data.status_changed;
+                        localStorage.setItem(`ticket_${ticketId}_status_changed`, statusChangeTime);
+
+                        // Only reset the color/classes of individual time cell
+                        const individualTimeCell = ticketRow.querySelector('.time-column.individual-time');
+                        if (individualTimeCell) {
+                            // Remove only the exceeded class, don't touch the content
+                            individualTimeCell.classList.remove('exceeded');
+
+                            // Optional: Add a brief highlight effect to show the status change
+                            individualTimeCell.style.transition = 'background-color 0.3s';
+                            individualTimeCell.style.backgroundColor = 'rgba(255, 255, 0, 0.2)';
+                            setTimeout(() => {
+                                individualTimeCell.style.backgroundColor = '';
+                            }, 500);
                         }
-                    }
 
-                    // Show success message
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Ticket status updated successfully',
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    // Show error message
+                        // Handle closed/resolved tickets
+                        if (['closed', 'resolved'].includes(newStatus)) {
+                            ticketRow.style.display = 'none';
+                            const expandedRow = document.getElementById(`expanded-row-${ticketId}`);
+                            if (expandedRow) {
+                                expandedRow.style.display = 'none';
+                            }
+                        }
+
+                        // Show success toast notification and reload
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Status updated successfully!',
+                            icon: 'success',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            customClass: {
+                                popup: 'bg-white rounded-lg shadow-xl p-4',
+                                title: 'text-lg font-semibold text-gray-800',
+                                content: 'text-gray-600'
+                            }
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        // Show error toast
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message || 'Failed to update status.',
+                            icon: 'error',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            customClass: {
+                                popup: 'bg-white rounded-lg shadow-xl',
+                                title: 'text-lg font-semibold text-red-600',
+                                content: 'text-gray-600'
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     Swal.fire({
                         title: 'Error!',
-                        text: data.message || 'Failed to update status',
-                        icon: 'error'
+                        text: 'An error occurred while updating the status.',
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        customClass: {
+                            popup: 'bg-white rounded-lg shadow-xl'
+                        }
                     });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'An error occurred while updating the status',
-                    icon: 'error'
                 });
             });
         });
-    });
+    }
 
-    // Function to update time display and colors
-        function updateTicketDisplay(ticketId) {
+    // Timer update functionality
+    function updateTicketDisplay(ticketId) {
         const ticketRow = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
         if (!ticketRow) return;
 
@@ -1724,32 +1811,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (ticketRow.classList.contains('priority-alert')) {
             const priorityClass = `priority-${ticketRow.dataset.priority}`;
-
-            // Always keep total time column colored if time limit is exceeded
             if (totalTimeCell) {
                 totalTimeCell.classList.add(priorityClass);
             }
-
-            // Only add color to individual time if status hasn't been changed
             if (individualTimeCell && !statusChanged) {
                 individualTimeCell.classList.add('exceeded');
             }
         }
     }
 
-    // Update displays initially
-    document.querySelectorAll('[data-ticket-id]').forEach(row => {
-        updateTicketDisplay(row.dataset.ticketId);
-    });
-
-    // Update displays periodically
-    setInterval(() => {
-        document.querySelectorAll('[data-ticket-id]').forEach(row => {
-            updateTicketDisplay(row.dataset.ticketId);
-        });
-    }, 30000); // Update every 30 seconds
-
-    // Clear old status changes from localStorage periodically
+    // Cleanup old status changes
     function cleanupOldStatusChanges() {
         const keys = Object.keys(localStorage);
         const now = new Date();
@@ -1757,7 +1828,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (key.startsWith('ticket_') && key.endsWith('_status_changed')) {
                 const timestamp = localStorage.getItem(key);
                 const changeTime = new Date(timestamp);
-                // Remove entries older than 24 hours
                 if (now - changeTime > 24 * 60 * 60 * 1000) {
                     localStorage.removeItem(key);
                 }
@@ -1765,20 +1835,23 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Run cleanup every hour
-    setInterval(cleanupOldStatusChanges, 60 * 60 * 1000);
-    cleanupOldStatusChanges(); // Run cleanup on page load
+    // Initialize all functionalities
+    setupDropdowns();
+    setupStatusChange();
 
-    // Close any dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.matches('.dropdown-toggle')) {
-            document.querySelectorAll('.dropdown-menu').forEach(dropdown => {
-                if (dropdown.classList.contains('show')) {
-                    dropdown.classList.remove('show');
-                }
-            });
-        }
+    // Set up periodic updates
+    document.querySelectorAll('[data-ticket-id]').forEach(row => {
+        updateTicketDisplay(row.dataset.ticketId);
     });
+
+    setInterval(() => {
+        document.querySelectorAll('[data-ticket-id]').forEach(row => {
+            updateTicketDisplay(row.dataset.ticketId);
+        });
+    }, 30000);
+
+    setInterval(cleanupOldStatusChanges, 60 * 60 * 1000);
+    cleanupOldStatusChanges();
 });
 </script>
 
@@ -1871,6 +1944,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${h}:${m}:${s}`;
     }
 
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove('hidden');
+    }
+
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add('hidden');
+    }
+
     function getCurrentDateTime() {
         const now = new Date();
         return now.getUTCFullYear() + '-' +
@@ -1882,14 +1965,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function blockOtherTicketButtons(currentTicketId) {
-    document.querySelectorAll('.start-button').forEach(button => {
-        const ticketId = button.dataset.ticketId;
-        if (ticketId !== currentTicketId) {
-            button.classList.add('blocked');
-            button.disabled = true;
-        }
-    });
-}
+        document.querySelectorAll('.start-button').forEach(button => {
+            const ticketId = button.dataset.ticketId;
+            if (ticketId !== currentTicketId) {
+                button.classList.add('blocked');
+                button.disabled = true;
+            }
+        });
+    }
 
     function unblockAllTicketButtons() {
         document.querySelectorAll('.start-button').forEach(button => {
@@ -2239,7 +2322,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.querySelector('input[name="action"]').value = 'end_call';
                     } else if (formData.get('action') === 'end_call') {
                         // Show the post-call modal
-                        $('#postCallModal').modal('show');
+                        showModal('postCallModal');
 
                         // Populate modal fields
                         document.getElementById('modal-ticket-id').value = data.ticket_id;
@@ -2311,7 +2394,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     // Close modal and reload
-                    $('#postCallModal').modal('hide');
+                    hideModal('postCallModal');
                     location.reload();
                 }
             })
@@ -2325,13 +2408,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (closeButton) {
         closeButton.addEventListener('click', function() {
-            $('#postCallModal').modal('hide');
+            hideModal('postCallModal');
         });
     }
 
     if (closeIcon) {
         closeIcon.addEventListener('click', function() {
-            $('#postCallModal').modal('hide');
+            hideModal('postCallModal');
         });
     }
 
@@ -2446,331 +2529,331 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const newQueryCircle = document.getElementById('newQueryCircle');
-    const existingQueryCircle = document.getElementById('existingQueryCircle');
+// Global variables
+let callStartTime = null;
+const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+// Modal Control Functions
+function openModal() {
+    const modal = document.getElementById('clientCallModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        startNewCall();
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById('clientCallModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        const newQuerySection = document.getElementById('newQuerySection');
+        const existingQuerySection = document.getElementById('existingQuerySection');
+        if (newQuerySection) newQuerySection.style.display = 'none';
+        if (existingQuerySection) existingQuerySection.style.display = 'none';
+
+        // Reset circles
+        document.querySelectorAll('.query-circle').forEach(circle => {
+            circle.classList.remove('bg-blue-500');
+        });
+
+        endNewCall();
+    }
+}
+
+function showSection(type) {
     const newQuerySection = document.getElementById('newQuerySection');
     const existingQuerySection = document.getElementById('existingQuerySection');
 
-    // Handle toggle circle clicks
-    document.querySelectorAll('.toggle-option').forEach(option => {
-        option.addEventListener('click', function() {
-            const value = this.dataset.value;
-
-            // Reset all circles
-            document.querySelectorAll('.toggle-circle').forEach(circle => {
-                circle.classList.remove('active');
-            });
-
-            // Activate clicked circle
-            this.querySelector('.toggle-circle').classList.add('active');
-
-            // Show appropriate section
-            if (value === 'new') {
-                newQuerySection.style.display = 'block';
-                existingQuerySection.style.display = 'none';
-                startNewCall();
-            } else {
-                existingQuerySection.style.display = 'block';
-                newQuerySection.style.display = 'none';
-                startNewCall();
-            }
-        });
+    // Reset all circles
+    document.querySelectorAll('.query-circle').forEach(circle => {
+        circle.classList.remove('bg-blue-500');
     });
-});
-</script>
 
-<script>
-document.getElementById("search-ticket").addEventListener("click", function() {
-    var ticketId = document.getElementById("ticket-id").value;
-    if (ticketId) {
-        fetch(`/tickets/search/${ticketId}/`, {
-            method: "GET",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}",
-            },
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Populate ticket details
-                document.getElementById("subject").value = data.ticket.subject;
-                document.getElementById("priority").value = data.ticket.priority;
+    // Get clicked button's circle and activate it
+    const clickedButton = event.currentTarget;
+    const circle = clickedButton.querySelector('.query-circle');
+    circle.classList.add('bg-blue-500');
 
-                // Populate assigned-to dropdown
-                var assignedToDropdown = document.getElementById("assigned-to");
-                assignedToDropdown.innerHTML = '';  // Clear existing options
-                data.users.forEach(user => {
-                    var option = document.createElement("option");
-                    option.value = user.id;
-                    option.textContent = user.username;
-                    if (user.id == data.ticket.assigned_to) {
-                        option.selected = true;
-                    }
-                    assignedToDropdown.appendChild(option);
-                });
+    // Show/hide sections
+    if (newQuerySection) newQuerySection.style.display = type === 'new' ? 'block' : 'none';
+    if (existingQuerySection) existingQuerySection.style.display = type === 'existing' ? 'block' : 'none';
+}
 
-                // Populate the note field
-                document.getElementById("note").value = data.ticket.note || "";  // If no note, set empty string
-
-                // Show ticket details section
-                document.getElementById("ticket-details").style.display = "block";
-            } else {
-                alert("Ticket not found");
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    }
-});
-
-document.getElementById("existingQueryForm").addEventListener("submit", async function(event) {
-    event.preventDefault();
-
-    // First end the call to get duration
-    const endCallResponse = await fetch('/end-new-call/', {
+// Timer Functions
+function startNewCall() {
+    fetch('/start-new-call/', {
         method: 'POST',
         headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
+            'X-CSRFToken': csrfToken,
             'Content-Type': 'application/json'
         }
-    }).then(response => response.json());
-
-    var ticketId = document.getElementById("ticket-id").value;
-    var subject = document.getElementById("subject").value;
-    var assignedTo = document.getElementById("assigned-to").value;
-    var priority = document.getElementById("priority").value;
-    var clientCallNote = document.getElementById("client_call_note").value;
-
-    // Create form data and append call duration if available
-    const formData = new FormData();
-    formData.append("subject", subject);
-    formData.append("assigned_to", assignedTo);
-    formData.append("priority", priority);
-    formData.append("client_call_note", clientCallNote);
-
-    if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
-        formData.append("call_duration_seconds", endCallResponse.call_duration);
-    }
-
-    fetch(`/tickets/update/${ticketId}/`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-        },
-        body: formData
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            alert("Ticket updated successfully");
-
-            // Hide the modal after update
-            var modal = document.getElementById("clientCallModal");
-            if (modal) {
-                modal.classList.remove('show');
-                modal.setAttribute('aria-hidden', 'true');
-                modal.style.display = 'none';
-
-                var modalBackdrop = document.querySelector('.modal-backdrop');
-                if (modalBackdrop) {
-                    modalBackdrop.remove();
-                }
-
-                document.body.classList.remove('modal-open');
-                document.body.style.overflow = '';
-
-                window.location.reload()
-            }
-        } else {
-            alert("Failed to update ticket");
+        if (data.status === 'success') {
+            callStartTime = new Date(data.call_start_time);
+            console.log('Call started successfully');
         }
     })
-    .catch(error => console.error('Error:', error));
-});
+    .catch(error => console.error('Error starting call:', error));
+}
 
-</script>
-<script>
-// Define callStartTime in the global scope
-let callStartTime = null;
+function endNewCall() {
+    if (!callStartTime) return;
 
-document.addEventListener("DOMContentLoaded", function() {
-    const clientCallModal = document.getElementById("clientCallModal");
-    const newQueryBtn = document.getElementById("newQueryBtn");
-    const existingQueryBtn = document.getElementById("existingQueryBtn");
-    const newQuerySection = document.getElementById("newQuerySection");
-    const existingQuerySection = document.getElementById("existingQuerySection");
-    const createTicketToggle = document.getElementById("create_ticket");
-    const submitButton = document.getElementById("newQuerySubmitBtn");
-    const emailFields = document.getElementById("emailFields");
-    const clientEmailInput = document.getElementById("client_email");
-    const ccEmailInput = document.getElementById("cc_email");
-
-    // Modal handling
-    if (clientCallModal) {
-        const closeButton = clientCallModal.querySelector('.btn-close');
-        if (closeButton) {
-            closeButton.addEventListener('click', endNewCall);
+    fetch('/end-new-call/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
         }
-        clientCallModal.addEventListener('hidden.bs.modal', endNewCall);
-        window.addEventListener('beforeunload', endNewCall);
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            callStartTime = null;
+            console.log('Call ended successfully');
+        }
+    })
+    .catch(error => console.error('Error ending call:', error));
+}
 
-    // Button handlers
-    if (newQueryBtn) {
-        newQueryBtn.addEventListener("click", function() {
-            newQuerySection.style.display = "block";
-            existingQuerySection.style.display = "none";
-            startNewCall();
-        });
-    }
+// Table Functions
+function loadCallQueries() {
+    fetch('/get-call-queries/')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('newQueriesBody');
+            tbody.innerHTML = '';
 
-    if (existingQueryBtn) {
-        existingQueryBtn.addEventListener("click", function() {
-            existingQuerySection.style.display = "block";
-            newQuerySection.style.display = "none";
-            startNewCall();
+            data.new_queries.forEach(query => {
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-200 hover:bg-gray-100";
+                row.innerHTML = `
+                    <th scope="row" class="px-6 py-4 w-4 font-medium whitespace-nowrap border">
+                        ${query.client_name}
+                    </th>
+                    <td class="px-6 py-4 w-5 text-center border">
+                        ${query.client_email || '-'}
+                    </td>
+                    <td class="px-6 py-4 w-4 text-center border">
+                        ${query.call_duration || '-'}
+                    </td>
+                    <td class="px-6 py-4 w-4 text-center border">
+                        ${query.ticket_created ? '✅' : '❌'}
+                    </td>
+                    <td class="px-6 py-4 text-center border note-cell">
+                        <div class="truncate-text" title="${query.note}">
+                            ${query.note}
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        })
+        .catch(error => console.error('Error loading queries:', error));
+}
+
+// Main initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize elements
+    const modal = document.getElementById('clientCallModal');
+    const createTicketToggle = document.getElementById('create_ticket');
+    const emailFields = document.getElementById('emailFields');
+    const searchButton = document.getElementById('search-ticket');
+
+    // Modal event listeners
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
         });
     }
 
     // Create ticket toggle handler
     if (createTicketToggle) {
-        createTicketToggle.addEventListener("change", function() {
-            submitButton.textContent = this.checked ? "Send" : "Save";
-            emailFields.style.display = this.checked ? "block" : "none";
-            clientEmailInput.required = this.checked;
-
-            if (!this.checked) {
-                clientEmailInput.value = "";
-                ccEmailInput.value = "";
+        createTicketToggle.addEventListener('change', function() {
+            // Update the submit button
+            const submitBtn = document.getElementById('newQuerySubmitBtn');
+            if (submitBtn) {
+                submitBtn.textContent = this.checked ? 'Send' : 'Save';
+                // Update button colors
+                if (this.checked) {
+                    submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    submitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                } else {
+                    submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }
             }
 
-            this.checked ? this.classList.add("bg-success") : this.classList.remove("bg-success");
+            // Toggle email fields
+            if (emailFields) {
+                if (this.checked) {
+                    emailFields.classList.remove('hidden');
+                    const clientEmailInput = document.getElementById('client_email');
+                    if (clientEmailInput) {
+                        clientEmailInput.required = true;
+                    }
+                } else {
+                    emailFields.classList.add('hidden');
+                    const clientEmailInput = document.getElementById('client_email');
+                    if (clientEmailInput) {
+                        clientEmailInput.required = false;
+                        clientEmailInput.value = '';
+                        document.getElementById('cc_email').value = '';
+                    }
+                }
+            }
+
+            // Log state for debugging
+            console.log('Toggle state:', this.checked);
+            console.log('Email fields visibility:', !emailFields.classList.contains('hidden'));
+        });
+    }
+
+    // Search ticket handler
+    if (searchButton) {
+        searchButton.addEventListener('click', function() {
+            const ticketId = document.getElementById('ticket-id').value;
+            if (!ticketId) {
+                alert('Please enter a ticket ID');
+                return;
+            }
+
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>`;
+
+            fetch(`/tickets/search/${ticketId}/`, {
+                method: 'GET',
+                headers: { 'X-CSRFToken': csrfToken }
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.disabled = false;
+                this.textContent = 'Search';
+
+                const ticketDetails = document.getElementById('ticket-details');
+                if (data.success) {
+                    ticketDetails.style.display = 'block';
+                    document.getElementById('subject').value = data.ticket.subject;
+                    document.getElementById('priority').value = data.ticket.priority;
+
+                    const assignedToDropdown = document.getElementById('assigned-to');
+                    assignedToDropdown.innerHTML = '';
+                    data.users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = user.username;
+                        option.selected = user.id == data.ticket.assigned_to;
+                        assignedToDropdown.appendChild(option);
+                    });
+
+                    document.getElementById('client_call_note').value = data.ticket.note || '';
+                } else {
+                    alert('Ticket not found');
+                    ticketDetails.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.disabled = false;
+                this.textContent = 'Search';
+                alert('Error searching for ticket');
+            });
         });
     }
 
     // Form submission handlers
-    const newQueryForm = document.getElementById("newQueryForm");
-    if (newQueryForm) {
-        newQueryForm.addEventListener("submit", async function(event) {
-            event.preventDefault();
+    document.getElementById('newQueryForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-            // First end the call to get duration
+        try {
             const endCallResponse = await fetch('/end-new-call/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-CSRFToken': csrfToken,
                     'Content-Type': 'application/json'
                 }
             }).then(response => response.json());
 
             if (endCallResponse.status === 'success') {
                 const formData = new FormData(this);
-
-                // Add the call duration to the form data
                 if (endCallResponse.call_duration) {
                     formData.append('call_duration_seconds', endCallResponse.call_duration);
                 }
 
-                // Save the call query
-                fetch('/save-new-call-query/', {
+                const saveResponse = await fetch('/save-new-call-query/', {
                     method: 'POST',
-                    headers: {
-                        'X-CSRFToken': '{{ csrf_token }}',
-                    },
+                    headers: { 'X-CSRFToken': csrfToken },
                     body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Call query saved successfully');
-                        window.location.reload();
-                        loadCallQueries();
-                        bootstrap.Modal.getInstance(document.getElementById('clientCallModal')).hide();
-                    } else {
-                        alert('Error saving call query');
-                    }
-                })
-                .catch(error => console.error('Error:', error));
-            }
-        });
-    }
+                }).then(response => response.json());
 
-    // Initial load of queries
+                if (saveResponse.status === 'success') {
+                    alert('Call query saved successfully');
+                    closeModal();
+                    loadCallQueries();
+                    window.location.reload();
+                } else {
+                    throw new Error('Failed to save call query');
+                }
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error saving call query');
+        }
+    });
+
+    document.getElementById('existingQueryForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        try {
+            const endCallResponse = await fetch('/end-new-call/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => response.json());
+
+            const formData = new FormData(this);
+            if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
+                formData.append('call_duration_seconds', endCallResponse.call_duration);
+            }
+
+            const ticketId = document.getElementById('ticket-id').value;
+            const updateResponse = await fetch(`/tickets/update/${ticketId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken },
+                body: formData
+            }).then(response => response.json());
+
+            if (updateResponse.success) {
+                alert('Ticket updated successfully');
+                closeModal();
+                window.location.reload();
+            } else {
+                throw new Error('Failed to update ticket');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating ticket');
+        }
+    });
+
+    // Initialize the queries table
     loadCallQueries();
 });
-
-// Call handling functions
-function startNewCall() {
-    fetch('/start-new-call/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            console.log('Call started successfully');
-            callStartTime = new Date(data.call_start_time);
-        }
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-function endNewCall() {
-    if (!callStartTime) return; // Don't end if no call is started
-
-    fetch('/end-new-call/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            console.log('Call ended successfully');
-            callStartTime = null;
-            if (newQuerySection) newQuerySection.style.display = "none";
-            if (existingQuerySection) existingQuerySection.style.display = "none";
-        }
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-// Query loading functions
-function loadCallQueries() {
-    fetch('/get-call-queries/')
-    .then(response => response.json())
-    .then(data => {
-        updateNewQueriesTable(data.new_queries);
-    })
-    .catch(error => console.error('Error:', error));
-}
-
-function updateNewQueriesTable(queries) {
-    const tbody = document.getElementById("newQueriesBody");
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-    queries.forEach(query => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-            <td>${query.client_name || '-'}</td>
-            <td>${query.client_email || '-'}</td>
-            <td>${query.call_duration || '-'}</td>
-            <td>
-                <span class="badge ${query.ticket_created ? 'bg-success' : 'bg-danger'}">
-                    ${query.ticket_created ? '✓' : '✗'}
-                </span>
-            </td>
-            <td>${query.note}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
 </script>
 
 <script>
@@ -2870,48 +2953,25 @@ function updateCreatedTimer(timerElement) {
 }
 </script>
 
-<script>
-function updateDashboardStats() {
-    fetch('/api/daily-stats/')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('todayTicketCount').textContent = data.todays_tickets;
-            document.getElementById('openTicketCount').textContent = data.open_tickets;
-            document.getElementById('closedTicketCount').textContent = data.closed_tickets;
-            document.getElementById('totalCallTime').textContent = data.call_duration;
-        })
-        .catch(error => console.error('Error updating stats:', error));
-}
 
-// Update stats every minute
-setInterval(updateDashboardStats, 60000);
-
-// Update when page becomes visible
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        updateDashboardStats();
-    }
-});
-
-// Update after relevant actions
-document.addEventListener('ticketStatusChanged', updateDashboardStats);
-document.addEventListener('callEnded', updateDashboardStats);
-</script>
 
 
 {% block extra_js %}
-<!-- Make sure these are in the correct order -->
+<!-- Order matters - load these in sequence -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<div id="notification-container"></div>
-<audio id="notificationSound" src="{% static 'employee/sounds/notification.mp3' %}" preload="auto"></audio>
-<script src="{% static 'employee/js/notifications.js' %}"></script>
-
 <script>
-    // Initialize notification manager
+    // Ensure CSRF token is available globally
+    window.CSRF_TOKEN = "{{ csrf_token }}";
+</script>
+<script src="{% static 'employee/js/notifications.js' %}"></script>
+<script>
+    // Initialize after DOM loads
     document.addEventListener('DOMContentLoaded', function() {
-        // Make sure notificationManager is available globally
-        window.notificationManager = window.notificationManager || new NotificationManager();
+        if (typeof notificationManager === 'undefined') {
+            window.notificationManager = new NotificationManager();
+        }
+        window.notificationManager.init();
     });
 </script>
 {% endblock %}
@@ -2995,20 +3055,244 @@ function toggleRow(cell) {
     }
 }
 </script>
-<script>
-function toggleDropdown() {
-    const dropdownMenu = document.getElementById('dropdownMenu');
-    dropdownMenu.classList.toggle('show');
 
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-        const dropdownButton = document.getElementById('dropdownButton');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
+<script>
+// Right Sidebar Hover Effect
+const rightSidebar = document.getElementById('rightSidebar');
+document.body.addEventListener('mousemove', (event) => {
+    if (event.clientY >= 100 && event.clientY <= 230 && event.clientX > window.innerWidth - 50) {
+        rightSidebar.classList.remove('translate-x-full');
+    } else {
+        rightSidebar.classList.add('translate-x-full');
+    }
+});
+
+// Chart Data
+document.addEventListener('DOMContentLoaded', function() {
+    // Get data from Django template context
+    const statusCounts = {
+        total: {{ total_tickets|default:0 }},
+        open: 0,
+        waiting: 0,
+        pending: 0,
+        resolved: 0,
+        closed: 0,
+        onHold: 0,
+        initial: 0
+    };
+
+    // Process ticket_status_counts from Django
+    {% for status in ticket_status_counts %}
+        switch ('{{ status.status }}') {
+            case 'open':
+                statusCounts.open = {{ status.count }};
+                break;
+            case 'waiting_on_customer':
+                statusCounts.waiting = {{ status.count }};
+                break;
+            case 'pending':
+                statusCounts.pending = {{ status.count }};
+                break;
+            case 'resolved':
+                statusCounts.resolved = {{ status.count }};
+                break;
+            case 'closed':
+                statusCounts.closed = {{ status.count }};
+                break;
+            case 'on_hold':
+                statusCounts.onHold = {{ status.count }};
+                break;
+            case 'initial_response':
+                statusCounts.initial = {{ status.count }};
+                break;
         }
+    {% endfor %}
+
+    // Today's data
+    const todayData = {
+        total: {{ todays_tickets|default:0 }},
+        open: {{ open_tickets|default:0 }},
+        closed: {{ closed_tickets|default:0 }}
+    };
+
+    // Pie Chart Configuration
+    const doughnutData = {
+        labels: ['Total Tickets', 'Open', 'Waiting On Customer', 'Pending', 'Resolved', 'Closed', 'On Hold', 'Initial Response'],
+        datasets: [{
+            label: 'Counts',
+            data: [
+                statusCounts.total,
+                statusCounts.open,
+                statusCounts.waiting,
+                statusCounts.pending,
+                statusCounts.resolved,
+                statusCounts.closed,
+                statusCounts.onHold,
+                statusCounts.initial
+            ],
+            backgroundColor: [
+                '#6c757d',    // Total - Gray
+                '#ff9800',    // Open - Orange
+                '#ffc107',    // Waiting - Yellow
+                '#dc3545',    // Pending - Red
+                '#007bff',    // Resolved - Blue
+                '#007bff',    // Closed - Blue
+                '#ffc107',    // On Hold - Yellow
+                '#28a745'     // Initial Response - Green
+            ],
+        }]
+    };
+
+    // Bar Chart Configuration
+    const barData = {
+        labels: ['Today Tickets', 'Open Tickets', 'Closed Tickets'],
+        datasets: [{
+            label: 'Counts',
+            data: [todayData.total, todayData.open, todayData.closed],
+            backgroundColor: '#2196f3',
+            borderRadius: 10,
+        }]
+    };
+
+    // Chart Configurations
+    const doughnutChartConfig = {
+        type: 'doughnut',
+        data: doughnutData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    };
+
+    const barChartConfig = {
+        type: 'bar',
+        data: barData,
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    };
+
+    // Populate Data Table
+    const tableBody = document.getElementById("dataTable");
+    doughnutData.labels.forEach((label, index) => {
+        let row = `<tr>
+                    <td class="px-2 py-1 flex items-center">
+                        <span class="w-4 h-4 inline-block rounded-full mr-2"
+                              style="background-color: ${doughnutData.datasets[0].backgroundColor[index]};"></span>
+                        ${label}
+                    </td>
+                    <td class="px-2 py-1 text-center">${doughnutData.datasets[0].data[index]}</td>
+                </tr>`;
+        tableBody.innerHTML += row;
     });
-}
+
+    // Initialize Charts
+    const pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), doughnutChartConfig);
+    const barChart = new Chart(document.getElementById('barChart').getContext('2d'), barChartConfig);
+});
 </script>
-</body>
-</html>
+
+<script>
+    // Create a new file: static/employee/js/ticket-actions.js
+class TicketActions {
+    constructor() {
+        this.csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        this.initializeAcceptButtons();
+    }
+
+    initializeAcceptButtons() {
+        document.querySelectorAll('.acknowledge-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.acknowledgeTicket(button.dataset.ticketId);
+            });
+        });
+    }
+
+    async acknowledgeTicket(ticketId) {
+        try {
+            const button = document.querySelector(`button.acknowledge-button[data-ticket-id="${ticketId}"]`);
+            if (!button) return;
+
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            const response = await fetch(`/acknowledge-ticket/${ticketId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': this.csrfToken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Update button cell
+                const tdElement = button.closest('td');
+                if (tdElement) {
+                    tdElement.innerHTML = '<span class="text-success">✅</span>';
+                }
+
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ticket Accepted',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            } else {
+                throw new Error(data.error || 'Failed to acknowledge ticket');
+            }
+        } catch (error) {
+            console.error('Error acknowledging ticket:', error);
+
+            // Reset button state
+            const button = document.querySelector(`button.acknowledge-button[data-ticket-id="${ticketId}"]`);
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = 'Accept';
+            }
+
+            // Show error message
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Failed to accept ticket. Please try again.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    window.ticketActions = new TicketActions();
+});
+</script>
+{% endblock %}

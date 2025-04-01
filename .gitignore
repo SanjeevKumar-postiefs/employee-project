@@ -1,0 +1,33 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Large model files
+*.dll
+*.lib
+*.gguf
+*.gguf.part
+employee_management/text_improver/models/
+**/torch/
+**/gpt4all/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+
+# Django
+*.log
+
+# Node
+node_modules/
+
+
+
+# IDE
+.idea/
+.vscode/

@@ -99,3 +99,12 @@ def status_full_name(value):
         'on_hold': 'On Hold',
     }
     return status_map.get(value, value.title())
+
+@register.filter
+def priority_abbreviation(value):
+    status_map = {
+        'high': 'High',
+        'medium': 'Medium',
+        'low': 'Low',
+    }
+    return status_map.get(value, value.title())

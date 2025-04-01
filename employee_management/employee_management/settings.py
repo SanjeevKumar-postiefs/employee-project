@@ -185,5 +185,5 @@ REST_FRAMEWORK = {
     ]
 }
 
-CORS_ALLOW_ALL_ORIGINS = True  # For development only
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Only allow in development
 CORS_ALLOW_CREDENTIALS = True
