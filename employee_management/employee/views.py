@@ -393,7 +393,7 @@ def create_ticket(request):
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({'success': True})
-            return redirect('/')
+            return redirect('dashboard')
     else:
         form = TicketForm()
 
@@ -528,7 +528,7 @@ def assign_ticket(request, ticket_id):
                     last_notification_time=timezone.now()
                 )
 
-            return redirect('home')
+            return redirect('dashboard')
 
     else:
         form = TicketForm(instance=ticket, is_assign=True)
