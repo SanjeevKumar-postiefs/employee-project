@@ -1,5 +1,5 @@
 # Desktop agent configuration
-API_URL = 'http://127.0.0.1:8000/'  # Change this to your Django server URL when deployed
+API_URL = 'https://timesheet.postiefs.com/'  # Change this to your Django server URL when deployed
 API_ENDPOINTS = {
     'activity': '/api/tracking/record-activity/',
 }

@@ -357,6 +357,9 @@ def employees_by_skill(request, skill):
 
 from django.utils import timezone
 from django.contrib.sessions.models import Session
+from django.template.loader import render_to_string
+from django.http import JsonResponse
+
 
 @login_required
 def create_ticket(request):
@@ -370,6 +373,7 @@ def create_ticket(request):
             ticket.created_at = current_time
             ticket.assigned_at = current_time
             ticket.save()
+
             if form.cleaned_data.get('note'):
                 TicketNote.objects.create(
                     ticket=ticket,
@@ -378,7 +382,6 @@ def create_ticket(request):
                     created_by=request.user
                 )
 
-            # Create notification for assigned user
             if ticket.assigned_to and ticket.assigned_to != request.user:
                 UnifiedNotification.objects.create(
                     ticket=ticket,
@@ -388,6 +391,8 @@ def create_ticket(request):
                     last_notification_time=current_time
                 )
 
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True})
             return redirect('/')
     else:
         form = TicketForm()
@@ -401,6 +406,14 @@ def create_ticket(request):
         'form': form,
         'employees': list(employees),
     }
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        html = render_to_string('create_ticket_form.html', context, request=request)
+        return JsonResponse({
+            'html': html,
+            'employees': list(employees)
+        })
+
     return render(request, 'create_ticket.html', context)
 
 

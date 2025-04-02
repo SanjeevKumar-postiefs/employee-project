@@ -43,8 +43,6 @@ pyinstaller --clean ^
     --hidden-import activity_tracker.storage ^
     --hidden-import win32ts ^
     --hidden-import win32profile ^
-    --hidden-import win32security.logon ^
-    --hidden-import win32security.impersonation ^
     --runtime-hook add_dll_directory.py ^
     service_wrapper.py
 
@@ -62,12 +60,6 @@ REM Copy files
 copy /Y "dist\EmployeeActivityTracker.exe" "Deployment\"
 copy /Y "install_complete.bat" "Deployment\"
 
-REM Create logs directory in ProgramData
-echo Creating logs directory...
-if not exist "%ProgramData%\EmployeeActivityTracker\logs" (
-    mkdir "%ProgramData%\EmployeeActivityTracker\logs"
-)
-
 echo Build and deployment package created successfully!
 echo Deployment package location: .\Deployment\
 
@@ -78,4 +70,3 @@ dir /b "Deployment"
 
 deactivate
 endlocal
-pause

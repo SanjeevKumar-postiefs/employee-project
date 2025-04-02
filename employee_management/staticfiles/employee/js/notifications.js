@@ -331,24 +331,25 @@ class NotificationManager {
 // In your NotificationManager class, update the acknowledgeTicket method:
 async acknowledgeTicket(ticketId) {
     try {
-        // First, update the UI immediately
-        const acknowledgeButton = document.querySelector(`button.acknowledge-button[data-ticket-id="${ticketId}"][data-acknowledge-button="true"]`);
-        if (acknowledgeButton) {
-            // Disable the button and show loading state
-            acknowledgeButton.disabled = true;
-            acknowledgeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        }
+        // Get CSRF token from the meta tag or cookie
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         document.cookie.split('; ')
+                         .find(row => row.startsWith('csrftoken='))
+                         ?.split('=')[1];
 
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            throw new Error('CSRF token missing');
+        }
 
         const response = await fetch(`/acknowledge-ticket/${ticketId}/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': csrfToken,
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
             },
-            credentials: 'same-origin'
+            credentials: 'include'  // Important for cookies
         });
 
         const data = await response.json();

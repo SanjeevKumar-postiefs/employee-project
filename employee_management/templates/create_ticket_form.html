@@ -1,0 +1,87 @@
+<!-- templates/create_ticket_form.html -->
+{% load form_tags %}
+{% csrf_token %}
+
+<!-- Ticket ID Field -->
+<div class="space-y-2">
+    <label class="block text-xs font-bold text-gray-700" for="{{ form.ticket_id.id_for_label }}">
+        Ticket ID {% if form.ticket_id.field.required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {{ form.ticket_id|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+    {% if form.ticket_id.errors %}
+    <div class="text-red-500 text-xs mt-1">{{ form.ticket_id.errors }}</div>
+    {% endif %}
+</div>
+
+<!-- Subject Field -->
+<div class="space-y-2">
+    <label class="block text-xs font-bold text-gray-700" for="{{ form.subject.id_for_label }}">
+        Subject {% if form.subject.field.required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {{ form.subject|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+    {% if form.subject.errors %}
+    <div class="text-red-500 text-xs mt-1">{{ form.subject.errors }}</div>
+    {% endif %}
+</div>
+
+<!-- Note Field -->
+<div class="space-y-2">
+    <label class="block text-xs font-bold text-gray-700" for="{{ form.note.id_for_label }}">
+        Note {% if form.note.field.required %}<span class="text-red-500">*</span>{% endif %}
+    </label>
+    {{ form.note|addclass:"w-full text-sm p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+    {% if form.note.errors %}
+    <div class="text-red-500 text-xs mt-1">{{ form.note.errors }}</div>
+    {% endif %}
+</div>
+
+<div class="flex justify-start gap-3">
+    <!-- Status Field -->
+    <div class="space-y-2">
+        {{ form.status|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+        {% if form.status.errors %}
+        <div class="text-red-500 text-xs mt-1">{{ form.status.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Group Field -->
+    <div class="space-y-2">
+        {{ form.group|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+        {% if form.group.errors %}
+        <div class="text-red-500 text-xs mt-1">{{ form.group.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Environment Field -->
+    <div class="space-y-2">
+        {{ form.environment|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+        {% if form.environment.errors %}
+        <div class="text-red-500 text-xs mt-1">{{ form.environment.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Assigned To Field -->
+    <div class="space-y-2">
+        {{ form.assigned_to|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+        {% if form.assigned_to.errors %}
+        <div class="text-red-500 text-xs mt-1">{{ form.assigned_to.errors }}</div>
+        {% endif %}
+    </div>
+
+    <!-- Priority Field -->
+    <div class="space-y-2">
+        {{ form.priority|addclass:"text-xs w-full p-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm" }}
+        {% if form.priority.errors %}
+        <div class="text-red-500 text-xs mt-1">{{ form.priority.errors }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-end mt-4">
+    <button type="button" onclick="closeCreateTicketModal()" class="mr-2 bg-gray-500 text-white text-xs px-3 py-2 rounded-md hover:bg-gray-600 transition duration-300 shadow-lg">
+        Cancel
+    </button>
+    <button type="submit" class="bg-blue-500 text-white text-xs px-3 py-2 rounded-md hover:bg-blue-800 transition duration-300 shadow-lg">
+        Create
+    </button>
+</div>
