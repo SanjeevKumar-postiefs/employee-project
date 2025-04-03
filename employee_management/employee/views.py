@@ -491,6 +491,8 @@ def assign_ticket(request, ticket_id):
             new_assigned_user_id = request.POST.get('assigned_user')
             new_assigned_user = get_object_or_404(User, id=new_assigned_user_id)
             old_assigned_user = ticket.assigned_to
+            if old_assigned_user != new_assigned_user:
+                ticket.individual_time_spent = timezone.timedelta(0)
             if form.cleaned_data.get('note'):
                 TicketNote.objects.create(
                     ticket=ticket,
@@ -562,9 +564,8 @@ def update_ticket_status(request):
             if ticket.assigned_to != request.user:
                 return JsonResponse({'success': False, 'message': 'You are not authorized to change the status of this ticket'})
 
-            # Update the ticket status and reset individual time spent
+            # Update the ticket status
             ticket.status = new_status
-            ticket.individual_time_spent = timezone.timedelta(0)  # Reset individual time
             ticket.status_changed = timezone.now()  # Set the status change time
             ticket.save()
 

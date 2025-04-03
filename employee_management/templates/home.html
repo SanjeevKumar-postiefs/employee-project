@@ -4,7 +4,8 @@
 {% block content %}
 
 <!-- Main Content -->
-<div class="ml-0 pt-20 px-5 bg-white text-black min-h-screen relative z-10">
+<div class="p-1 content-area">
+<div class="ml-0  px-5 bg-white text-black min-h-screen relative z-10">
     {% if user.is_authenticated %}
         <div class="flex justify-between items-center flex-wrap gap-4">
             <h1 class="text-2xl font-bold text-gray-800 m-3">Tickets Overview</h1>
@@ -31,6 +32,7 @@
         {% else %}
             <!-- Tickets Container -->
             <div id="ticket-container">
+                {% if tickets_by_user %}
                 {% for user_tickets in tickets_by_user %}
                     <div class="bg-white rounded-lg shadow-lg mb-6 overflow-hidden">
                         <!-- User Header -->
@@ -39,13 +41,16 @@
                             <span class="font-semibold text-gray-800">{{ user_tickets.user.username }}'s Tickets</span>
                             <div class="flex gap-2">
                                 {% if user_tickets.user.employeeprofile.is_idle %}
-                                    <span class="px-3 py-1 bg-gray-500 text-white rounded-full text-sm">On Idle</span>
+                                    <span class="px-3 py-1 bg-gray-500 text-white full text-sm">On Idle</span>
                                 {% endif %}
                                 {% if user_tickets.user.employeeprofile.is_on_break %}
-                                    <span class="px-3 py-1 bg-yellow-500 text-white rounded-full text-sm">On Break</span>
+                                    <span class="px-3 py-1 bg-yellow-500 text-white full text-sm">On Break</span>
                                 {% endif %}
                                 {% if user_tickets.call_in_progress %}
-                                    <span class="px-3 py-1 bg-red-500 text-white rounded-full text-sm call-badge">On Call</span>
+                                    <span class="px-3 py-1 bg-red-500 text-white full text-sm call-badge">On Call</span>
+                                {% endif %}
+                                {% if user_tickets.user.employeeprofile.is_on_call %}
+                                    <span class="px-3 py-1 bg-red-500 text-white full text-sm call-badge">On Call</span>
                                 {% endif %}
                             </div>
                         </h3>
@@ -76,7 +81,11 @@
                                                     </button>
                                                 </td>
                                                 <td class="px-4 py-3">{{ user_tickets.latest_ticket.ticket_id }}</td>
-                                                <td class="px-4 py-3">{{ user_tickets.latest_ticket.subject }}</td>
+                                                <td class="px-4 py-3 subject-cell">
+                                                    <div class="truncate-text" title="{{ user_tickets.latest_ticket.subject }}">
+                                                        {{ user_tickets.latest_ticket.subject }}
+                                                    </div>
+                                                </td>
                                                 <td class="px-4 py-3" id="ticket-status-{{ user_tickets.latest_ticket.id }}">
                                                     {{ user_tickets.latest_ticket.status }}
                                                 </td>
@@ -149,7 +158,11 @@
                                                         </button>
                                                     </td>
                                                     <td class="px-4 py-3">{{ ticket.ticket_id }}</td>
-                                                    <td class="px-4 py-3">{{ ticket.subject }}</td>
+                                                    <td class="px-4 py-3 subject-cell">
+                                                        <div class="truncate-text" title="{{ user_tickets.latest_ticket.subject }}">
+                                                            {{ ticket.subject }}
+                                                        </div>
+                                                    </td>
                                                     <td class="px-4 py-3" id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
                                                     <td class="px-4 py-3">
                                                         <span class="priority-badge priority-{{ ticket.priority|lower }}">
@@ -209,13 +222,38 @@
                         </div>
                     </div>
                 {% endfor %}
+                {% else %}
+                <!-- Empty State -->
+                    <div class="flex flex-col items-center justify-center p-12 mt-8 bg-gray-50 rounded-lg shadow-sm">
+                        <div class="mb-6">
+                            <i class="ph ph-ticket text-gray-400 text-6xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-semibold text-gray-700 mb-2">No Tickets Available</h2>
+                        <p class="text-gray-500 text-center max-w-md mb-6">There are currently no tickets assigned. New tickets will appear here when they're assigned.</p>
+                        {% if request.GET.skill %}
+                            <p class="text-sm text-gray-400">Try removing the skill filter to see more tickets</p>
+                        {% endif %}
+                        <div class="mt-6">
+                            <a href="{% url 'home' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                <i class="ph ph-arrows-clockwise mr-2"></i>
+                                Refresh Page
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     {% endif %}
 </div>
-
+</div>
 <!-- Tailwind CSS for Priority Animations -->
 <style>
+      .content-area {
+        margin-top: 64px;
+        overflow: auto;
+        height: calc(100vh - 64px);
+      }
+
     @keyframes pulse-urgent {
         0% { @apply bg-red-50; }
         50% { @apply bg-red-100; }
@@ -280,6 +318,90 @@
 
     tr:not(.hidden) {
         display: table-row;
+    }
+
+    /* Fixed width and truncation */
+    .subject-cell {
+        max-width: 256px;
+        width: 256px;
+        position: relative;
+    }
+
+    .truncate-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    /* Modern tooltip styling */
+    .truncate-text:hover::after {
+        content: attr(title);
+        position: absolute;
+        left: 0;
+        top: calc(100% + 12px);
+        background: white;
+        color: #1f2937;
+        padding: 16px 20px;
+        border-radius: 12px;
+        font-size: 1.125rem;
+        white-space: normal;
+        max-width: 800px;
+        min-width: 500px;
+        z-index: 1000;
+        word-wrap: break-word;
+        line-height: 1.6;
+        box-shadow:
+            0 10px 15px -3px rgba(0, 0, 0, 0.1),
+            0 4px 6px -2px rgba(0, 0, 0, 0.05),
+            0 0 0 1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+        animation: tooltipFadeIn 0.2s ease-out;
+        letter-spacing: 0.3px;
+    }
+
+    /* Modern arrow styling */
+    .truncate-text:hover::before {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: calc(100% + 4px);
+        width: 12px;
+        height: 12px;
+        background: white;
+        border-left: 1px solid #e5e7eb;
+        border-top: 1px solid #e5e7eb;
+        transform: rotate(45deg);
+        z-index: 1001;
+        box-shadow: -3px -3px 5px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Animation */
+    @keyframes tooltipFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Hover state */
+    .truncate-text:hover {
+        color: #3498db;
+    }
+
+    /* Ensure table respects fixed widths */
+    table {
+        table-layout: fixed;
+    }
+
+    /* Ensure container allows scrolling */
+    .overflow-x-auto {
+        overflow-x: auto;
     }
 </style>
 

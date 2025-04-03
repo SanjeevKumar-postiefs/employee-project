@@ -1253,6 +1253,7 @@ td[data-status="on_hold"] {
         </tr>
       </thead>
       <tbody class="text-center">
+      {% if tickets %}
         {% for ticket in tickets %}
           {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
           <!-- Empty row for spacing -->
@@ -1300,7 +1301,7 @@ td[data-status="on_hold"] {
                 </span>
             </td>
 
-<!-- Replace your existing Individual Spent column with this -->
+            <!-- Replace your existing Individual Spent column with this -->
             <td class="border px-2 py-1 text-center time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded priority-{{ ticket.priority|lower }}{% endif %}">
                 <span id="individual-timer-{{ ticket.id }}"
                       class="timer-span"
@@ -1379,11 +1380,6 @@ td[data-status="on_hold"] {
                 Call Details
               </a>
 
-              <a href="{% url 'view_ticket_notes' ticket.id %}"
-                 class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
-                From existing query
-              </a>
-
                 <a href="{% url 'view_ticket_notes_all' ticket.id %}"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
                 all notes
@@ -1392,6 +1388,19 @@ td[data-status="on_hold"] {
           </tr>
           {% endif %}
         {% endfor %}
+      {% else %}
+                <tr>
+                    <td colspan="11" class="py-16">
+                        <div class="flex flex-col items-center justify-center text-gray-500">
+                            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <p class="text-xl font-semibold mb-2">No Tickets Found</p>
+                            <p class="text-sm">There are currently no active tickets assigned to you.</p>
+                        </div>
+                    </td>
+                </tr>
+      {% endif %}
       </tbody>
     </table>
   </div>
@@ -1744,6 +1753,18 @@ td[data-status="on_hold"] {
         </thead>
         <tbody id="newQueriesBody">
             <!-- Dynamically populated content -->
+            <!-- Empty state for call details -->
+            <tr class="empty-state-row">
+                <td colspan="5" class="py-16">
+                    <div class="flex flex-col items-center justify-center text-gray-500">
+                        <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                        </svg>
+                        <p class="text-xl font-semibold mb-2">No Call Details Available</p>
+                        <p class="text-sm">There are no recent calls to display.</p>
+                    </div>
+                </td>
+            </tr>
         </tbody>
     </table>
 </div>
@@ -2922,32 +2943,68 @@ function loadCallQueries() {
             const tbody = document.getElementById('newQueriesBody');
             tbody.innerHTML = '';
 
-            data.new_queries.forEach(query => {
-                const row = document.createElement('tr');
-                row.className = "border-b border-gray-200 hover:bg-gray-100";
-                row.innerHTML = `
-                    <th scope="row" class="px-6 py-4 w-4 font-medium whitespace-nowrap border">
-                        ${query.client_name}
-                    </th>
-                    <td class="px-6 py-4 w-5 text-center border">
-                        ${query.client_email || '-'}
-                    </td>
-                    <td class="px-6 py-4 w-4 text-center border">
-                        ${query.call_duration || '-'}
-                    </td>
-                    <td class="px-6 py-4 w-4 text-center border">
-                        ${query.ticket_created ? '✅' : '❌'}
-                    </td>
-                    <td class="px-6 py-4 text-left border note-cell">
-                        <div class="truncate-text" title="${query.note}">
-                            ${query.note}
+            if (!data.new_queries || data.new_queries.length === 0) {
+                // Add empty state row
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = "empty-state-row";
+                emptyRow.innerHTML = `
+                    <td colspan="5" class="py-16">
+                        <div class="flex flex-col items-center justify-center text-gray-500">
+                            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                            </svg>
+                            <p class="text-xl font-semibold mb-2">No Call Details Available</p>
+                            <p class="text-sm">There are no recent calls to display.</p>
                         </div>
                     </td>
                 `;
-                tbody.appendChild(row);
-            });
+                tbody.appendChild(emptyRow);
+            } else {
+                // Add data rows
+                data.new_queries.forEach(query => {
+                    const row = document.createElement('tr');
+                    row.className = "border-b border-gray-200 hover:bg-gray-100";
+                    row.innerHTML = `
+                        <th scope="row" class="px-6 py-4 w-4 font-medium whitespace-nowrap border">
+                            ${query.client_name}
+                        </th>
+                        <td class="px-6 py-4 w-5 text-center border">
+                            ${query.client_email || '-'}
+                        </td>
+                        <td class="px-6 py-4 w-4 text-center border">
+                            ${query.call_duration || '-'}
+                        </td>
+                        <td class="px-6 py-4 w-4 text-center border">
+                            ${query.ticket_created ? '✅' : '❌'}
+                        </td>
+                        <td class="px-6 py-4 text-left border note-cell">
+                            <div class="truncate-text" title="${query.note}">
+                                ${query.note}
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
         })
-        .catch(error => console.error('Error loading queries:', error));
+        .catch(error => {
+            console.error('Error loading queries:', error);
+            // Show error state
+            const tbody = document.getElementById('newQueriesBody');
+            tbody.innerHTML = `
+                <tr class="empty-state-row">
+                    <td colspan="5" class="py-16">
+                        <div class="flex flex-col items-center justify-center text-gray-500">
+                            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <p class="text-xl font-semibold mb-2 text-red-500">Error Loading Call Details</p>
+                            <p class="text-sm">Please try again later or contact support.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
 }
 
 // Main initialization

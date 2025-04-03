@@ -208,28 +208,63 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-    // static/js/ticket-modal.js
+let formLoaded = false; // Track if form has been loaded
+
 function openCreateTicketModal() {
     const modal = document.getElementById('createTicketModal');
 
-    // Fetch form content
-    fetch('/create-ticket/', {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('createTicketForm').innerHTML = data.html;
-        initializeFormHandlers(data.employees);
-        modal.classList.remove('hidden');
-    });
+    // Only fetch form content if it hasn't been loaded or was cleared
+    if (!formLoaded) {
+        fetch('/create-ticket/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('createTicketForm').innerHTML = data.html;
+            initializeFormHandlers(data.employees);
+            formLoaded = true;
+        });
+    }
+
+    modal.classList.remove('hidden');
 }
 
 function closeCreateTicketModal() {
-    document.getElementById('createTicketModal').classList.add('hidden');
+    const modal = document.getElementById('createTicketModal');
+    modal.classList.add('hidden');
+
+    // Clear the form and reset formLoaded flag
+    const form = document.getElementById('createTicketForm');
+    if (form) {
+        form.reset();
+        const assignedToSelect = document.getElementById('id_assigned_to');
+        if (assignedToSelect) {
+            assignedToSelect.innerHTML = '<option value="">Assign to</option>';
+        }
+        formLoaded = false; // Reset the form loaded flag
+    }
 }
+
+// Initialize modal events when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('createTicketModal');
+
+    // Handle outside clicks
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            // Just hide the modal without clearing
+            this.classList.add('hidden');
+        }
+    });
+
+    // Ensure click events inside the modal don't trigger the outside click handler
+    modal.querySelector('.relative').addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
 
 function initializeFormHandlers(employees) {
     const form = document.getElementById('createTicketForm');
@@ -283,14 +318,6 @@ function populateUsersByGroup(group, employees, assignedToSelect) {
         }
     });
 }
-
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-    const modal = document.getElementById('createTicketModal');
-    if (e.target === modal) {
-        closeCreateTicketModal();
-    }
-});
 </script>
 </body>
 </html>
