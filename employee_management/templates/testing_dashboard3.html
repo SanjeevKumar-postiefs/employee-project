@@ -2119,6 +2119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize variables and constants
     let timers = {};
     const localStorageKey = 'ticketTimers';
+    const activeStateKey = 'activeTicketStates';
     const breakToggle = document.getElementById('breakToggle');
     const breakStatus = document.getElementById('breakStatus');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -2158,6 +2159,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+
+
+    // Function to save active states
+    function saveActiveStates() {
+        const activeStates = {
+            activeTicketId: activeTicketId,
+            activeCallTicketId: activeCallTicketId
+        };
+        localStorage.setItem(activeStateKey, JSON.stringify(activeStates));
+    }
+
+    // Function to restore active states and blocking
+    function restoreActiveStates() {
+        const savedStates = JSON.parse(localStorage.getItem(activeStateKey) || '{}');
+
+        if (savedStates.activeTicketId) {
+            activeTicketId = savedStates.activeTicketId;
+            blockOtherTicketButtons(activeTicketId);
+        }
+
+        if (savedStates.activeCallTicketId) {
+            activeCallTicketId = savedStates.activeCallTicketId;
+            blockAllTicketInteractions(activeCallTicketId);
+            const startButton = document.querySelector(`.start-button[data-ticket-id="${savedStates.activeCallTicketId}"]`);
+            if (startButton) {
+                startButton.disabled = true;
+                startButton.classList.add('blocked');
+
+                // If there's an active timer for this ticket
+                if (timers[savedStates.activeCallTicketId]) {
+                    startButton.textContent = 'Stop';
+                }
+            }
+        }
+    }
 
 
     // Utility functions
@@ -2474,9 +2510,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         form.dataset.timerStartedByCall = data.timer_started_by_call;
                         activeCallTicketId = ticketId;
                         blockAllTicketInteractions(ticketId);
+                        saveActiveStates();
 
                         // Get the start button and handle timer
                         const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                        if (startButton) {
+                            // Ensure the start button is disabled and styled correctly
+                            startButton.disabled = true;
+                            startButton.classList.add('blocked');
+                        }
                         if (startButton && data.timer_started_by_call) {
                             // Get the timer elements
                             const totalTimerElement = document.getElementById('timer-' + ticketId);
@@ -2580,6 +2622,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.status === 'success') {
                     activeCallTicketId = null;
                     unblockAllTicketInteractions();
+                    saveActiveStates();
                     // Resume paused timers
                     if (data.resumed_tickets) {
                         data.resumed_tickets.forEach(resumedId => {
@@ -2594,7 +2637,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Find the call form to check if timer should be stopped
                     const callForm = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"]`);
-                    const timerStartedByCall = callForm ? callForm.dataset.timerStartedByCall === 'true' : false;
+                    const timerStartedByCall = timers[ticketId] && timers[ticketId].startedByCall;
 
                     // Handle the timer that was started by the call
                     if (timerStartedByCall) {
@@ -2680,6 +2723,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (action === 'start') {
                         activeTicketId = ticketId;
                         blockOtherTicketButtons(ticketId);
+                        saveActiveStates();
                         startFrontendTimers(
                             ticketId,
                             data.time_spent_seconds,
@@ -2690,6 +2734,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         activeTicketId = null;
                         unblockAllTicketButtons();
+                        saveActiveStates();
                         stopFrontendTimers(ticketId);
                     }
                 } else {
@@ -2707,19 +2752,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initialize active timers from localStorage with call-started state preservation
+
+   // Initialize active timers from localStorage with call-started state preservation
     const savedTimers = JSON.parse(localStorage.getItem(localStorageKey) || '{}');
     Object.entries(savedTimers).forEach(([ticketId, timerData]) => {
         if (timerData.isActive) {
-            startFrontendTimers(
-                ticketId,
-                timerData.totalAccumulatedTime,
-                timerData.individualAccumulatedTime,
-                timerData.startTime,
-                timerData.startedByCall // Preserve the call-started state
-            );
+            if (timerData.isPausedByCall) {
+                // If timer was paused, restore the paused state
+                const startButton = document.querySelector(`.start-button[data-ticket-id="${ticketId}"]`);
+                if (startButton) {
+                    startButton.textContent = 'Paused';
+                    startButton.classList.add('paused-by-call');
+                }
+                // Restore the timer in paused state
+                timers[ticketId] = {
+                    ...timerData,
+                    interval: null  // Don't start the interval for paused timers
+                };
+                // Display the paused time
+                const totalTimerElement = document.getElementById('timer-' + ticketId);
+                const individualTimerElement = document.getElementById('individual-timer-' + ticketId);
+                if (totalTimerElement) {
+                    totalTimerElement.textContent = formatTime(timerData.currentTotal);
+                }
+                if (individualTimerElement) {
+                    individualTimerElement.textContent = formatTime(timerData.currentIndividual);
+                }
+            } else {
+                // Normal timer restoration for non-paused timers
+                startFrontendTimers(
+                    ticketId,
+                    timerData.totalAccumulatedTime,
+                    timerData.individualAccumulatedTime,
+                    timerData.startTime,
+                    timerData.startedByCall
+                );
+            }
         }
     });
+    restoreActiveStates();
 });
 </script>
 
@@ -3565,7 +3636,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-    // Create a new file: static/employee/js/ticket-actions.js
 class TicketActions {
     constructor() {
         this.csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
