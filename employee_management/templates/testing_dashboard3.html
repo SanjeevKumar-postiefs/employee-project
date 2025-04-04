@@ -1232,7 +1232,6 @@ td[data-status="on_hold"] {
 </div>
 
     <!-- Ticket Table with Actions -->
-
   <div class="max-w-full mx-auto bg-white shadow-lg rounded-lg">
       <h1 class="text-2xl font-bold mb-6">Tickets Table</h1>
 
@@ -1244,6 +1243,7 @@ td[data-status="on_hold"] {
           <th class="border p-1 w-64">Subject</th>
           <th class="border p-1 w-5">Priority</th>
           <th class="border p-1 w-6">Status</th>
+          <th class="border p-1 w-3">Assigner</th>
           <th class="border p-1 w-6">Ticket Age</th>
           <th class="border p-1 w-6">Total Effort</th>
           <th class="border p-1 w-2">Indiv Effort</th>
@@ -1257,7 +1257,7 @@ td[data-status="on_hold"] {
         {% for ticket in tickets %}
           {% if ticket.status != 'closed' and ticket.status != 'resolved' %}
           <!-- Empty row for spacing -->
-          <tr><td colspan="11" class="h-1"></td></tr>
+          <tr><td colspan="12" class="h-1"></td></tr>
 
           <!-- Main Ticket Row -->
           <tr class="border border-l-4 border-blue-500 bg-gray-100 hover:bg-gray-200"
@@ -1281,6 +1281,28 @@ td[data-status="on_hold"] {
                       data-tooltip="{{ ticket.status }}">
                     {{ ticket.status|status_abbreviation }}
                 </span>
+            </td>
+            <td class="border px-2 py-1 text-center">
+                <div class="flex justify-center">
+                    <div class="relative group">
+                        {% if ticket.assigned_by and ticket.assigned_by.employeeprofile.profile_picture %}
+                            <img src="{{ ticket.assigned_by.employeeprofile.profile_picture.url }}"
+                                 alt="{{ ticket.assigned_by }}"
+                                 class="w-8 h-8 rounded-full object-cover">
+                        {% elif ticket.assigned_by %}
+                            <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm">
+                                {{ ticket.assigned_by.username|slice:":2"|upper }}
+                            </div>
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center text-white text-sm">
+                                UN
+                            </div>
+                        {% endif %}
+                        <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">
+                            {{ ticket.assigned_by|default:'Unassigned' }}
+                        </div>
+                    </div>
+                </div>
             </td>
             <td class="border px-2 py-1 text-center">
                 <span id="created-timer-{{ ticket.id }}"
@@ -1345,8 +1367,9 @@ td[data-status="on_hold"] {
 
           <!-- Expanded Row -->
           <tr class="hidden text-left bg-gray-100" id="expanded-row-{{ ticket.id }}">
-            <td colspan="11" class="py-2 px-4">
+            <td colspan="12" class="py-2 px-4">
               <a href="{% url 'assign_ticket' ticket.id %}"
+                 onclick="return checkTicketActivity(event, '{{ ticket.id }}')"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
                 Assign
               </a>
@@ -1390,7 +1413,7 @@ td[data-status="on_hold"] {
         {% endfor %}
       {% else %}
                 <tr>
-                    <td colspan="11" class="py-16">
+                    <td colspan="12" class="py-16">
                         <div class="flex flex-col items-center justify-center text-gray-500">
                             <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -1827,7 +1850,43 @@ td[data-status="on_hold"] {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
+// Make checkTicketActivity available globally
+window.checkTicketActivity = function(event, ticketId) {
+    // Prevent any action if timer/call script isn't loaded yet
+    if (!window.isTicketActive) {
+        console.error('Timer script not loaded');
+        event.preventDefault();
+        return false;
+    }
+
+    const hasActiveTimer = window.isTicketActive(ticketId);
+    const hasActiveCall = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"] button`)?.textContent === 'End Call';
+
+    if (hasActiveTimer || hasActiveCall) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Action Not Allowed',
+            text: 'Cannot assign ticket while timer is running or call is active. Please stop the timer and/or end the call first.',
+            icon: 'warning',
+            confirmButtonText: 'Ok',
+            confirmButtonColor: '#3085d6'
+        });
+        return false;
+    }
+    return true;
+};
+</script>
+
+<script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Add this right after your DOMContentLoaded event starts
+    function hasActiveTimerOrCall(ticketId) {
+        const hasActiveTimer = window.isTicketActive && window.isTicketActive(ticketId);
+        const hasActiveCall = document.querySelector(`.call-action-form[data-ticket-id="${ticketId}"] button`)?.textContent === 'End Call';
+        return hasActiveTimer || hasActiveCall;
+    }
+
     // Get CSRF token
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
@@ -1913,6 +1972,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ticketId = this.dataset.ticketId;
                 const newStatus = this.dataset.newStatus;
                 const dropdownMenu = this.closest('.dropdown-menu');
+
+                // Check for active timer or call
+                if (hasActiveTimerOrCall(ticketId)) {
+                    dropdownMenu.classList.add('hidden'); // Hide dropdown
+                    Swal.fire({
+                        title: 'Action Not Allowed',
+                        text: 'Cannot change ticket status while timer is running or call is active. Please stop the timer and/or end the call first.',
+                        icon: 'warning',
+                        confirmButtonText: 'Ok',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return;
+                }
+
 
                 // Hide dropdown
                 dropdownMenu.classList.add('hidden');
@@ -2125,6 +2198,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     let activeTicketId = null;
     let activeCallTicketId = null;
+
+    // Add this right after your variable declarations in the timer/call script
+    function isTicketActive(ticketId) {
+        const hasActiveTimer = timers[ticketId] && timers[ticketId].isActive;
+        const hasActiveCall = activeCallTicketId === ticketId;
+        return hasActiveTimer || hasActiveCall;
+    }
+
+    // Make it available globally
+    window.isTicketActive = isTicketActive;
 
     // Add CSS for disabled button styling
     const style = document.createElement('style');

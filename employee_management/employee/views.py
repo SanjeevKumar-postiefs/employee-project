@@ -564,16 +564,40 @@ def update_ticket_status(request):
             if ticket.assigned_to != request.user:
                 return JsonResponse({'success': False, 'message': 'You are not authorized to change the status of this ticket'})
 
+            # Check if ticket has active call or timer
+            has_active_call = ticket.call_in_progress
+            is_timer_active = ticket.is_active
+
             # Update the ticket status
             ticket.status = new_status
-            ticket.status_changed = timezone.now()  # Set the status change time
+            ticket.status_changed = timezone.now()
+
+            # If status is closed/resolved, end call and stop timer
+            if new_status in ['closed', 'resolved']:
+                if has_active_call:
+                    # End the active call
+                    current_call = Call.objects.filter(
+                        ticket=ticket,
+                        agent=request.user,
+                        call_end_time__isnull=True
+                    ).first()
+                    if current_call:
+                        current_call.call_end_time = timezone.now()
+                        current_call.save()
+                    ticket.end_call()
+
+                if is_timer_active:
+                    ticket.pause_work()
+
             ticket.save()
 
             return JsonResponse({
                 'success': True,
                 'new_status': new_status,
                 'new_status_label': ticket.get_status_display(),
-                'status_changed': ticket.status_changed.isoformat()  # Include the timestamp
+                'status_changed': ticket.status_changed.isoformat(),
+                'timer_stopped': is_timer_active,
+                'call_ended': has_active_call
             })
 
         except Exception as e:
