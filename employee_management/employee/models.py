@@ -247,9 +247,19 @@ class Ticket(models.Model):
             self.time_spent += work_duration
             self.individual_time_spent += work_duration
 
+            # Update or create time tracking for the current user
+            time_track, created = TicketTimeTracking.objects.get_or_create(
+                ticket=self,
+                user=self.assigned_to,
+                defaults={'time_spent': work_duration}
+            )
+            if not created:
+                time_track.time_spent += work_duration
+                time_track.save()
+
             # Reset work_start_time to stop counting time
             self.work_start_time = None
-            self.break_duration = timezone.timedelta(0)  # Reset break duration after pause
+            self.break_duration = timezone.timedelta(0)
             self.is_active = False
             self.save()
 
@@ -616,3 +626,15 @@ class OnDutyRequest(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+class TicketTimeTracking(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='time_tracks')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    time_spent = models.DurationField(default=timezone.timedelta(0))
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['ticket', 'user']  # One time tracking entry per user per ticket
+
+    def __str__(self):
+        return f"{self.user.username}'s time on ticket {self.ticket.ticket_id}"

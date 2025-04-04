@@ -4,13 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Third-party CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/phosphor-icons@1.4.2/src/css/icons.css">
+    <!-- CSS -->
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+    <link href="{% static 'employee/css/ticket-modal.css' %}" rel="stylesheet">
+    <link href="{% static 'employee/css/call-modal.css' %}" rel="stylesheet">
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-    <link href="{% static 'css/output.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/phosphor-icons@1.4.2/src/css/icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'employee/js/ticket-modal.js' %}" defer></script>
+    <script src="{% static 'employee/js/call-modal.js' %}" defer></script>
 
 
 
@@ -65,44 +72,6 @@
             top: 0;
             z-index: 40;
         }
-
-
-        .modal-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding-top: 50px;
-        z-index: 50;
-    }
-
-    .modal-content {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        width: 100%;
-        max-width: 800px;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-
-    #createTicketModal {
-        transition: opacity 0.3s ease-in-out;
-    }
-
-    #createTicketModal.hidden {
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    #createTicketModal:not(.hidden) {
-        opacity: 1;
-    }
     </style>
 </head>
 <body>
@@ -141,6 +110,231 @@
             </form>
         </div>
     </div>
+
+    <!-- Client Call Modal -->
+<div id="clientCallModal" class="hidden fixed inset-0 z-50 overflow-hidden backdrop-blur-sm bg-black/30">
+    <div class="relative w-full max-w-2xl mx-auto my-10 rounded-xl shadow-2xl">
+        <!-- Static Header - Always visible -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 rounded-t-xl sticky top-0 z-10">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="p-1.5 bg-white/20 rounded-lg">
+                        <i class="ph ph-phone text-white text-xl"></i>
+                    </div>
+                    <h5 class="text-lg font-semibold text-white">Client Call</h5>
+                </div>
+                <button type="button" onclick="closeModal()"
+                        class="text-white/80 hover:text-white transition-colors">
+                    <i class="ph ph-x text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div class="bg-white overflow-y-auto max-h-[calc(90vh-4rem)]">
+            <div class="p-5">
+            <!-- Query Type Selection -->
+            <div class="mb-6">
+                <h5 class="text-base font-medium text-gray-700 mb-3 text-center">Query Type</h5>
+                <div class="flex justify-center space-x-6">
+                    <button type="button" class="query-option group" onclick="showSection('new')">
+                        <div class="flex items-center space-x-2 p-2 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-blue-500 flex items-center justify-center">
+                                <div class="query-circle w-3 h-3 rounded-full bg-transparent transition-all"></div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">New Query</span>
+                        </div>
+                    </button>
+                    <button type="button" class="query-option group" onclick="showSection('existing')">
+                        <div class="flex items-center space-x-2 p-2 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all">
+                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-blue-500 flex items-center justify-center">
+                                <div class="query-circle w-3 h-3 rounded-full bg-transparent transition-all"></div>
+                            </div>
+                            <span class="text-sm font-medium text-gray-700">Existing Query</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Forms Container -->
+            <div class="mt-4">
+                <!-- New Query Form -->
+                <div id="newQuerySection" class="query-section hidden">
+                    <form id="newQueryForm" method="post" class="space-y-4">
+                        {% csrf_token %}
+
+                        <!-- Create Ticket Toggle -->
+                        <div class="flex items-center space-x-4 p-2 bg-gray-50 rounded-lg">
+                            <span class="text-sm font-medium text-gray-700 flex-shrink-0">
+                                Need to create ticket?
+                            </span>
+                            <div class="relative">
+                                <label class="ticket-toggle">
+                                    <input type="checkbox" id="create_ticket" name="create_ticket" class="sr-only">
+                                    <span class="ticket-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Form Fields -->
+                        <div class="space-y-4">
+                            <!-- Primary Email -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Primary Email (LEVELONE)
+                                </label>
+                                <input type="email" value="levelone@example.com" readonly
+                                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg
+                                              text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <!-- Client Name -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Client Name
+                                </label>
+                                <input type="text" id="client_name" name="client_name" required
+                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Enter client name">
+                            </div>
+
+                            <!-- Email Fields -->
+                            <div id="emailFields" class="hidden space-y-4">
+                                <div class="form-group">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Client Email
+                                    </label>
+                                    <input type="email" id="client_email" name="client_email"
+                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           placeholder="Enter client email">
+                                </div>
+                                <div class="form-group">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        CC Email
+                                    </label>
+                                    <input type="email" id="cc_email" name="cc_email"
+                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           placeholder="Enter CC email (optional)">
+                                </div>
+                            </div>
+
+                            <!-- Note -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Note
+                                </label>
+                                <textarea id="note" name="note" rows="4" required
+                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Enter note about the query"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="flex justify-end pt-3">
+                            <button type="submit" id="newQuerySubmitBtn"
+                                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg
+                                           hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Existing Query Form -->
+                <div id="existingQuerySection" class="query-section hidden">
+                    <form id="existingQueryForm" method="post" class="space-y-4">
+                        {% csrf_token %}
+
+                        <!-- Ticket ID Search -->
+                        <div class="form-group">
+                            <label for="ticket-id" class="block text-sm font-medium text-gray-700 mb-1">
+                                Ticket ID
+                            </label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="ticket-id" name="ticket_id"
+                                       class="flex-1 px-3 py-2 border border-gray-200 rounded-lg
+                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Enter ticket ID">
+                                <button type="button" id="search-ticket"
+                                        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg
+                                               hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all">
+                                    Search
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Details (Initially Hidden) -->
+                        <div id="ticket-details" class="hidden space-y-4">
+                            <h6 class="text-sm font-medium text-gray-700">Ticket Details</h6>
+
+                            <!-- Subject -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Subject
+                                </label>
+                                <input type="text" id="subject" name="subject" readonly
+                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <!-- Assigned To -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Assigned To
+                                </label>
+                                <select id="assigned-to" name="assigned_to"
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+
+                            <!-- Priority -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Priority
+                                </label>
+                                <select id="priority" name="priority"
+                                        class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                    <option value="urgent">Urgent</option>
+                                </select>
+                            </div>
+
+                            <!-- Note -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Note
+                                </label>
+                                <textarea id="client_call_note" name="client_call_note" rows="4"
+                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Enter note about the ticket"></textarea>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="flex justify-end pt-3">
+                                <button type="submit"
+                                        class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg
+                                               hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-all">
+                                    Update Ticket
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
 
 <script>
 function handleLogout(event) {
@@ -206,118 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
         logoutLink.addEventListener('click', handleLogout);
     }
 });
-</script>
-<script>
-let formLoaded = false; // Track if form has been loaded
-
-function openCreateTicketModal() {
-    const modal = document.getElementById('createTicketModal');
-
-    // Only fetch form content if it hasn't been loaded or was cleared
-    if (!formLoaded) {
-        fetch('/create-ticket/', {
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('createTicketForm').innerHTML = data.html;
-            initializeFormHandlers(data.employees);
-            formLoaded = true;
-        });
-    }
-
-    modal.classList.remove('hidden');
-}
-
-function closeCreateTicketModal() {
-    const modal = document.getElementById('createTicketModal');
-    modal.classList.add('hidden');
-
-    // Clear the form and reset formLoaded flag
-    const form = document.getElementById('createTicketForm');
-    if (form) {
-        form.reset();
-        const assignedToSelect = document.getElementById('id_assigned_to');
-        if (assignedToSelect) {
-            assignedToSelect.innerHTML = '<option value="">Assign to</option>';
-        }
-        formLoaded = false; // Reset the form loaded flag
-    }
-}
-
-// Initialize modal events when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('createTicketModal');
-
-    // Handle outside clicks
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) {
-            // Just hide the modal without clearing
-            this.classList.add('hidden');
-        }
-    });
-
-    // Ensure click events inside the modal don't trigger the outside click handler
-    modal.querySelector('.relative').addEventListener('click', function(e) {
-        e.stopPropagation();
-    });
-});
-
-function initializeFormHandlers(employees) {
-    const form = document.getElementById('createTicketForm');
-    const groupSelect = document.getElementById('id_group');
-    const assignedToSelect = document.getElementById('id_assigned_to');
-
-    if (groupSelect && assignedToSelect) {
-        groupSelect.addEventListener('change', function() {
-            const selectedGroup = this.value;
-            populateUsersByGroup(selectedGroup, employees, assignedToSelect);
-        });
-    }
-
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = new FormData(this);
-        fetch('/create-ticket/', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: 'Ticket created successfully',
-                    timer: 1500
-                }).then(() => {
-                    closeCreateTicketModal();
-                    window.location.reload();
-                });
-            }
-        });
-    });
-}
-
-function populateUsersByGroup(group, employees, assignedToSelect) {
-    assignedToSelect.innerHTML = '<option value="">Assign to</option>';
-    employees.forEach(function(employee) {
-        if (employee.employeeprofile__skill === group) {
-            const option = document.createElement('option');
-            option.value = employee.id;
-            option.textContent = employee.username;
-            assignedToSelect.appendChild(option);
-        }
-    });
-}
 </script>
 </body>
 </html>

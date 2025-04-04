@@ -3,6 +3,7 @@
 {% load custom_filters %}
 {% load timedelta_filters %}
 {% load duration_filters %}
+{% load ticket_tags %}
 {% csrf_token %}
 {% block content %}
 
@@ -539,172 +540,7 @@ td[data-status="on_hold"] {
 /* Acknowledge Button Styles */
 
 
-/* Client Call Modal Styles */
-#clientCallModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 50px;
-    z-index: 50;
-    transition: opacity 0.3s ease-in-out;
-}
 
-#clientCallModal.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-#clientCallModal:not(.hidden) {
-    opacity: 1;
-}
-
-/* Modal styling */
-#clientCallModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 50px;
-    z-index: 50;
-    transition: opacity 0.3s ease-in-out;
-}
-
-#clientCallModal.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-#clientCallModal:not(.hidden) {
-    opacity: 1;
-}
-
-/* Modal Content Container */
-#clientCallModal .relative {
-    background: white;
-    width: 100%;
-    max-width: 800px;
-    max-height: 90vh;
-    border-radius: 8px;
-    animation: modalFadeIn 0.3s ease-out;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Scrollable Content Area */
-#clientCallModal .overflow-y-auto {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
-}
-
-#clientCallModal .overflow-y-auto::-webkit-scrollbar {
-    width: 6px;
-}
-
-#clientCallModal .overflow-y-auto::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-#clientCallModal .overflow-y-auto::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.5);
-    border-radius: 3px;
-}
-
-/* Animation */
-@keyframes modalFadeIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    @apply ring-2 ring-blue-500 border-blue-500 outline-none;
-}
-
-.query-option:hover .query-circle {
-    @apply scale-105 transform transition-transform;
-}
-
-.query-option.active .query-circle {
-    @apply bg-blue-500;
-}
-
-.peer:checked + div {
-    @apply transition-all duration-300;
-}
-
-.form-group input:hover,
-.form-group textarea:hover {
-    @apply border-gray-300;
-}
-
-/* Ticket Toggle Switch Styles(Need to create ticket) */
-.ticket-toggle {
-    position: relative;
-    display: inline-block;
-    width: 32px;
-    height: 18px;
-}
-
-.ticket-toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.ticket-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #e5e7eb;
-    transition: all 0.3s ease;
-    border-radius: 18px;
-}
-
-.ticket-slider:before {
-    position: absolute;
-    content: "";
-    height: 14px;
-    width: 14px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    transition: all 0.3s ease;
-    border-radius: 50%;
-}
-
-/* Checked state */
-.ticket-toggle input:checked + .ticket-slider {
-    background-color: #22c55e;
-}
-
-.ticket-toggle input:checked + .ticket-slider:before {
-    transform: translateX(14px);
-}
-
-/* Hover effect */
-.ticket-toggle:hover .ticket-slider {
-    background-color: #d1d5db;
-}
-
-.ticket-toggle input:checked:hover + .ticket-slider {
-    background-color: #16a34a;
-}
-
-/* Client Call Modal Styles */
 
 
 
@@ -1298,7 +1134,7 @@ td[data-status="on_hold"] {
                                 UN
                             </div>
                         {% endif %}
-                        <div class="hidden group-hover:block absolute bottom-full left-1/2 transform -translate-x-1/2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">
+                        <div class="hidden group-hover:block absolute bottom-full top-0 ml-4 px-4 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-10">
                             {{ ticket.assigned_by|default:'Unassigned' }}
                         </div>
                     </div>
@@ -1328,18 +1164,22 @@ td[data-status="on_hold"] {
                 <span id="individual-timer-{{ ticket.id }}"
                       class="timer-span"
                       data-ticket-id="{{ ticket.id }}">
-                    {{ ticket.individual_time_spent|format_duration }}
+                    {% if ticket.assigned_to == request.user %}
+                        {{ ticket.individual_time_spent|format_duration }}
+                    {% else %}
+                        {{ ticket|get_user_time_spent:request.user|format_duration }}
+                    {% endif %}
                 </span>
             </td>
             <td class="border px-2 py-1 text-center">
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
-                <button class="start-button" data-ticket-id="{{ ticket.id }}">
+                <button class="start-button" data-ticket-id="{{ ticket.id }}" onclick="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'start')">
                     {% if ticket.is_active %}Stop{% else %}Start{% endif %}
                 </button>
             </td>
             <td class="border px-2 py-1 text-center" style="vertical-align: middle;">
                 <form method="post" action="{% url 'start_end_call' ticket.id %}"
-                      class="call-action-form" data-ticket-id="{{ ticket.id }}">
+                      class="call-action-form" data-ticket-id="{{ ticket.id }}" onsubmit="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'call')">
                     {% csrf_token %}
                     {% if ticket.call_in_progress %}
                         <input type="hidden" name="action" value="end_call">
@@ -1369,7 +1209,7 @@ td[data-status="on_hold"] {
           <tr class="hidden text-left bg-gray-100" id="expanded-row-{{ ticket.id }}">
             <td colspan="12" class="py-2 px-4">
               <a href="{% url 'assign_ticket' ticket.id %}"
-                 onclick="return checkTicketActivity(event, '{{ ticket.id }}')"
+                 onclick="return (checkTicketActivity(event, '{{ ticket.id }}') && window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'assign'))"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
                 Assign
               </a>
@@ -1379,6 +1219,7 @@ td[data-status="on_hold"] {
             type="button"
             id="statusDropdown-{{ ticket.id }}"
             data-ticket-id="{{ ticket.id }}"
+            onclick="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'status')"
             aria-expanded="false">
         Change Status
     </button>
@@ -1399,11 +1240,13 @@ td[data-status="on_hold"] {
 </div>
 
               <a href="{% url 'view_call_details' ticket.id %}"
+                 onclick="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'details')"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
                 Call Details
               </a>
 
                 <a href="{% url 'view_ticket_notes_all' ticket.id %}"
+                   onclick="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'notes')"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
                 all notes
               </a>
@@ -1523,233 +1366,6 @@ td[data-status="on_hold"] {
 </div>
 
 
-
-
-<!-- Client Call Modal -->
-<div id="clientCallModal" class="hidden fixed inset-0 z-50 overflow-hidden backdrop-blur-sm bg-black/30">
-    <div class="relative w-full max-w-2xl mx-auto my-10 rounded-xl shadow-2xl">
-        <!-- Static Header - Always visible -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 rounded-t-xl sticky top-0 z-10">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-2">
-                    <div class="p-1.5 bg-white/20 rounded-lg">
-                        <i class="ph ph-phone text-white text-xl"></i>
-                    </div>
-                    <h5 class="text-lg font-semibold text-white">Client Call</h5>
-                </div>
-                <button type="button" onclick="closeModal()"
-                        class="text-white/80 hover:text-white transition-colors">
-                    <i class="ph ph-x text-xl"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- Scrollable Content -->
-        <div class="bg-white overflow-y-auto max-h-[calc(90vh-4rem)]">
-            <div class="p-5">
-            <!-- Query Type Selection -->
-            <div class="mb-6">
-                <h5 class="text-base font-medium text-gray-700 mb-3 text-center">Query Type</h5>
-                <div class="flex justify-center space-x-6">
-                    <button type="button" class="query-option group" onclick="showSection('new')">
-                        <div class="flex items-center space-x-2 p-2 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all">
-                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-blue-500 flex items-center justify-center">
-                                <div class="query-circle w-3 h-3 rounded-full bg-transparent transition-all"></div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700">New Query</span>
-                        </div>
-                    </button>
-                    <button type="button" class="query-option group" onclick="showSection('existing')">
-                        <div class="flex items-center space-x-2 p-2 rounded-lg border-2 border-gray-200 hover:border-blue-500 transition-all">
-                            <div class="w-5 h-5 rounded-full border-2 border-gray-300 group-hover:border-blue-500 flex items-center justify-center">
-                                <div class="query-circle w-3 h-3 rounded-full bg-transparent transition-all"></div>
-                            </div>
-                            <span class="text-sm font-medium text-gray-700">Existing Query</span>
-                        </div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Forms Container -->
-            <div class="mt-4">
-                <!-- New Query Form -->
-                <div id="newQuerySection" class="query-section hidden">
-                    <form id="newQueryForm" method="post" class="space-y-4">
-                        {% csrf_token %}
-
-                        <!-- Create Ticket Toggle -->
-                        <div class="flex items-center space-x-4 p-2 bg-gray-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-700 flex-shrink-0">
-                                Need to create ticket?
-                            </span>
-                            <div class="relative">
-                                <label class="ticket-toggle">
-                                    <input type="checkbox" id="create_ticket" name="create_ticket" class="sr-only">
-                                    <span class="ticket-slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Form Fields -->
-                        <div class="space-y-4">
-                            <!-- Primary Email -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Primary Email (LEVELONE)
-                                </label>
-                                <input type="email" value="levelone@example.com" readonly
-                                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg
-                                              text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-
-                            <!-- Client Name -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Client Name
-                                </label>
-                                <input type="text" id="client_name" name="client_name" required
-                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       placeholder="Enter client name">
-                            </div>
-
-                            <!-- Email Fields -->
-                            <div id="emailFields" class="hidden space-y-4">
-                                <div class="form-group">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        Client Email
-                                    </label>
-                                    <input type="email" id="client_email" name="client_email"
-                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="Enter client email">
-                                </div>
-                                <div class="form-group">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        CC Email
-                                    </label>
-                                    <input type="email" id="cc_email" name="cc_email"
-                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                                  focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                           placeholder="Enter CC email (optional)">
-                                </div>
-                            </div>
-
-                            <!-- Note -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Note
-                                </label>
-                                <textarea id="note" name="note" rows="4" required
-                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder="Enter note about the query"></textarea>
-                            </div>
-                        </div>
-
-                        <!-- Submit Button -->
-                        <div class="flex justify-end pt-3">
-                            <button type="submit" id="newQuerySubmitBtn"
-                                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg
-                                           hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all">
-                                Save
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Existing Query Form -->
-                <div id="existingQuerySection" class="query-section hidden">
-                    <form id="existingQueryForm" method="post" class="space-y-4">
-                        {% csrf_token %}
-
-                        <!-- Ticket ID Search -->
-                        <div class="form-group">
-                            <label for="ticket-id" class="block text-sm font-medium text-gray-700 mb-1">
-                                Ticket ID
-                            </label>
-                            <div class="flex space-x-2">
-                                <input type="text" id="ticket-id" name="ticket_id"
-                                       class="flex-1 px-3 py-2 border border-gray-200 rounded-lg
-                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                       placeholder="Enter ticket ID">
-                                <button type="button" id="search-ticket"
-                                        class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg
-                                               hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all">
-                                    Search
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Ticket Details (Initially Hidden) -->
-                        <div id="ticket-details" class="hidden space-y-4">
-                            <h6 class="text-sm font-medium text-gray-700">Ticket Details</h6>
-
-                            <!-- Subject -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Subject
-                                </label>
-                                <input type="text" id="subject" name="subject" readonly
-                                       class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-
-                            <!-- Assigned To -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Assigned To
-                                </label>
-                                <select id="assigned-to" name="assigned_to"
-                                        class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <!-- Options will be populated dynamically -->
-                                </select>
-                            </div>
-
-                            <!-- Priority -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Priority
-                                </label>
-                                <select id="priority" name="priority"
-                                        class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="low">Low</option>
-                                    <option value="medium">Medium</option>
-                                    <option value="high">High</option>
-                                    <option value="urgent">Urgent</option>
-                                </select>
-                            </div>
-
-                            <!-- Note -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Note
-                                </label>
-                                <textarea id="client_call_note" name="client_call_note" rows="4"
-                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder="Enter note about the ticket"></textarea>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div class="flex justify-end pt-3">
-                                <button type="submit"
-                                        class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg
-                                               hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition-all">
-                                    Update Ticket
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-</div>
-
 <br><br>
 <!-- Call Details Table -->
 <div class="relative max-w-full mx-auto bg-white p-6 shadow-lg rounded-lg overflow-x-auto my-2">
@@ -1836,18 +1452,16 @@ td[data-status="on_hold"] {
         </div>
     </div>
 </div>
-
-
 </div>
 </div>
 
 
 
 
-<!-- Bootstrap JS (including Popper.js) -->
+
     <!-- Include Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
 // Make checkTicketActivity available globally
@@ -2574,9 +2188,15 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const ticketId = this.dataset.ticketId;
+
+            // Check acknowledgment first
+            if (!window.ticketActions.checkAcknowledgment(ticketId, 'call')) {
+                return;
+            }
+
             const formData = new FormData(this);
             const actionUrl = this.getAttribute('action');
-            const ticketId = this.dataset.ticketId;
 
             fetch(actionUrl, {
                 method: 'POST',
@@ -2777,6 +2397,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const ticketId = this.dataset.ticketId;
 
+            // Check acknowledgment first
+            if (!window.ticketActions.checkAcknowledgment(ticketId, 'start')) {
+                return;
+            }
+
             // Block interaction if timer was started by call
             if (timers[ticketId] && timers[ticketId].startedByCall) {
                 alert('This timer was started by a call and can only be stopped by ending the call.');
@@ -2877,493 +2502,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Handle Note form submission via AJAX
-    document.getElementById('noteForm').addEventListener('submit', function(e) {
-        e.preventDefault();  // Prevent default form submission
 
-        const formData = new FormData(this);
-
-        fetch('{% url "save_call_note" %}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRFToken': formData.get('csrfmiddlewaretoken'),
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);  // Show success message
-                $('#clientCallModal').modal('hide');  // Close modal
-            } else {
-                alert(data.message);  // Show error message
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    });
-});
-</script>
-
-<script>
-// Global variables
-let callStartTime = null;
-const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-// Modal Control Functions
-function openModal() {
-    const modal = document.getElementById('clientCallModal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        startNewCall();
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('clientCallModal');
-    if (modal) {
-        modal.classList.add('hidden');
-        document.body.style.overflow = 'auto';
-
-        // Reset forms and sections
-        resetForms();
-        resetModal();
-
-        endNewCall();
-    }
-}
-
-// Add this new function to handle form resets
-function resetForms() {
-    // Reset New Query Form
-    const newQueryForm = document.getElementById('newQueryForm');
-    if (newQueryForm) {
-        newQueryForm.reset();
-
-        // Reset create ticket toggle and email fields
-        const createTicketToggle = document.getElementById('create_ticket');
-        const emailFields = document.getElementById('emailFields');
-        if (createTicketToggle && emailFields) {
-            createTicketToggle.checked = false;
-            emailFields.classList.add('hidden');
-        }
-
-        // Reset submit button
-        const submitBtn = document.getElementById('newQuerySubmitBtn');
-        if (submitBtn) {
-            submitBtn.textContent = 'Save';
-            submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-            submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        }
-    }
-
-    // Reset Existing Query Form
-    const existingQueryForm = document.getElementById('existingQueryForm');
-    if (existingQueryForm) {
-        existingQueryForm.reset();
-
-        // Hide ticket details
-        const ticketDetails = document.getElementById('ticket-details');
-        if (ticketDetails) {
-            ticketDetails.classList.add('hidden');
-        }
-    }
-
-    // Hide both sections
-    const newQuerySection = document.getElementById('newQuerySection');
-    const existingQuerySection = document.getElementById('existingQuerySection');
-    if (newQuerySection) newQuerySection.classList.add('hidden');
-    if (existingQuerySection) existingQuerySection.classList.add('hidden');
-}
-
-// Add this new function to handle modal reset
-function resetModal() {
-    // Hide both form sections
-    const newQuerySection = document.getElementById('newQuerySection');
-    const existingQuerySection = document.getElementById('existingQuerySection');
-    if (newQuerySection) newQuerySection.classList.add('hidden');
-    if (existingQuerySection) existingQuerySection.classList.add('hidden');
-
-    // Reset circles
-    document.querySelectorAll('.query-circle').forEach(circle => {
-        circle.classList.remove('bg-blue-500');
-    });
-
-    // Reset all form inputs
-    const allForms = document.querySelectorAll('form');
-    allForms.forEach(form => form.reset());
-
-    // Reset create ticket toggle and email fields
-    const createTicketToggle = document.getElementById('create_ticket');
-    const emailFields = document.getElementById('emailFields');
-    if (createTicketToggle && emailFields) {
-        createTicketToggle.checked = false;
-        emailFields.classList.add('hidden');
-    }
-
-    // Reset submit button
-    const submitBtn = document.getElementById('newQuerySubmitBtn');
-    if (submitBtn) {
-        submitBtn.textContent = 'Save';
-        submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-    }
-
-    // Hide ticket details
-    const ticketDetails = document.getElementById('ticket-details');
-    if (ticketDetails) {
-        ticketDetails.classList.add('hidden');
-    }
-}
-
-// Add this to prevent form submission on enter key for ticket search
-document.addEventListener('DOMContentLoaded', function() {
-    const ticketIdInput = document.getElementById('ticket-id');
-    if (ticketIdInput) {
-        ticketIdInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                document.getElementById('search-ticket')?.click();
-            }
-        });
-    }
-});
-
-function showSection(type) {
-    const newQuerySection = document.getElementById('newQuerySection');
-    const existingQuerySection = document.getElementById('existingQuerySection');
-
-    // Reset all circles
-    document.querySelectorAll('.query-circle').forEach(circle => {
-        circle.classList.remove('bg-blue-500');
-    });
-
-    // Get clicked button's circle and activate it
-    const clickedButton = event.currentTarget;
-    const circle = clickedButton.querySelector('.query-circle');
-    circle.classList.add('bg-blue-500');
-
-    // Show/hide sections
-    if (newQuerySection) newQuerySection.style.display = type === 'new' ? 'block' : 'none';
-    if (existingQuerySection) existingQuerySection.style.display = type === 'existing' ? 'block' : 'none';
-}
-
-// Timer Functions
-function startNewCall() {
-    fetch('/start-new-call/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            callStartTime = new Date(data.call_start_time);
-            console.log('Call started successfully');
-        }
-    })
-    .catch(error => console.error('Error starting call:', error));
-}
-
-function endNewCall() {
-    if (!callStartTime) return;
-
-    fetch('/end-new-call/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            callStartTime = null;
-            console.log('Call ended successfully');
-        }
-    })
-    .catch(error => console.error('Error ending call:', error));
-}
-
-// Table Functions
-function loadCallQueries() {
-    fetch('/get-call-queries/')
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById('newQueriesBody');
-            tbody.innerHTML = '';
-
-            if (!data.new_queries || data.new_queries.length === 0) {
-                // Add empty state row
-                const emptyRow = document.createElement('tr');
-                emptyRow.className = "empty-state-row";
-                emptyRow.innerHTML = `
-                    <td colspan="5" class="py-16">
-                        <div class="flex flex-col items-center justify-center text-gray-500">
-                            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                            </svg>
-                            <p class="text-xl font-semibold mb-2">No Call Details Available</p>
-                            <p class="text-sm">There are no recent calls to display.</p>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(emptyRow);
-            } else {
-                // Add data rows
-                data.new_queries.forEach(query => {
-                    const row = document.createElement('tr');
-                    row.className = "border-b border-gray-200 hover:bg-gray-100";
-                    row.innerHTML = `
-                        <th scope="row" class="px-6 py-4 w-4 font-medium whitespace-nowrap border">
-                            ${query.client_name}
-                        </th>
-                        <td class="px-6 py-4 w-5 text-center border">
-                            ${query.client_email || '-'}
-                        </td>
-                        <td class="px-6 py-4 w-4 text-center border">
-                            ${query.call_duration || '-'}
-                        </td>
-                        <td class="px-6 py-4 w-4 text-center border">
-                            ${query.ticket_created ? '✅' : '❌'}
-                        </td>
-                        <td class="px-6 py-4 text-left border note-cell">
-                            <div class="truncate-text" title="${query.note}">
-                                ${query.note}
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
-        })
-        .catch(error => {
-            console.error('Error loading queries:', error);
-            // Show error state
-            const tbody = document.getElementById('newQueriesBody');
-            tbody.innerHTML = `
-                <tr class="empty-state-row">
-                    <td colspan="5" class="py-16">
-                        <div class="flex flex-col items-center justify-center text-gray-500">
-                            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <p class="text-xl font-semibold mb-2 text-red-500">Error Loading Call Details</p>
-                            <p class="text-sm">Please try again later or contact support.</p>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-}
-
-// Main initialization
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize elements
-    const modal = document.getElementById('clientCallModal');
-    const createTicketToggle = document.getElementById('create_ticket');
-    const emailFields = document.getElementById('emailFields');
-    const searchButton = document.getElementById('search-ticket');
-
-    // Modal event listeners
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
-    });
-
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                // Don't reset completely when clicking outside
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }
-        });
-    }
-
-    // Create ticket toggle handler
-    if (createTicketToggle) {
-        createTicketToggle.addEventListener('change', function() {
-            // Update the submit button
-            const submitBtn = document.getElementById('newQuerySubmitBtn');
-            if (submitBtn) {
-                submitBtn.textContent = this.checked ? 'Send' : 'Save';
-                // Update button colors
-                if (this.checked) {
-                    submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    submitBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-                } else {
-                    submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                }
-            }
-
-            // Toggle email fields
-            if (emailFields) {
-                if (this.checked) {
-                    emailFields.classList.remove('hidden');
-                    const clientEmailInput = document.getElementById('client_email');
-                    if (clientEmailInput) {
-                        clientEmailInput.required = true;
-                    }
-                } else {
-                    emailFields.classList.add('hidden');
-                    const clientEmailInput = document.getElementById('client_email');
-                    if (clientEmailInput) {
-                        clientEmailInput.required = false;
-                        clientEmailInput.value = '';
-                        document.getElementById('cc_email').value = '';
-                    }
-                }
-            }
-
-            // Log state for debugging
-            console.log('Toggle state:', this.checked);
-            console.log('Email fields visibility:', !emailFields.classList.contains('hidden'));
-        });
-    }
-
-    // Search ticket handler
-    if (searchButton) {
-        searchButton.addEventListener('click', function() {
-            const ticketId = document.getElementById('ticket-id').value;
-            if (!ticketId) {
-                alert('Please enter a ticket ID');
-                return;
-            }
-
-            // Show loading state
-            this.disabled = true;
-            this.innerHTML = `
-                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>`;
-
-            fetch(`/tickets/search/${ticketId}/`, {
-                method: 'GET',
-                headers: { 'X-CSRFToken': csrfToken }
-            })
-            .then(response => response.json())
-            .then(data => {
-                this.disabled = false;
-                this.textContent = 'Search';
-
-                const ticketDetails = document.getElementById('ticket-details');
-                if (data.success) {
-                    ticketDetails.style.display = 'block';
-                    document.getElementById('subject').value = data.ticket.subject;
-                    document.getElementById('priority').value = data.ticket.priority;
-
-                    const assignedToDropdown = document.getElementById('assigned-to');
-                    assignedToDropdown.innerHTML = '';
-                    data.users.forEach(user => {
-                        const option = document.createElement('option');
-                        option.value = user.id;
-                        option.textContent = user.username;
-                        option.selected = user.id == data.ticket.assigned_to;
-                        assignedToDropdown.appendChild(option);
-                    });
-
-                    document.getElementById('client_call_note').value = data.ticket.note || '';
-                } else {
-                    alert('Ticket not found');
-                    ticketDetails.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                this.disabled = false;
-                this.textContent = 'Search';
-                alert('Error searching for ticket');
-            });
-        });
-    }
-
-    // Form submission handlers
-    document.getElementById('newQueryForm')?.addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        try {
-            const endCallResponse = await fetch('/end-new-call/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json());
-
-            if (endCallResponse.status === 'success') {
-                const formData = new FormData(this);
-                if (endCallResponse.call_duration) {
-                    formData.append('call_duration_seconds', endCallResponse.call_duration);
-                }
-
-                const saveResponse = await fetch('/save-new-call-query/', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrfToken },
-                    body: formData
-                }).then(response => response.json());
-
-                if (saveResponse.status === 'success') {
-                    alert('Call query saved successfully');
-                    closeModal();
-                    loadCallQueries();
-                    window.location.reload();
-                } else {
-                    throw new Error('Failed to save call query');
-                }
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error saving call query');
-        }
-    });
-
-    document.getElementById('existingQueryForm')?.addEventListener('submit', async function(e) {
-        e.preventDefault();
-
-        try {
-            const endCallResponse = await fetch('/end-new-call/', {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'Content-Type': 'application/json'
-                }
-            }).then(response => response.json());
-
-            const formData = new FormData(this);
-            if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
-                formData.append('call_duration_seconds', endCallResponse.call_duration);
-            }
-
-            const ticketId = document.getElementById('ticket-id').value;
-            const updateResponse = await fetch(`/tickets/update/${ticketId}/`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrfToken },
-                body: formData
-            }).then(response => response.json());
-
-            if (updateResponse.success) {
-                alert('Ticket updated successfully');
-                closeModal();
-                window.location.reload();
-            } else {
-                throw new Error('Failed to update ticket');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error updating ticket');
-        }
-    });
-
-    // Initialize the queries table
-    loadCallQueries();
-});
-</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -3723,6 +2862,63 @@ class TicketActions {
     constructor() {
         this.csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
         this.initializeAcceptButtons();
+        this.initializeActionChecks();
+    }
+
+    initializeActionChecks() {
+        // Start/Stop button
+        document.querySelectorAll('.start-button').forEach(button => {
+            const originalClick = button.onclick;
+            button.onclick = (e) => {
+                if (!this.checkAcknowledgment(button.dataset.ticketId, 'start')) {
+                    e.preventDefault();
+                    return false;
+                }
+                return originalClick ? originalClick(e) : true;
+            };
+        });
+
+        // Call form
+        document.querySelectorAll('.call-action-form').forEach(form => {
+            const originalSubmit = form.onsubmit;
+            form.onsubmit = (e) => {
+                if (!this.checkAcknowledgment(form.dataset.ticketId, 'call')) {
+                    e.preventDefault();
+                    return false;
+                }
+                return originalSubmit ? originalSubmit(e) : true;
+            };
+        });
+
+        // Status change items
+        document.querySelectorAll('.change-status').forEach(item => {
+            const originalClick = item.onclick;
+            item.onclick = (e) => {
+                if (!this.checkAcknowledgment(item.dataset.ticketId, 'status')) {
+                    e.preventDefault();
+                    return false;
+                }
+                return originalClick ? originalClick(e) : true;
+            };
+        });
+    }
+
+    checkAcknowledgment(ticketId, action) {
+        const ticket = document.querySelector(`tr[data-ticket-id="${ticketId}"]`);
+        const isAssignedUser = ticket.querySelector('.acknowledge-button') !== null;
+        const isAcknowledged = ticket.querySelector('.text-success') !== null;
+
+        if (isAssignedUser && !isAcknowledged) {
+            Swal.fire({
+                title: 'Action Not Allowed',
+                text: 'Please accept the ticket before performing any actions.',
+                icon: 'warning',
+                confirmButtonText: 'Ok',
+                confirmButtonColor: '#3085d6'
+            });
+            return false;
+        }
+        return true;
     }
 
     initializeAcceptButtons() {

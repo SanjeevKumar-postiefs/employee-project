@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.db.models import Q
 from .decorators import admin_required
 from .forms import UserEditForm,EmployeeProfileForm,TicketForm,OnDutyRequestForm
-from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,UnifiedNotification,WorkReport,TicketNote,OnDutyRequest,SKILL_CHOICES
+from .models import EmployeeProfile,Ticket,DailyActivity,SessionActivity,CallNote,Call,ClientCallNote,NewCallQuery,UnifiedNotification,WorkReport,TicketNote,OnDutyRequest,SKILL_CHOICES,TicketTimeTracking
 from django.http import HttpResponseForbidden, JsonResponse
 from django.db.models import Max
 from django.contrib import auth, messages
@@ -491,8 +491,17 @@ def assign_ticket(request, ticket_id):
             new_assigned_user_id = request.POST.get('assigned_user')
             new_assigned_user = get_object_or_404(User, id=new_assigned_user_id)
             old_assigned_user = ticket.assigned_to
-            if old_assigned_user != new_assigned_user:
-                ticket.individual_time_spent = timezone.timedelta(0)
+
+            # Get previous time spent by the new assignee (if any)
+            previous_time = TicketTimeTracking.objects.filter(
+                ticket=ticket,
+                user=new_assigned_user
+            ).first()
+
+            # Set individual_time_spent to previous time or 0
+            ticket.individual_time_spent = previous_time.time_spent if previous_time else timezone.timedelta(0)
+
+            # Save the note before clearing it
             if form.cleaned_data.get('note'):
                 TicketNote.objects.create(
                     ticket=ticket,
@@ -500,6 +509,8 @@ def assign_ticket(request, ticket_id):
                     note_text=form.cleaned_data['note'],
                     created_by=request.user
                 )
+                # Clear the note after creating the TicketNote
+                ticket.note = ''
 
             # Reset acknowledgment
             ticket.reset_acknowledgment()
@@ -533,7 +544,20 @@ def assign_ticket(request, ticket_id):
             return redirect('dashboard')
 
     else:
-        form = TicketForm(instance=ticket, is_assign=True)
+        # Create a copy of the ticket data without the note
+        ticket_data = {
+            'ticket_id': ticket.ticket_id,
+            'subject': ticket.subject,
+            'status': ticket.status,
+            'group': ticket.group,
+            'environment': ticket.environment,
+            'priority': ticket.priority,
+            'assigned_to': ticket.assigned_to,
+            # Explicitly set note to empty
+            'note': ''
+        }
+        # Initialize form with modified ticket data
+        form = TicketForm(initial=ticket_data, instance=ticket, is_assign=True)
 
     logged_in_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
 
@@ -1388,7 +1412,6 @@ def search_ticket(request, ticket_id):
                 "subject": ticket.subject,
                 "assigned_to": ticket.assigned_to.id if ticket.assigned_to else None,
                 "priority": ticket.priority,
-                "note": ticket.note  # Ensure the note is included in the response
             }
 
             # Prepare users data for the dropdown

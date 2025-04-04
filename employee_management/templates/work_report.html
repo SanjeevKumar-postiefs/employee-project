@@ -114,10 +114,12 @@
 <!-- Your existing scripts remain unchanged -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        let ticketStatusChart, callDurationChart, ticketProgressChart;
+        let isSubmitting = false; // Add flag to prevent multiple submissions
+
         const workReportForm = document.getElementById('workReportForm');
         const workReportResults = document.getElementById('workReportResults');
         const loadingOverlay = document.getElementById('loadingOverlay');
-        let ticketStatusChart, callDurationChart, ticketProgressChart;
 
         function showLoading() {
             loadingOverlay.style.display = 'flex';
@@ -216,7 +218,7 @@
             });
         }
 
-        // Format duration function
+
         function formatDuration(totalSeconds) {
             const hours = Math.floor(totalSeconds / 3600);
             const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -269,71 +271,68 @@
         }
 
         // Form submit event listener
-        if (workReportForm) {
-            workReportForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                console.log('Form submitted');
+        function handleFormSubmit(e) {
+            if (e) e.preventDefault();
+            if (isSubmitting) return; // Prevent multiple submissions
 
-                const formData = new FormData(workReportForm);
-                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            console.log('Form submitted');
+            const formData = new FormData(workReportForm);
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-                if (!formData.get('start_date') || !formData.get('end_date')) {
-                    alert('Please select both start and end dates');
-                    return;
+            if (!formData.get('start_date') || !formData.get('end_date')) {
+                alert('Please select both start and end dates');
+                return;
+            }
+
+            isSubmitting = true;
+            showLoading();
+
+            fetch('/generate-work-report/', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Network response was not ok');
+                    });
                 }
-
-                showLoading();
-
-                fetch('/generate-work-report/', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': csrfToken
-                    },
-                    credentials: 'same-origin'
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || 'Network response was not ok');
-                        });
+                return response.json();
+            })
+            .then(data => {
+                hideLoading();
+                console.log('Response data:', data);
+                if (data.status === 'success') {
+                    workReportResults.style.display = 'block';
+                    if (!ticketStatusChart) {
+                        initializeCharts();
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    hideLoading();
-                    console.log('Response data:', data);
-                    if (data.status === 'success') {
-                        workReportResults.style.display = 'block';
-                        if (!ticketStatusChart) {
-                            initializeCharts();
-                        }
-                        updateCharts(data.data);
-                    } else {
-                        throw new Error(data.message || 'Unknown error');
-                    }
-                })
-                .catch(error => {
-                    hideLoading();
-                    console.error('Error:', error);
-                    alert('An error occurred while generating the report: ' + error.message);
-                });
+                    updateCharts(data.data);
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while generating the report: ' + error.message);
+            })
+            .finally(() => {
+                isSubmitting = false;
+                hideLoading();
             });
-        } else {
-            console.error('Work report form not found!');
         }
-    });
 
-    // Add this function after the existing DOMContentLoaded listener
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set default date range from 1st of current month to today
+        // Set default date range function
         function setCurrentMonthToTodayDateRange() {
             const now = new Date();
             const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-            // Format dates to YYYY-MM-DD
             const formatDate = (date) => {
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -341,7 +340,6 @@
                 return `${year}-${month}-${day}`;
             };
 
-            // Set the input values
             const startDateInput = document.getElementById('start_date');
             const endDateInput = document.getElementById('end_date');
 
@@ -349,15 +347,21 @@
                 startDateInput.value = formatDate(firstDayOfMonth);
                 endDateInput.value = formatDate(today);
 
-                // Trigger form submission
-                const form = document.getElementById('workReportForm');
-                if (form) {
-                    form.dispatchEvent(new Event('submit'));
-                }
+                // Use setTimeout to ensure form is fully initialized
+                setTimeout(() => {
+                    handleFormSubmit();
+                }, 100);
             }
         }
 
-        // Call the function to set default date range and trigger report generation
+        // Initialize event listeners
+        if (workReportForm) {
+            workReportForm.addEventListener('submit', handleFormSubmit);
+        } else {
+            console.error('Work report form not found!');
+        }
+
+        // Set initial date range and trigger first report
         setCurrentMonthToTodayDateRange();
     });
 </script>
