@@ -13,13 +13,14 @@ from django.db.models import Max
 from django.contrib import auth, messages
 from django.shortcuts import render, redirect,HttpResponse
 from django.db import IntegrityError
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta,datetime
 import json
-from django.utils import timezone
 import pytz
 from django.db.models import Count, Sum
+from django.utils import timezone
+from django.contrib.sessions.models import Session
+from django.template.loader import render_to_string
 
 
 # Activate the Asia/Kolkata timezone
@@ -355,11 +356,6 @@ def employees_by_skill(request, skill):
     employees = EmployeeProfile.objects.filter(skill=skill, user__in=logged_in_users, is_on_break=False)
     return render(request, 'employee_by_level&skill.html', {'employees': employees, 'filter_type': skill})
 
-from django.utils import timezone
-from django.contrib.sessions.models import Session
-from django.template.loader import render_to_string
-from django.http import JsonResponse
-
 
 @login_required
 def create_ticket(request):
@@ -553,24 +549,35 @@ def assign_ticket(request, ticket_id):
             'environment': ticket.environment,
             'priority': ticket.priority,
             'assigned_to': ticket.assigned_to,
-            # Explicitly set note to empty
             'note': ''
         }
         # Initialize form with modified ticket data
         form = TicketForm(initial=ticket_data, instance=ticket, is_assign=True)
 
-    logged_in_users = User.objects.filter(is_active=True).exclude(id=request.user.id)
+        # Get all users with their active status
+        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+        active_user_ids = [int(session.get_decoded().get('_auth_user_id'))
+                           for session in active_sessions]
+
+        # Get all users for the current group/skill
+        all_users = User.objects.filter(
+            is_active=True,
+            employeeprofile__skill=ticket.group
+        ).exclude(id=request.user.id)
+
+        # Split users into active and non-active
+        active_users = all_users.filter(id__in=active_user_ids)
+        non_active_users = all_users.exclude(id__in=active_user_ids)
 
     return render(request, 'assign_ticket.html', {
         'ticket': ticket,
         'form': form,
-        'logged_in_users': logged_in_users
+        'active_users': active_users,
+        'non_active_users': non_active_users
     })
 
 
 
-
-from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 @login_required
 def update_ticket_status(request):
@@ -995,18 +1002,28 @@ def clear_notification(request):
 @login_required
 def filter_users_by_group(request):
     group = request.GET.get('group')
+    if not group:
+        return JsonResponse({'users': []})
 
-    if group:
-        # Fetch logged-in users with the selected skill
-        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
-        user_ids = [session.get_decoded().get('_auth_user_id') for session in active_sessions]
-        logged_in_users = User.objects.filter(id__in=user_ids, is_active=True, employeeprofile__skill=group)
+    # Get active session user IDs
+    active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    active_user_ids = [int(session.get_decoded().get('_auth_user_id'))
+                      for session in active_sessions]
 
-        # Prepare the data to return as JSON
-        users_data = [{'id': user.id, 'username': user.username} for user in logged_in_users]
-        return JsonResponse({'users': users_data})
+    # Get all users for the selected group
+    users = User.objects.filter(
+        is_active=True,
+        employeeprofile__skill=group
+    ).exclude(id=request.user.id)
 
-    return JsonResponse({'users': []})
+    users_data = [{
+        'id': user.id,
+        'username': user.username,
+        'full_name': user.get_full_name(),
+        'is_active': user.id in active_user_ids
+    } for user in users]
+
+    return JsonResponse({'users': users_data})
 
 from django.db import models  # <-- Add this import
 from datetime import datetime, time, timedelta
@@ -1445,9 +1462,12 @@ def update_ticket(request, ticket_id):
                 call_duration=timedelta(seconds=float(call_duration_seconds)) if call_duration_seconds else None
             )
 
+        ticket.reset_acknowledgment()
+
         # Update the ticket fields
         ticket.subject = subject
         ticket.priority = priority
+        ticket.assigned_by=request.user
 
         if assigned_to_id:
             assigned_user = get_object_or_404(User, id=assigned_to_id)
@@ -1985,6 +2005,47 @@ def on_duty_action(request, request_id):
     return redirect(f"{reverse('on_duty_list')}?tab=team-requests")
 
 
+@login_required
+def search_ticket_new(request, ticket_id):
+    try:
+        ticket = Ticket.objects.get(ticket_id=ticket_id)
+        return JsonResponse({
+            'success': True,
+            'ticket': {
+                'subject': ticket.subject,
+                'priority': ticket.priority,
+                'status': ticket.status,
+                'group': ticket.group,
+            }
+        })
+    except Ticket.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Ticket not found'
+        })
 
 
+@login_required
+def update_ticket_new(request, ticket_id):
+    if request.method == 'POST':
+        try:
+            ticket = Ticket.objects.get(ticket_id=ticket_id)
+            ticket.priority = request.POST.get('priority', ticket.priority)
+            ticket.status = request.POST.get('status', ticket.status)
+            ticket.group = request.POST.get('group', ticket.group)
+            ticket.save()
 
+            return JsonResponse({
+                'success': True,
+                'message': 'Ticket updated successfully'
+            })
+        except Ticket.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'message': 'Ticket not found'
+            })
+
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    })

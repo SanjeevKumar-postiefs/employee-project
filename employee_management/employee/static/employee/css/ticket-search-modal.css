@@ -1,0 +1,67 @@
+/* Modal Animation Keyframes */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Modal Styles */
+#searchTicketModal {
+    display: block;
+    visibility: visible;
+    transition: all 0.2s ease-in-out;
+}
+
+#searchTicketModal.hidden {
+    display: none;
+    visibility: hidden;
+}
+
+#searchTicketModal:not(.hidden) {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+#searchTicketModal .modal-content {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Form Styling */
+.search-input {
+    transition: all 0.2s ease-in-out;
+    border: 2px solid #e5e7eb;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Dropdown Styling */
+.search-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1em;
+}
+
+/* Button Styling */
+.update-btn {
+    transition: all 0.2s ease-in-out;
+}
+
+.update-btn:hover {
+    transform: translateY(-1px);
+}
+
+.update-btn:active {
+    transform: translateY(0);
+}

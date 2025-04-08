@@ -1,4 +1,4 @@
-// employee/static/employee/js/call-modal.js
+
 
 document.addEventListener('DOMContentLoaded', function() {
     // Global variables
@@ -257,18 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchButton = document.getElementById('search-ticket');
 
     // Modal event listeners
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
-    });
 
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                modal.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-            }
-        });
-    }
+
+
 
     // Prevent form submission on enter key for ticket search
     const ticketIdInput = document.getElementById('ticket-id');

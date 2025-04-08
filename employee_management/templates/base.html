@@ -11,6 +11,7 @@
     <link href="{% static 'css/output.css' %}" rel="stylesheet">
     <link href="{% static 'employee/css/ticket-modal.css' %}" rel="stylesheet">
     <link href="{% static 'employee/css/call-modal.css' %}" rel="stylesheet">
+    <link href="{% static 'employee/css/ticket-search-modal.css' %}" rel="stylesheet">
     <!-- Scripts -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -18,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{% static 'employee/js/ticket-modal.js' %}" defer></script>
     <script src="{% static 'employee/js/call-modal.js' %}" defer></script>
+    <script src="{% static 'employee/js/ticket-search.js' %}" defer></script>
 
 
 
@@ -112,7 +114,7 @@
     </div>
 
     <!-- Client Call Modal -->
-<div id="clientCallModal" class="hidden fixed inset-0 z-50 overflow-hidden backdrop-blur-sm bg-black/30">
+<div id="clientCallModal" class="hidden fixed inset-0 z-[9999] overflow-hidden backdrop-blur-sm bg-black/30">
     <div class="relative w-full max-w-2xl mx-auto my-10 rounded-xl shadow-2xl">
         <!-- Static Header - Always visible -->
         <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 rounded-t-xl sticky top-0 z-10">
@@ -281,6 +283,18 @@
                                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
 
+                            <!-- Note -->
+                            <div class="form-group">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Note
+                                </label>
+                                <textarea id="client_call_note" name="client_call_note" rows="4"
+                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
+                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                          placeholder="Enter note about the ticket"></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-2 w-1/2 gap-x-4 mb-2" style="width:50%;">
                             <!-- Assigned To -->
                             <div class="form-group">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -307,17 +321,8 @@
                                     <option value="urgent">Urgent</option>
                                 </select>
                             </div>
-
-                            <!-- Note -->
-                            <div class="form-group">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    Note
-                                </label>
-                                <textarea id="client_call_note" name="client_call_note" rows="4"
-                                          class="w-full px-3 py-2 border border-gray-200 rounded-lg
-                                                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder="Enter note about the ticket"></textarea>
                             </div>
+
 
                             <!-- Submit Button -->
                             <div class="flex justify-end pt-3">
@@ -334,6 +339,104 @@
         </div>
     </div>
 </div>
+</div>
+
+
+<!-- Search Ticket Modal -->
+<div id="searchTicketModal" class="fixed inset-0 bg-black/40 overflow-y-auto h-full w-full hidden z-50 transition-all duration-300">
+    <div class="modal-content relative top-20 mx-auto p-6 border-0 w-96 rounded-xl bg-white transform transition-all">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <i class="ph ph-magnifying-glass text-blue-500"></i>
+                Search Ticket
+            </h3>
+            <button onclick="closeSearchModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                <i class="ph ph-x text-2xl"></i>
+            </button>
+        </div>
+
+        <!-- Search Form -->
+        <form id="searchTicketForm" class="space-y-5">
+            <!-- Search Input -->
+            <div class="form-group">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Ticket ID
+                </label>
+                <div class="flex gap-2">
+                    <input type="text" id="search-ticket-id"
+                           class="search-input flex-1 px-4 py-2.5 rounded-lg text-gray-700 bg-gray-50 focus:bg-white"
+                           placeholder="Enter ticket ID">
+                    <button type="button"
+                            onclick="searchTicket()"
+                            class="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+                                   focus:outline-none focus:ring-4 focus:ring-blue-500/50 font-medium
+                                   flex items-center gap-2">
+                        <i class="ph ph-magnifying-glass"></i>
+                        Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Ticket Details -->
+            <div id="search-ticket-details" class="hidden space-y-5">
+                <!-- Subject -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <input type="text" id="search-subject" readonly
+                           class="w-full px-4 py-2.5 rounded-lg bg-gray-50 text-gray-600 border-2 border-gray-200">
+                </div>
+
+                <!-- Group -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Group</label>
+                    <select id="search-group"
+                            class="search-select w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 bg-white">
+                        <option value="Linux">Linux</option>
+                        <option value="Windows">Windows/Azure</option>
+                        <option value="AWS">Network/AWS</option>
+                        <option value="LEVELONE">Level One</option>
+                        <option value="OCI">OCI</option>
+                    </select>
+                </div>
+
+                <!-- Status -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select id="search-status"
+                            class="search-select w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 bg-white">
+                        <option value="open">Open</option>
+                        <option value="pending">Pending</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                        <option value="waiting_on_customer">Waiting on Customer</option>
+                        <option value="initial_response">Initial Response</option>
+                        <option value="on_hold">On Hold</option>
+                    </select>
+                </div>
+
+                <!-- Priority -->
+                <div class="form-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                    <select id="search-priority"
+                            class="search-select w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 focus:border-blue-500 bg-white">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+
+                <!-- Update Button -->
+                <button type="button" onclick="updateTicket()"
+                        class="update-btn w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+                               focus:outline-none focus:ring-4 focus:ring-blue-500/50 font-medium">
+                    Update Ticket
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>

@@ -64,5 +64,7 @@ urlpatterns=[
     path('on-duty/request/', views.on_duty_request, name='on_duty_request'),
     path('on-duty/list/', views.on_duty_list, name='on_duty_list'),
     path('on-duty/action/<int:request_id>/', views.on_duty_action, name='on_duty_action'),
+    path('tickets/search_new/<str:ticket_id>/', views.search_ticket_new, name='search_ticket'),
+    path('tickets/update_new/<str:ticket_id>/', views.update_ticket_new, name='update_ticket'),
 
 ]

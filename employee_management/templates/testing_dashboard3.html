@@ -1079,7 +1079,7 @@ td[data-status="on_hold"] {
           <th class="border p-1 w-64">Subject</th>
           <th class="border p-1 w-5">Priority</th>
           <th class="border p-1 w-6">Status</th>
-          <th class="border p-1 w-3">Assigner</th>
+          <th class="border p-1 w-3">Assigned By</th>
           <th class="border p-1 w-6">Ticket Age</th>
           <th class="border p-1 w-6">Total Effort</th>
           <th class="border p-1 w-2">Indiv Effort</th>
@@ -1158,8 +1158,6 @@ td[data-status="on_hold"] {
                     {{ ticket.time_spent|format_duration }}
                 </span>
             </td>
-
-            <!-- Replace your existing Individual Spent column with this -->
             <td class="border px-2 py-1 text-center time-column individual-time {% if ticket.has_exceeded_time_limit and not ticket.status_changed %}exceeded priority-{{ ticket.priority|lower }}{% endif %}">
                 <span id="individual-timer-{{ ticket.id }}"
                       class="timer-span"
@@ -1248,7 +1246,7 @@ td[data-status="on_hold"] {
                 <a href="{% url 'view_ticket_notes_all' ticket.id %}"
                    onclick="return window.ticketActions.checkAcknowledgment('{{ ticket.id }}', 'notes')"
                  class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-1 focus:ring-blue-300 font-medium text-sm px-5 py-2.5 me-2 mb-2">
-                all notes
+                All Notes
               </a>
             </td>
           </tr>
@@ -1556,14 +1554,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Close dropdowns when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('.dropdown')) {
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                    menu.classList.add('hidden');
-                });
-            }
-        });
+<!--        // Close dropdowns when clicking outside-->
+<!--        document.addEventListener('click', function(e) {-->
+<!--            if (!e.target.closest('.dropdown')) {-->
+<!--                document.querySelectorAll('.dropdown-menu').forEach(menu => {-->
+<!--                    menu.classList.add('hidden');-->
+<!--                });-->
+<!--            }-->
+<!--        });-->
     }
 
     function getStatusAbbreviation(status) {

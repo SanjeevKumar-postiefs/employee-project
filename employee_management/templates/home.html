@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 {% load duration_filters %}
+{% load custom_filters %}
 {% csrf_token %}
 {% block content %}
 
 <!-- Main Content -->
 <div class="p-1 content-area">
-<div class="ml-0  px-5 bg-white text-black min-h-screen relative z-10">
+<div class="ml-0  px-5 bg-white text-black min-h-screen relative ">
     {% if user.is_authenticated %}
         <div class="flex justify-between items-center flex-wrap gap-4">
             <h1 class="text-2xl font-bold text-gray-800 m-3">Tickets Overview</h1>
@@ -87,11 +88,11 @@
                                                     </div>
                                                 </td>
                                                 <td class="px-4 py-3" id="ticket-status-{{ user_tickets.latest_ticket.id }}">
-                                                    {{ user_tickets.latest_ticket.status }}
+                                                    {{ user_tickets.latest_ticket.status|status_abbreviation }}
                                                 </td>
                                                 <td class="px-4 py-3">
                                                     <span class="priority-badge priority-{{ user_tickets.latest_ticket.priority|lower }}">
-                                                        {{ user_tickets.latest_ticket.priority|title }}
+                                                        {{ user_tickets.latest_ticket.priority|priority_abbreviation }}
                                                     </span>
                                                 </td>
                                                 <td class="px-4 py-3 time-column total-time {% if user_tickets.latest_ticket.has_exceeded_time_limit %}priority-{{ user_tickets.latest_ticket.priority|lower }}{% endif %}">
@@ -163,10 +164,10 @@
                                                             {{ ticket.subject }}
                                                         </div>
                                                     </td>
-                                                    <td class="px-4 py-3" id="ticket-status-{{ ticket.id }}">{{ ticket.status }}</td>
+                                                    <td class="px-4 py-3" id="ticket-status-{{ ticket.id }}">{{ ticket.status|status_abbreviation }}</td>
                                                     <td class="px-4 py-3">
                                                         <span class="priority-badge priority-{{ ticket.priority|lower }}">
-                                                            {{ ticket.priority|title }}
+                                                            {{ ticket.priority|priority_abbreviation }}
                                                         </span>
                                                     </td>
                                                     <td class="px-4 py-3 time-column total-time {% if ticket.has_exceeded_time_limit %}priority-{{ ticket.priority|lower }}{% endif %}">
@@ -403,6 +404,65 @@
     .overflow-x-auto {
         overflow-x: auto;
     }
+
+
+
+    /* Priority Colors */
+td[data-priority="urgent"] {
+    background-color: #ef4444 !important; /* red-500 */
+    color: white !important;
+}
+
+td[data-priority="high"] {
+    background-color: #f97316 !important; /* orange-500 */
+    color: white !important;
+}
+
+td[data-priority="medium"] {
+    background-color: #facc15 !important; /* yellow-400 */
+    color: #713f12 !important; /* yellow-900 */
+}
+
+td[data-priority="low"] {
+    background-color: #22c55e !important; /* green-500 */
+    color: white !important;
+}
+
+/* Status Colors */
+td[data-status="open"] {
+    background-color: #ff9800 !important; /* Orange */
+    color: white !important;
+}
+
+td[data-status="pending"] {
+    background-color: #dc3545 !important; /* Red */
+    color: white !important;
+}
+
+td[data-status="resolved"] {
+    background-color: #007bff !important; /* Blue */
+    color: white !important;
+}
+
+td[data-status="closed"] {
+    background-color: #007bff !important; /* Blue */
+    color: white !important;
+}
+
+td[data-status="waiting_on_customer"] {
+    background-color: #ffc107 !important; /* Yellow */
+    color: white !important;
+}
+
+td[data-status="initial_response"] {
+    background-color: #28a745 !important; /* Green */
+    color: white !important;
+}
+
+td[data-status="on_hold"] {
+    background-color: #ffc107 !important; /* Yellow */
+    color: white !important;
+}
 </style>
 
 <!-- Keep all your original scripts unchanged -->

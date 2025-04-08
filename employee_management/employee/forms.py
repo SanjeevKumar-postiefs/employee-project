@@ -133,6 +133,8 @@ class TicketForm(forms.ModelForm):
         is_assign = kwargs.pop('is_assign', False)  # Add this parameter
         group = kwargs.pop('group', None)
         super().__init__(*args, **kwargs)
+        self.fields['status'].choices = [('', 'Status')] + list(self.fields['status'].choices)
+        self.fields['group'].choices = [('', 'Group')] + list(self.fields['group'].choices)
 
         # Make fields optional during assignment
         if is_assign:
@@ -140,14 +142,10 @@ class TicketForm(forms.ModelForm):
             self.fields['subject'].required = False
             self.fields['environment'].required = False
 
-        active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
-        user_ids = [session.get_decoded().get('_auth_user_id') for session in active_sessions]
-        logged_in_users = User.objects.filter(id__in=user_ids, is_active=True, employeeprofile__is_on_break=False)
-
         if group:
-            self.fields['assigned_to'].queryset = logged_in_users.filter(employeeprofile__skill=group)
+            self.fields['assigned_to'].queryset = User.objects.filter(employeeprofile__skill=group)
         else:
-            self.fields['assigned_to'].queryset = logged_in_users
+            self.fields['assigned_to'].queryset = User.objects.all()
 
 
 class OnDutyRequestForm(forms.ModelForm):
