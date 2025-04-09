@@ -1447,6 +1447,13 @@ def update_ticket(request, ticket_id):
     if request.method == "POST":
         ticket = get_object_or_404(Ticket, ticket_id=ticket_id)
 
+        # Check if there's an active timer or call
+        if ticket.is_active or ticket.call_in_progress:
+            return JsonResponse({
+                "success": False,
+                "message": "Cannot update ticket while timer or call is active. Please stop the timer and end any ongoing calls first."
+            }, status=400)
+
         # Get data from the form submission
         subject = request.POST.get("subject")
         assigned_to_id = request.POST.get("assigned_to")
@@ -1462,7 +1469,7 @@ def update_ticket(request, ticket_id):
                 call_duration=timedelta(seconds=float(call_duration_seconds)) if call_duration_seconds else None
             )
 
-        ticket.reset_acknowledgment()
+
 
         # Update the ticket fields
         ticket.subject = subject
@@ -1472,6 +1479,7 @@ def update_ticket(request, ticket_id):
         if assigned_to_id:
             assigned_user = get_object_or_404(User, id=assigned_to_id)
             ticket.assigned_to = assigned_user
+            ticket.reset_acknowledgment()
 
         # Create a new ClientCallNote
         if client_call_note:
@@ -2009,6 +2017,15 @@ def on_duty_action(request, request_id):
 def search_ticket_new(request, ticket_id):
     try:
         ticket = Ticket.objects.get(ticket_id=ticket_id)
+
+        # Check if there's an active timer or call
+        if ticket.is_active or ticket.call_in_progress:
+            return JsonResponse({
+                'success': False,
+                'message': 'Cannot update ticket while timer or call is active. Please stop the timer and end any ongoing calls first.',
+                'has_active_session': True
+            })
+
         return JsonResponse({
             'success': True,
             'ticket': {
@@ -2030,6 +2047,14 @@ def update_ticket_new(request, ticket_id):
     if request.method == 'POST':
         try:
             ticket = Ticket.objects.get(ticket_id=ticket_id)
+
+            # Check if there's an active timer or call
+            if ticket.is_active or ticket.call_in_progress:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Cannot update ticket while timer or call is active. Please stop the timer and end any ongoing calls first.'
+                })
+
             ticket.priority = request.POST.get('priority', ticket.priority)
             ticket.status = request.POST.get('status', ticket.status)
             ticket.group = request.POST.get('group', ticket.group)

@@ -32,6 +32,18 @@ function searchTicket() {
     const ticketId = document.getElementById('search-ticket-id').value;
     const searchInput = document.getElementById('search-ticket-id');
 
+    // Check if there's an active timer or call
+    if (window.ticketActions && window.ticketActions.checkTicketActivity(ticketId)) {
+        Swal.fire({
+            title: 'Active Session',
+            text: 'This ticket has an active timer or call. Please stop the timer and end any ongoing calls before making updates.',
+            icon: 'warning',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Ok'
+        });
+        return;
+    }
+
     // Add loading state
     searchInput.classList.add('opacity-50');
     searchInput.disabled = true;
@@ -56,7 +68,7 @@ function searchTicket() {
                 }, 50);
             } else {
                 Swal.fire({
-                    title: 'Not Found',
+                    title: 'Error',
                     text: data.message,
                     icon: 'error',
                     customClass: {
@@ -82,6 +94,19 @@ function searchTicket() {
 
 function updateTicket() {
     const ticketId = document.getElementById('search-ticket-id').value;
+
+    // Check if there's an active timer or call
+    if (window.ticketActions && window.ticketActions.checkTicketActivity(ticketId)) {
+        Swal.fire({
+            title: 'Active Session',
+            text: 'This ticket has an active timer or call. Please stop the timer and end any ongoing calls before making updates.',
+            icon: 'warning',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Ok'
+        });
+        return;
+    }
+
     const updateBtn = document.querySelector('.update-btn');
     const formData = new FormData();
 

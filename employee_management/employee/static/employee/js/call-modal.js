@@ -1,29 +1,96 @@
-
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Global variables
+    // Keep existing variable declarations
     let callStartTime = null;
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // Make functions globally accessible
-    window.openModal = function() {
-        const modal = document.getElementById('clientCallModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            startNewCall();
-        }
+    // Add new modal handling functions
+    window.toggleCallDropdown = function(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('newCallDropdown');
+        dropdown.classList.toggle('hidden');
     };
 
-    window.closeModal = function() {
-        const modal = document.getElementById('clientCallModal');
-        if (modal) {
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto';
-            resetForms();
-            resetModal();
-            endNewCall();
+    window.openNewQueryModal = function(event) {
+        event.stopPropagation();
+        document.getElementById('newCallDropdown').classList.add('hidden');
+        const modal = document.getElementById('newQueryModal');
+        modal.style.display = 'block';
+        // Show the new query form section
+        document.getElementById('newQuerySection').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        startNewCall();
+    };
+
+    window.openExistingQueryModal = function(event) {
+        event.stopPropagation();
+        document.getElementById('newCallDropdown').classList.add('hidden');
+        const modal = document.getElementById('existingQueryModal');
+        modal.style.display = 'block';
+        // Show the existing query form section
+        document.getElementById('existingQuerySection').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        startNewCall();
+    };
+
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (!modal) return;
+
+        // Hide the modal
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+
+        // Reset forms based on which modal is being closed
+        if (modalId === 'newQueryModal') {
+            // Reset new query form
+            const newQueryForm = document.querySelector('#newQueryModal form');
+            if (newQueryForm) {
+                newQueryForm.reset();
+            }
+
+            // Reset client email section
+            const clientEmail = document.getElementById('clientEmail');
+            if (clientEmail) {
+                clientEmail.style.display = 'none';
+            }
+
+            // Reset submit button
+            const submitBtn = document.getElementById('newQuerySubmitBtn');
+            if (submitBtn) {
+                submitBtn.textContent = 'Save';
+                submitBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                submitBtn.classList.add('bg-blue-500', 'hover:bg-blue-800');
+            }
+
+        } else if (modalId === 'existingQueryModal') {
+            // Reset existing query form
+            const existingQueryForm = document.querySelector('#existingQueryModal form');
+            if (existingQueryForm) {
+                existingQueryForm.reset();
+            }
+
+            // Hide ticket details form
+            const ticketDetails = document.getElementById('existingQueryTicketDetailsForm');
+            if (ticketDetails) {
+                ticketDetails.classList.add('hidden');
+            }
+
+            // Reset input fields
+            const ticketId = document.getElementById('ticket-id');
+            const subject = document.getElementById('ticket-details-subject');
+            const clientCallNote = document.getElementById('client_call_note');
+            const assignedTo = document.getElementById('assigned-to');
+            const priority = document.getElementById('priority');
+
+            if (ticketId) ticketId.value = '';
+            if (subject) subject.value = '';
+            if (clientCallNote) clientCallNote.value = '';
+            if (assignedTo) assignedTo.value = '';
+            if (priority) priority.value = '';
         }
+
+        // End the call
+        endNewCall();
     };
 
     window.showSection = function(type) {
@@ -256,11 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const emailFields = document.getElementById('emailFields');
     const searchButton = document.getElementById('search-ticket');
 
-    // Modal event listeners
-
-
-
-
     // Prevent form submission on enter key for ticket search
     const ticketIdInput = document.getElementById('ticket-id');
     if (ticketIdInput) {
@@ -425,6 +487,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 const ticketId = document.getElementById('ticket-id').value;
+                if (window.isTicketActive && window.isTicketActive(ticketId)) {
+                    Swal.fire({
+                        title: 'Active Timer/Call',
+                        text: 'Please stop the timer and end any ongoing calls before updating the ticket.',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'Ok'
+                    });
+                    return;
+                }
                 const updateResponse = await fetch(`/tickets/update/${ticketId}/`, {
                     method: 'POST',
                     headers: { 'X-CSRFToken': csrfToken },
@@ -441,6 +513,63 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error updating ticket');
+            }
+        });
+    }
+
+
+    // Add this right after your other event listeners
+    const updateTicketForm = document.getElementById('updateTicketForm');
+    if (updateTicketForm) {
+        updateTicketForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            try {
+                const ticketId = document.getElementById('ticket-id').value;
+
+                // Check for active timer/call
+                if (window.isTicketActive && window.isTicketActive(ticketId)) {
+                    Swal.fire({
+                        title: 'Active Timer/Call',
+                        text: 'Please stop the timer and end any ongoing calls before updating the ticket.',
+                        icon: 'warning',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'Ok'
+                    });
+                    return;
+                }
+
+                const endCallResponse = await fetch('/end-new-call/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => response.json());
+
+                const formData = new FormData(this);
+                if (endCallResponse.status === 'success' && endCallResponse.call_duration) {
+                    formData.append('call_duration_seconds', endCallResponse.call_duration);
+                }
+
+                const updateResponse = await fetch(`/tickets/update/${ticketId}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfToken },
+                    body: formData
+                }).then(response => response.json());
+
+                if (updateResponse.success) {
+                    alert('Ticket updated successfully');
+                    closeModal();
+                    window.location.reload();
+                } else {
+                    throw new Error(updateResponse.message || 'Failed to update ticket');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating ticket');
+                closeModal('existingQueryModal');
+                window.location.reload();
             }
         });
     }

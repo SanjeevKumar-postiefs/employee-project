@@ -24,9 +24,32 @@
 <nav class="navbar bg-white shadow-lg p-2 flex justify-end gap-4 items-center">
     <div class="flex space-x-4">
         {% if request.user.is_authenticated %}
-         <a href="#" onclick="openModal()" class="hover:text-gray-500 flex items-center">
-            <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
-        </a>
+         <div class="flex items-center space-x-4 cursor-pointer">
+            <div class="relative">
+                <!-- Button to toggle dropdown -->
+                <div class="flex items-center justify-between gap-x-1" onclick="toggleCallDropdown(event)">
+                    <i class="ph ph-phone"></i> <span class="ml-2">New Call</span>
+                </div>
+
+                <!-- Dropdown Menu -->
+                <div class="absolute top-6 right-0 hidden bg-white shadow-md rounded-md mt-2 z-50" id="newCallDropdown">
+                    <ul class="py-1 min-w-[160px]">
+                        <li class="py-2 hover:bg-gray-200" onclick="openNewQueryModal(event)">
+                            <a class="cursor-pointer text-gray-700 px-4 flex items-center gap-x-2 whitespace-nowrap">
+                                <i class="ph ph-plus"></i>
+                                <span>New Query</span>
+                            </a>
+                        </li>
+                        <li class="py-2 hover:bg-gray-200" onclick="openExistingQueryModal(event)">
+                            <a class="cursor-pointer text-gray-700 px-4 flex items-center gap-x-2 whitespace-nowrap">
+                                <i class="ph ph-envelope-simple-open"></i>
+                                <span>Existing Query</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
         <button onclick="openCreateTicketModal()" class="hover:text-gray-500 flex items-center" type="button">
             <i class="ph ph-plus-circle"></i> <span class="ml-2">Create Ticket</span>
         </button>
@@ -86,17 +109,36 @@
 </nav>
 
 <script>
+// Update your JavaScript with this fixed version
+function toggleCallDropdown(event) {
+    event.stopPropagation(); // Prevent event from bubbling up
+    const dropdown = document.getElementById('newCallDropdown');
+    dropdown.classList.toggle('hidden');
+}
+
+// Add this function to handle document click
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle clicks outside of dropdowns
+    document.addEventListener('click', function(event) {
+        // Profile dropdown
+        const dropdownButton = document.getElementById('dropdownButton');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+        if (dropdownMenu && !dropdownButton?.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+
+        // New call dropdown
+        const newCallDropdown = document.getElementById('newCallDropdown');
+        const newCallButton = event.target.closest('[onclick="toggleCallDropdown(event)"]');
+        if (newCallDropdown && !newCallButton && !newCallDropdown.contains(event.target)) {
+            newCallDropdown.classList.add('hidden');
+        }
+    });
+});
+
+// Update your toggleDropdown function
 function toggleDropdown() {
     const dropdownMenu = document.getElementById('dropdownMenu');
     dropdownMenu.classList.toggle('show');
-
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(event) {
-        const dropdownButton = document.getElementById('dropdownButton');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-        }
-    });
 }
 </script>

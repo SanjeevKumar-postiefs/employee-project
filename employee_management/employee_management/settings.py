@@ -167,7 +167,7 @@ DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
 from django.contrib.messages import constants as message_constants
 
 MESSAGE_TAGS = {
-    message_constants.ERROR: 'danger',  # To style error messages as Bootstrap "danger"
+    message_constants.ERROR: 'danger',
 }
 
 
